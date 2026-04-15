@@ -5,34 +5,14 @@ import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
 import {
   LayoutDashboard,
-  Briefcase,
+  FileText,
+  ScrollText,
+  Factory,
   Users,
   LogOut,
   User,
-  Plus,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-
-const navItems = [
-  {
-    href: "/dashboard",
-    label: "Dashboard",
-    icon: <LayoutDashboard size={18} />,
-  },
-  {
-    href: "/opportunities",
-    label: "Opportunities",
-    icon: <Briefcase size={18} />,
-  },
-]
-
-const adminItems = [
-  {
-    href: "/admin/users",
-    label: "Users",
-    icon: <Users size={18} />,
-  },
-]
 
 interface SidebarProps {
   userName: string
@@ -43,10 +23,18 @@ export function Sidebar({ userName, userRole }: SidebarProps) {
   const pathname = usePathname()
   const isAdmin = userRole === "ADMIN"
 
-  const isActive = (href: string) => {
+  function isActive(href: string) {
     if (href === "/dashboard") return pathname === "/dashboard"
-    return pathname.startsWith(href)
+    return pathname === href || pathname.startsWith(href + "/")
   }
+
+  const linkCls = (href: string) =>
+    cn(
+      "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
+      isActive(href)
+        ? "bg-gray-700 text-white"
+        : "text-gray-400 hover:bg-gray-800 hover:text-white"
+    )
 
   return (
     <aside className="w-60 bg-gray-900 text-white flex flex-col h-full fixed top-0 left-0 bottom-0">
@@ -55,35 +43,33 @@ export function Sidebar({ userName, userRole }: SidebarProps) {
         <span className="text-lg font-semibold tracking-tight">Opportunities</span>
       </div>
 
-      {/* New Opportunity — always visible */}
-      <div className="px-3 pt-4 pb-2">
-        <Link
-          href="/opportunities/new"
-          className="flex items-center justify-center gap-2 w-full px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors"
-        >
-          <Plus size={16} />
-          New Opportunity
-        </Link>
-      </div>
-
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
-        {navItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
-              isActive(item.href)
-                ? "bg-gray-700 text-white"
-                : "text-gray-400 hover:bg-gray-800 hover:text-white"
-            )}
-          >
-            {item.icon}
-            {item.label}
-          </Link>
-        ))}
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        <Link href="/dashboard" className={linkCls("/dashboard")}>
+          <LayoutDashboard size={18} />
+          Dashboard
+        </Link>
 
+        {/* Opportunities section */}
+        <div className="pt-4 pb-1 px-3">
+          <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+            Opportunities
+          </span>
+        </div>
+        <Link href="/opportunities" className={linkCls("/opportunities")}>
+          <FileText size={18} />
+          Quotes
+        </Link>
+        <Link href="/els" className={linkCls("/els")}>
+          <ScrollText size={18} />
+          ELs
+        </Link>
+        <Link href="/production" className={linkCls("/production")}>
+          <Factory size={18} />
+          Production
+        </Link>
+
+        {/* Admin section */}
         {isAdmin && (
           <>
             <div className="pt-4 pb-1 px-3">
@@ -91,36 +77,17 @@ export function Sidebar({ userName, userRole }: SidebarProps) {
                 Admin
               </span>
             </div>
-            {adminItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
-                  isActive(item.href)
-                    ? "bg-gray-700 text-white"
-                    : "text-gray-400 hover:bg-gray-800 hover:text-white"
-                )}
-              >
-                {item.icon}
-                {item.label}
-              </Link>
-            ))}
+            <Link href="/admin/users" className={linkCls("/admin/users")}>
+              <Users size={18} />
+              Users
+            </Link>
           </>
         )}
       </nav>
 
       {/* User section */}
       <div className="px-3 py-4 border-t border-gray-800 space-y-1">
-        <Link
-          href="/profile"
-          className={cn(
-            "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
-            isActive("/profile")
-              ? "bg-gray-700 text-white"
-              : "text-gray-400 hover:bg-gray-800 hover:text-white"
-          )}
-        >
+        <Link href="/profile" className={linkCls("/profile")}>
           <User size={18} />
           <div className="min-w-0">
             <div className="text-sm truncate text-white">{userName}</div>

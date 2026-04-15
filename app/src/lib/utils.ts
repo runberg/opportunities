@@ -52,6 +52,9 @@ export const STATUS_LABELS: Record<string, string> = {
   CANCELLED: "Cancelled",
 }
 
+// Statuses available in the Quotes workflow
+export const QUOTE_STATUSES = ["RFQ_RECEIVED", "QUOTE_SENT"] as const
+
 // Grouped for the form dropdown — makes the flow clearer
 export const STATUS_GROUPS = [
   {
@@ -76,7 +79,6 @@ export const STATUS_GROUPS = [
 export const PENDING_LABELS: Record<string, string> = {
   INTERNAL: "Internal",
   CUSTOMER: "Customer",
-  THIRD_PARTY: "Third Party",
   NONE: "—",
 }
 

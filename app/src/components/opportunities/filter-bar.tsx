@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from "react"
 import { Search, ChevronDown, Check, X } from "lucide-react"
 import { cn, STATUS_GROUPS, STATUS_LABELS, PENDING_LABELS } from "@/lib/utils"
 
-const PENDING_OPTIONS = ["INTERNAL", "CUSTOMER", "THIRD_PARTY"] as const
+const PENDING_OPTIONS = ["INTERNAL", "CUSTOMER"] as const
 
 export function FilterBar() {
   const router = useRouter()

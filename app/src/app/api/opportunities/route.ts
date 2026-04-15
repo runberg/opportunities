@@ -10,6 +10,7 @@ const createSchema = z.object({
   customer: z.string().min(1),
   reference: z.string().optional(),
   rfqDate: z.string().optional(),
+  quoteSentDate: z.string().optional(),
   product: z.string().optional(),
   status: z.string().optional(),
   waitingOn: z.string().optional(),
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 })
   }
 
-  const { internalId, title, customer, reference, rfqDate, product, status, waitingOn, description } =
+  const { internalId, title, customer, reference, rfqDate, quoteSentDate, product, status, waitingOn, description } =
     parsed.data
 
   try {
@@ -37,6 +38,7 @@ export async function POST(req: NextRequest) {
         customer,
         reference: reference || null,
         rfqDate: rfqDate ? new Date(rfqDate) : null,
+        quoteSentDate: quoteSentDate ? new Date(quoteSentDate) : null,
         product: product || null,
         status: (status as never) ?? "RFQ_RECEIVED",
         waitingOn: (waitingOn as never) ?? "INTERNAL",

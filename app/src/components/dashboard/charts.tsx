@@ -119,7 +119,6 @@ interface WaitingOnPieProps {
 const WAITING_LABELS: Record<string, string> = {
   INTERNAL: "Internal",
   CUSTOMER: "Customer",
-  THIRD_PARTY: "Third Party",
   NONE: "None",
 }
 

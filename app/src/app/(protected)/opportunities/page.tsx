@@ -53,6 +53,7 @@ export default async function OpportunitiesPage({
     customer: opp.customer,
     reference: opp.reference,
     rfqDate: opp.rfqDate ? formatDate(opp.rfqDate) : null,
+    quoteSentDate: opp.quoteSentDate ? formatDate(opp.quoteSentDate) : null,
     product: opp.product,
     status: opp.status,
     waitingOn: opp.waitingOn,

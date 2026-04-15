@@ -2,13 +2,13 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { MessageSquarePlus } from "lucide-react"
+import { MessageSquarePlus, Plus } from "lucide-react"
 import { StatusBadge, PendingBadge } from "@/components/opportunities/status-badge"
 import { Dialog } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { OpportunityModal } from "@/components/opportunities/opportunity-modal"
-import Link from "next/link"
+import { NewOpportunityModal } from "@/components/opportunities/new-opportunity-modal"
 
 export interface OpportunityRow {
   id: string
@@ -17,6 +17,7 @@ export interface OpportunityRow {
   customer: string
   reference: string | null
   rfqDate: string | null
+  quoteSentDate: string | null
   product: string | null
   status: string
   waitingOn: string
@@ -34,6 +35,8 @@ export function OpportunitiesTable({
 }) {
   const router = useRouter()
   const [openModalId, setOpenModalId] = useState<string | null>(null)
+  const [openModalInitialMode, setOpenModalInitialMode] = useState<"view" | "edit">("view")
+  const [newModalOpen, setNewModalOpen] = useState(false)
   const [commentTarget, setCommentTarget] = useState<OpportunityRow | null>(null)
   const [comment, setComment] = useState("")
   const [submitting, setSubmitting] = useState(false)
@@ -61,6 +64,14 @@ export function OpportunitiesTable({
 
   return (
     <>
+      {/* Toolbar */}
+      <div className="flex items-center justify-end mb-4">
+        <Button onClick={() => setNewModalOpen(true)}>
+          <Plus size={15} className="mr-1.5" />
+          New Opportunity
+        </Button>
+      </div>
+
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-200">
@@ -87,16 +98,20 @@ export function OpportunitiesTable({
               <tr>
                 <td colSpan={7} className="px-4 py-10 text-center text-gray-400">
                   No opportunities found.{" "}
-                  <Link href="/opportunities/new" className="underline">
+                  <button
+                    type="button"
+                    onClick={() => setNewModalOpen(true)}
+                    className="underline"
+                  >
                     Create the first one
-                  </Link>
+                  </button>
                 </td>
               </tr>
             )}
             {opportunities.map((opp) => (
               <tr
                 key={opp.id}
-                onClick={() => setOpenModalId(opp.id)}
+                onClick={() => { setOpenModalInitialMode("view"); setOpenModalId(opp.id) }}
                 className="hover:bg-gray-50 transition-colors cursor-pointer"
               >
                 <td className="px-4 py-3">
@@ -124,18 +139,28 @@ export function OpportunitiesTable({
                   <PendingBadge waitingOn={opp.waitingOn} />
                 </td>
                 <td className="px-2 py-3" onClick={(e) => e.stopPropagation()}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCommentTarget(opp)
-                      setComment("")
-                      setCommentError("")
-                    }}
-                    className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                    title="Add comment"
-                  >
-                    <MessageSquarePlus size={16} />
-                  </button>
+                  <div className="flex items-center gap-1 justify-end">
+                    {opp.quoteSentDate && (
+                      <button
+                        type="button"
+                        className="px-2.5 py-1 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition-colors whitespace-nowrap"
+                      >
+                        Quote Accepted
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCommentTarget(opp)
+                        setComment("")
+                        setCommentError("")
+                      }}
+                      className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                      title="Add comment"
+                    >
+                      <MessageSquarePlus size={16} />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -143,12 +168,26 @@ export function OpportunitiesTable({
         </table>
       </div>
 
+      {/* New opportunity modal */}
+      {newModalOpen && (
+        <NewOpportunityModal
+          onClose={() => setNewModalOpen(false)}
+          onCreated={(newId) => {
+            setNewModalOpen(false)
+            setOpenModalInitialMode("edit")
+            setOpenModalId(newId)
+            router.refresh()
+          }}
+        />
+      )}
+
       {/* Opportunity modal */}
       <OpportunityModal
         opportunityId={openModalId}
-        onClose={() => setOpenModalId(null)}
+        onClose={() => { setOpenModalId(null); router.refresh() }}
         currentUserId={currentUserId}
         isAdmin={isAdmin}
+        initialMode={openModalInitialMode}
       />
 
       {/* Quick comment dialog */}

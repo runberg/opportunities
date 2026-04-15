@@ -1,15 +1,16 @@
 # Opportunities
 
-Internal sales pipeline tracker — follows an opportunity from the first RFQ through quoting, engagement letter, and into production or delivery.
+Internal sales pipeline tracker — follows an opportunity from the first RFQ through quoting, engagement letters, and into production.
 
 Built for small teams on a private network. All data stays on your own server.
 
 ## Features
 
-- **Pipeline tracking** — RFQ Received → Quote Sent → EL stages → Production → Delivered
-- **Opportunity log** — user comments plus automatic system events (status changes, file uploads)
-- **Document management** — upload quotes, ELs, and other files; download at any time
-- **Quote workflow** — upload quote documents and record the date the quote was shared with the customer
+- **Quotes pipeline** — track opportunities from RFQ Received through Quote Sent; ELs and Production coming soon
+- **Modal-based workflow** — create, view, and edit opportunities in a slide-over modal without leaving the list
+- **Document management** — upload and download quote documents per opportunity
+- **Activity log** — user comments plus automatic system events for status changes and file uploads; system events hidden by default
+- **Dashboard** — quote activity KPIs (RFQs received, quotes shared, avg days to quote) with a trend chart and configurable time period
 - **Filtering** — multi-select status and pending filters, full-text search
 - **User management** — admin can create/edit users and assign roles (Admin / User)
 

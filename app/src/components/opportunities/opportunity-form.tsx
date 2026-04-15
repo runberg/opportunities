@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { STATUS_GROUPS, STATUS_LABELS } from "@/lib/utils"
+import { QUOTE_STATUSES, STATUS_LABELS } from "@/lib/utils"
 
 interface OpportunityFormProps {
   mode: "create" | "edit"
@@ -165,14 +165,8 @@ export function OpportunityForm({ mode, initialData = {} }: OpportunityFormProps
             value={form.status}
             onChange={(e) => set("status", e.target.value)}
           >
-            {STATUS_GROUPS.map((group) => (
-              <optgroup key={group.label} label={group.label}>
-                {group.statuses.map((s) => (
-                  <option key={s} value={s}>
-                    {STATUS_LABELS[s]}
-                  </option>
-                ))}
-              </optgroup>
+            {QUOTE_STATUSES.map((s) => (
+              <option key={s} value={s}>{STATUS_LABELS[s]}</option>
             ))}
           </Select>
         </div>
@@ -185,7 +179,6 @@ export function OpportunityForm({ mode, initialData = {} }: OpportunityFormProps
           >
             <option value="INTERNAL">Internal</option>
             <option value="CUSTOMER">Customer</option>
-            <option value="THIRD_PARTY">Third Party</option>
           </Select>
         </div>
       </div>

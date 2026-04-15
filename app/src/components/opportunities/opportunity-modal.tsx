@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { X, Pencil, ChevronLeft } from "lucide-react"
-import { cn, formatDate, formatDateTime, STATUS_GROUPS, STATUS_LABELS, PENDING_LABELS } from "@/lib/utils"
+import { cn, formatDate, QUOTE_STATUSES, STATUS_LABELS } from "@/lib/utils"
 import { StatusBadge, PendingBadge } from "@/components/opportunities/status-badge"
 import { DocumentSection } from "@/components/opportunities/document-section"
 import { QuoteSection } from "@/components/opportunities/quote-section"
@@ -49,6 +49,7 @@ interface EditForm {
   customer: string
   reference: string
   rfqDate: string
+  quoteSentDate: string
   product: string
   status: string
   waitingOn: string
@@ -62,6 +63,7 @@ interface OpportunityModalProps {
   onClose: () => void
   currentUserId: string
   isAdmin: boolean
+  initialMode?: "view" | "edit"
 }
 
 export function OpportunityModal({
@@ -69,12 +71,13 @@ export function OpportunityModal({
   onClose,
   currentUserId,
   isAdmin,
+  initialMode = "view",
 }: OpportunityModalProps) {
   const router = useRouter()
   const [data, setData] = useState<OpportunityFull | null>(null)
   const [loading, setLoading] = useState(false)
   const [fetchError, setFetchError] = useState("")
-  const [mode, setMode] = useState<"view" | "edit">("view")
+  const [mode, setMode] = useState<"view" | "edit">(initialMode)
   const [refreshKey, setRefreshKey] = useState(0)
 
   const [editForm, setEditForm] = useState<EditForm | null>(null)
@@ -143,6 +146,7 @@ export function OpportunityModal({
       customer: data.customer,
       reference: data.reference ?? "",
       rfqDate: data.rfqDate ? data.rfqDate.split("T")[0] : "",
+      quoteSentDate: data.quoteSentDate ? data.quoteSentDate.split("T")[0] : "",
       product: data.product ?? "",
       status: data.status,
       waitingOn: data.waitingOn,
@@ -156,10 +160,18 @@ export function OpportunityModal({
     if (!editForm || !data) return
     setSaving(true)
     setSaveError("")
+
+    // Auto-advance status when quoteSentDate is being set for the first time
+    const payload = { ...editForm }
+    const quoteDateAdded = editForm.quoteSentDate && !data.quoteSentDate
+    if (quoteDateAdded && editForm.status === "RFQ_RECEIVED") {
+      payload.status = "QUOTE_SENT"
+    }
+
     const res = await fetch(`/api/opportunities/${data.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(editForm),
+      body: JSON.stringify(payload),
     })
     setSaving(false)
     if (!res.ok) {
@@ -275,36 +287,43 @@ function ViewMode({
           <div className="flex flex-wrap items-center gap-2 mt-2">
             <StatusBadge status={data.status} />
             <PendingBadge waitingOn={data.waitingOn} />
+            {data.internalId && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 whitespace-nowrap">
+                {data.internalId}
+              </span>
+            )}
+            {data.reference && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 whitespace-nowrap">
+                {data.reference}
+              </span>
+            )}
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={onEdit} className="flex-shrink-0 mt-1">
-          <Pencil size={13} className="mr-1.5" />
-          Edit
-        </Button>
+        <div className="flex items-center gap-2 flex-shrink-0 mt-1">
+          {data.quoteSentDate && (
+            <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white border-0">
+              Quote Accepted
+            </Button>
+          )}
+          <Button variant="outline" size="sm" onClick={onEdit}>
+            <Pencil size={13} className="mr-1.5" />
+            Edit
+          </Button>
+        </div>
       </div>
 
       {/* Info grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-        <InfoCard label="Customer" value={data.customer} />
-        {data.internalId && <InfoCard label="Internal ID" value={data.internalId} />}
-        {data.reference && <InfoCard label="Quote Reference" value={data.reference} />}
-        {data.rfqDate && (
-          <InfoCard label="RFQ Date" value={formatDate(data.rfqDate)} />
-        )}
-        {data.quoteSentDate && (
-          <InfoCard label="Quote Sent" value={formatDate(data.quoteSentDate)} />
-        )}
-        {data.product && (
-          <InfoCard label="Product / Service" value={data.product} wide />
-        )}
-        <InfoCard label="Created by" value={data.createdBy.name} />
-        <InfoCard label="Last updated" value={formatDateTime(data.updatedAt)} />
+        <InfoCard label="Customer" value={data.customer} className="col-span-2 md:col-span-4" />
+        <InfoCard label="Product / Service" value={data.product} className="col-span-2" />
+        <InfoCard label="RFQ Date" value={data.rfqDate ? formatDate(data.rfqDate) : null} />
+        <InfoCard label="Quote Sent" value={data.quoteSentDate ? formatDate(data.quoteSentDate) : null} />
       </div>
 
-      {/* Notes */}
+      {/* Details */}
       {data.description && (
-        <div className="mb-5 p-4 bg-gray-50 border border-gray-200 rounded-xl">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Notes</p>
+        <div className="mb-5 bg-white border border-gray-200 rounded-xl p-4">
+          <p className="text-xs font-medium text-gray-400 mb-2">Details</p>
           <p className="text-sm text-gray-700 whitespace-pre-wrap">{data.description}</p>
         </div>
       )}
@@ -364,21 +383,15 @@ function EditMode({
           placeholder="Opportunity title"
           className="w-full text-2xl font-semibold text-gray-900 bg-transparent border-b-2 border-gray-200 focus:border-gray-900 outline-none pb-1 leading-tight"
         />
-        {/* Status + Pending selects shown inline like badges */}
+        {/* Status + Pending + Internal ID + Quote Ref all inline */}
         <div className="flex flex-wrap items-center gap-2 mt-3">
           <select
             value={form.status}
             onChange={(e) => setField("status", e.target.value)}
             className="px-3 py-1 border border-gray-300 rounded-full text-xs font-medium bg-white focus:outline-none focus:ring-1 focus:ring-gray-400"
           >
-            {STATUS_GROUPS.map((group) => (
-              <optgroup key={group.label} label={group.label}>
-                {group.statuses.map((s) => (
-                  <option key={s} value={s}>
-                    {STATUS_LABELS[s]}
-                  </option>
-                ))}
-              </optgroup>
+            {QUOTE_STATUSES.map((s) => (
+              <option key={s} value={s}>{STATUS_LABELS[s]}</option>
             ))}
           </select>
           <select
@@ -386,16 +399,35 @@ function EditMode({
             onChange={(e) => setField("waitingOn", e.target.value)}
             className="px-3 py-1 border border-gray-300 rounded-full text-xs font-medium bg-white focus:outline-none focus:ring-1 focus:ring-gray-400"
           >
-            <option value="INTERNAL">Pending: Internal</option>
-            <option value="CUSTOMER">Pending: Customer</option>
-            <option value="THIRD_PARTY">Pending: Third Party</option>
+            <option value="INTERNAL">Internal</option>
+            <option value="CUSTOMER">Customer</option>
           </select>
+          <label className="inline-flex items-center gap-1.5 px-3 py-1 border border-gray-300 rounded-full bg-white focus-within:ring-1 focus-within:ring-gray-400 cursor-text">
+            <span className="text-xs text-gray-400 shrink-0">ID</span>
+            <input
+              value={form.internalId}
+              onChange={(e) => setField("internalId", e.target.value)}
+              maxLength={10}
+              placeholder="—"
+              className="text-xs font-medium text-gray-900 bg-transparent outline-none w-14"
+            />
+          </label>
+          <label className="inline-flex items-center gap-1.5 px-3 py-1 border border-gray-300 rounded-full bg-white focus-within:ring-1 focus-within:ring-gray-400 cursor-text">
+            <span className="text-xs text-gray-400 shrink-0">Ref.</span>
+            <input
+              value={form.reference}
+              onChange={(e) => setField("reference", e.target.value)}
+              placeholder="—"
+              className="text-xs font-medium text-gray-900 bg-transparent outline-none w-24"
+            />
+          </label>
         </div>
       </div>
 
-      {/* Info grid with inputs */}
+      {/* Info grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-        <EditCard label="Customer *" required>
+        {/* Row 1: Customer full width */}
+        <EditCard label="Customer *" required className="col-span-2 md:col-span-4">
           <input
             value={form.customer}
             onChange={(e) => setField("customer", e.target.value)}
@@ -403,19 +435,12 @@ function EditMode({
             required
           />
         </EditCard>
-        <EditCard label="Internal ID">
+
+        {/* Row 2: Product 50%, RFQ Date 25%, Quote Sent Date 25% */}
+        <EditCard label="Product / Service" className="col-span-2">
           <input
-            value={form.internalId}
-            onChange={(e) => setField("internalId", e.target.value)}
-            maxLength={10}
-            placeholder="e.g. 0001"
-            className={inputCls}
-          />
-        </EditCard>
-        <EditCard label="Quote Reference">
-          <input
-            value={form.reference}
-            onChange={(e) => setField("reference", e.target.value)}
+            value={form.product}
+            onChange={(e) => setField("product", e.target.value)}
             className={inputCls}
           />
         </EditCard>
@@ -427,32 +452,30 @@ function EditMode({
             className={inputCls}
           />
         </EditCard>
-        <EditCard label="Product / Service" wide>
+        <EditCard label="Quote Sent Date">
           <input
-            value={form.product}
-            onChange={(e) => setField("product", e.target.value)}
+            type="date"
+            value={form.quoteSentDate}
+            onChange={(e) => setField("quoteSentDate", e.target.value)}
             className={inputCls}
           />
         </EditCard>
-      </div>
 
-      {/* Notes */}
-      <div className="mb-5 p-4 bg-gray-50 border border-gray-200 rounded-xl">
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Notes</p>
-        <textarea
-          value={form.description}
-          onChange={(e) => setField("description", e.target.value)}
-          rows={3}
-          placeholder="Additional context, requirements, or background…"
-          className="w-full text-sm text-gray-700 bg-transparent resize-none focus:outline-none placeholder-gray-400"
-        />
+        {/* Row 3: Details full width */}
+        <EditCard label="Details" className="col-span-2 md:col-span-4">
+          <textarea
+            value={form.description}
+            onChange={(e) => setField("description", e.target.value)}
+            rows={3}
+            placeholder="Additional context, requirements, or background…"
+            className="w-full text-sm text-gray-700 bg-transparent resize-none focus:outline-none placeholder-gray-400"
+          />
+        </EditCard>
       </div>
 
       {/* Quote section */}
       <QuoteSection
         opportunityId={data.id}
-        currentStatus={form.status}
-        quoteSentDate={data.quoteSentDate ? data.quoteSentDate.split("T")[0] : null}
         documents={data.documents
           .filter((d) => d.type === "QUOTE")
           .map((d) => ({ ...d, uploadedAt: d.uploadedAt }))}
@@ -495,19 +518,14 @@ const inputCls =
 function InfoCard({
   label,
   value,
-  wide = false,
+  className,
 }: {
   label: string
   value: string | null | undefined
-  wide?: boolean
+  className?: string
 }) {
   return (
-    <div
-      className={cn(
-        "bg-white border border-gray-200 rounded-xl p-4",
-        wide && "col-span-2"
-      )}
-    >
+    <div className={cn("bg-white border border-gray-200 rounded-xl p-4", className)}>
       <p className="text-xs font-medium text-gray-400 mb-1">{label}</p>
       <p className="text-sm font-medium text-gray-900 truncate">{value ?? "—"}</p>
     </div>
@@ -517,21 +535,16 @@ function InfoCard({
 function EditCard({
   label,
   children,
-  wide = false,
+  className,
   required = false,
 }: {
   label: string
   children: React.ReactNode
-  wide?: boolean
+  className?: string
   required?: boolean
 }) {
   return (
-    <div
-      className={cn(
-        "bg-white border border-gray-200 rounded-xl p-4",
-        wide && "col-span-2"
-      )}
-    >
+    <div className={cn("bg-white border border-gray-200 rounded-xl p-4", className)}>
       <p className="text-xs font-medium text-gray-400 mb-2">
         {label}
         {required && <span className="text-red-400 ml-0.5">*</span>}
