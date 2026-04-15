@@ -1,0 +1,53 @@
+import { cn } from "@/lib/utils"
+import { STATUS_LABELS, STATUS_SHORT_LABELS, PENDING_LABELS } from "@/lib/utils"
+
+const STATUS_STYLES: Record<string, string> = {
+  NEW: "bg-gray-100 text-gray-600",
+  RFQ_RECEIVED: "bg-sky-100 text-sky-700",
+  QUOTE_SENT: "bg-amber-100 text-amber-700",
+  EL_REQUEST_RECEIVED: "bg-violet-100 text-violet-700",
+  EL_DRAFT_SHARED: "bg-indigo-100 text-indigo-700",
+  EL_SIGNED_SHARED: "bg-blue-100 text-blue-800",
+  EL_FULLY_SIGNED: "bg-blue-600 text-white",
+  PRODUCTION: "bg-emerald-100 text-emerald-700",
+  DELIVERED: "bg-green-500 text-white",
+  CANCELLED: "bg-red-100 text-red-700",
+}
+
+const PENDING_STYLES: Record<string, string> = {
+  INTERNAL: "bg-slate-100 text-slate-600",
+  CUSTOMER: "bg-orange-100 text-orange-700",
+  THIRD_PARTY: "bg-amber-100 text-amber-700",
+  NONE: "",
+}
+
+export function StatusBadge({ status, short = false }: { status: string; short?: boolean }) {
+  const label = short
+    ? (STATUS_SHORT_LABELS[status] ?? STATUS_LABELS[status] ?? status)
+    : (STATUS_LABELS[status] ?? status)
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap",
+        STATUS_STYLES[status] ?? "bg-gray-100 text-gray-600"
+      )}
+    >
+      {label}
+    </span>
+  )
+}
+
+export function PendingBadge({ waitingOn }: { waitingOn: string }) {
+  if (waitingOn === "NONE") return null
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap",
+        PENDING_STYLES[waitingOn] ?? "bg-gray-100 text-gray-600"
+      )}
+    >
+      <span className="opacity-60">Pending:</span>
+      {PENDING_LABELS[waitingOn] ?? waitingOn}
+    </span>
+  )
+}
