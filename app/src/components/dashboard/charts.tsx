@@ -14,6 +14,58 @@ import {
 } from "recharts"
 import { STATUS_LABELS } from "@/lib/utils"
 
+// ─── RFQ Trend Chart ─────────────────────────────────────────────────────────
+
+interface RfqTrendProps {
+  data: { label: string; rfq: number; quotes: number }[]
+}
+
+export function RfqTrendChart({ data }: RfqTrendProps) {
+  if (data.every((d) => d.rfq === 0 && d.quotes === 0)) {
+    return (
+      <div className="h-[200px] flex items-center justify-center text-sm text-gray-400">
+        No activity in this period
+      </div>
+    )
+  }
+
+  return (
+    <ResponsiveContainer width="100%" height={200}>
+      <BarChart data={data} margin={{ top: 4, right: 8, left: -24, bottom: 0 }} barGap={2}>
+        <XAxis
+          dataKey="label"
+          tick={{ fontSize: 11, fill: "#9ca3af" }}
+          tickLine={false}
+          axisLine={false}
+        />
+        <YAxis
+          tick={{ fontSize: 11, fill: "#9ca3af" }}
+          tickLine={false}
+          axisLine={false}
+          allowDecimals={false}
+        />
+        <Tooltip
+          contentStyle={{
+            background: "#fff",
+            border: "1px solid #e5e7eb",
+            borderRadius: 8,
+            fontSize: 12,
+          }}
+          cursor={{ fill: "#f9fafb" }}
+        />
+        <Legend
+          iconType="circle"
+          iconSize={8}
+          wrapperStyle={{ fontSize: 11, color: "#6b7280", paddingTop: 8 }}
+          formatter={(value) => (value === "rfq" ? "RFQs received" : "Quotes shared")}
+        />
+        <Bar dataKey="rfq" fill="#374151" radius={[3, 3, 0, 0]} maxBarSize={24} />
+        <Bar dataKey="quotes" fill="#9ca3af" radius={[3, 3, 0, 0]} maxBarSize={24} />
+      </BarChart>
+    </ResponsiveContainer>
+  )
+}
+
 const GRAY_SHADES = ["#111827", "#374151", "#6b7280", "#9ca3af", "#d1d5db", "#e5e7eb"]
 
 interface PipelineBarProps {
