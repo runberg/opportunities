@@ -37,8 +37,11 @@ model Opportunity {
   product     String?           // One-line product/service description
   status        OpportunityStatus @default(NEW)
   waitingOn     WaitingOn         @default(INTERNAL)
-  quoteSentDate DateTime?         // Date the quote was shared with the customer
-  description   String?           // General notes
+  quoteSentDate      DateTime?         // Date the quote was shared with the customer
+  elRequestedDate    DateTime?         // Date the EL was requested (quote accepted)
+  elDraftSharedDate  DateTime?         // Date the EL draft was shared with the customer
+  elSignedSharedDate DateTime?         // Date the signed EL was shared back
+  description        String?           // General notes
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 

@@ -42,6 +42,9 @@ const updateSchema = z.object({
   status: z.string().optional(),
   waitingOn: z.string().optional(),
   quoteSentDate: z.string().optional().nullable(),
+  elRequestedDate: z.string().optional().nullable(),
+  elDraftSharedDate: z.string().optional().nullable(),
+  elSignedSharedDate: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
 })
 
@@ -62,12 +65,14 @@ export async function PATCH(
   const existing = await db.opportunity.findUnique({ where: { id } })
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
-  const { rfqDate, quoteSentDate, ...rest } = parsed.data
+  const { rfqDate, quoteSentDate, elRequestedDate, elDraftSharedDate, elSignedSharedDate, ...rest } = parsed.data
 
   // Capture system events before updating
   const statusChanged = rest.status && rest.status !== existing.status
   const quoteSentNew =
     quoteSentDate && quoteSentDate !== existing.quoteSentDate?.toISOString().split("T")[0]
+  const elRequestedNew =
+    elRequestedDate && elRequestedDate !== existing.elRequestedDate?.toISOString().split("T")[0]
 
   const updated = await db.opportunity.update({
     where: { id },
@@ -76,6 +81,12 @@ export async function PATCH(
       rfqDate: rfqDate !== undefined ? (rfqDate ? new Date(rfqDate) : null) : undefined,
       quoteSentDate:
         quoteSentDate !== undefined ? (quoteSentDate ? new Date(quoteSentDate) : null) : undefined,
+      elRequestedDate:
+        elRequestedDate !== undefined ? (elRequestedDate ? new Date(elRequestedDate) : null) : undefined,
+      elDraftSharedDate:
+        elDraftSharedDate !== undefined ? (elDraftSharedDate ? new Date(elDraftSharedDate) : null) : undefined,
+      elSignedSharedDate:
+        elSignedSharedDate !== undefined ? (elSignedSharedDate ? new Date(elSignedSharedDate) : null) : undefined,
       status: rest.status as never,
       waitingOn: rest.waitingOn as never,
     },
@@ -96,6 +107,16 @@ export async function PATCH(
     await db.comment.create({
       data: {
         content: `Quote marked as sent (${quoteSentDate})`,
+        system: true,
+        opportunityId: id,
+      },
+    })
+  }
+  // System event: EL requested (quote accepted)
+  if (elRequestedNew) {
+    await db.comment.create({
+      data: {
+        content: `Quote accepted — EL requested (${elRequestedDate})`,
         system: true,
         opportunityId: id,
       },

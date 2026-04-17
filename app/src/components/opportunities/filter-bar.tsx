@@ -7,7 +7,7 @@ import { cn, STATUS_GROUPS, STATUS_LABELS, PENDING_LABELS } from "@/lib/utils"
 
 const PENDING_OPTIONS = ["INTERNAL", "CUSTOMER"] as const
 
-export function FilterBar() {
+export function FilterBar({ basePath = "/opportunities" }: { basePath?: string }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [statusOpen, setStatusOpen] = useState(false)
@@ -21,6 +21,23 @@ export function FilterBar() {
 
   const selectedStatuses = statusParam ? statusParam.split(",").filter(Boolean) : []
   const selectedPending = waitingOnParam ? waitingOnParam.split(",").filter(Boolean) : []
+
+  const [inputValue, setInputValue] = useState(query)
+
+  // Sync when query changes externally (e.g. "Clear all")
+  useEffect(() => {
+    setInputValue(query)
+  }, [query])
+
+  // Debounced dynamic search: fire when empty or ≥3 chars
+  useEffect(() => {
+    if (inputValue.length > 0 && inputValue.length < 3) return
+    const timer = setTimeout(() => {
+      updateParams({ q: inputValue || null })
+    }, 350)
+    return () => clearTimeout(timer)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inputValue])
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -39,7 +56,7 @@ export function FilterBar() {
       else params.set(key, value)
     }
     const qs = params.toString()
-    router.push(`/opportunities${qs ? `?${qs}` : ""}`)
+    router.push(`${basePath}${qs ? `?${qs}` : ""}`)
   }
 
   function toggleStatus(s: string) {
@@ -75,26 +92,18 @@ export function FilterBar() {
   return (
     <div className="flex flex-wrap gap-3 mb-6">
       {/* Search */}
-      <form
-        className="flex-1 min-w-48 relative"
-        onSubmit={(e) => {
-          e.preventDefault()
-          const fd = new FormData(e.currentTarget)
-          updateParams({ q: (fd.get("q") as string) || null })
-        }}
-      >
+      <div className="flex-1 min-w-48 relative">
         <Search
           size={14}
           className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
         />
         <input
-          name="q"
-          defaultValue={query}
-          key={query}
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
           placeholder="Search by title, customer, ID, reference…"
           className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
         />
-      </form>
+      </div>
 
       {/* Status multi-select */}
       <div ref={statusRef} className="relative">
@@ -107,7 +116,7 @@ export function FilterBar() {
           className={cn(
             "flex items-center gap-2 px-3 py-2 border rounded-lg text-sm transition-colors focus:outline-none",
             selectedStatuses.length > 0
-              ? "border-gray-900 bg-gray-900 text-white"
+              ? "border-[#006fff] bg-[#006fff] text-white"
               : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
           )}
         >
@@ -173,7 +182,7 @@ export function FilterBar() {
           className={cn(
             "flex items-center gap-2 px-3 py-2 border rounded-lg text-sm transition-colors focus:outline-none",
             selectedPending.length > 0
-              ? "border-gray-900 bg-gray-900 text-white"
+              ? "border-[#006fff] bg-[#006fff] text-white"
               : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
           )}
         >

@@ -22,3 +22,133 @@
     scrollbar-color: #d1d5db transparent;
   }
 }
+
+/* ─── UniFi Theme ─────────────────────────────────────────────────────────────
+   These rules live outside @layer so they win over Tailwind's layered
+   utilities without needing !important. The data-theme attribute is set on
+   <html> by ThemeProvider.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+[data-theme="dark"] body {
+  background-color: #0f1923;
+  color: #e8f1f8;
+}
+
+/* ── Backgrounds ─── */
+[data-theme="dark"] .bg-white        { background-color: #162030; }
+[data-theme="dark"] .bg-gray-50      { background-color: #111b28; }
+[data-theme="dark"] .bg-gray-100     { background-color: #1c2d40; }
+
+/* Buttons — primary is already blue via the Button component.
+   Only override secondary/ghost/outline for dark bg. */
+[data-theme="dark"] button.bg-gray-100                   { background-color: #1c2d40; }
+[data-theme="dark"] button.hover\:bg-gray-200:hover      { background-color: #253d55; }
+[data-theme="dark"] button.hover\:bg-gray-100:hover      { background-color: #1c2d40; }
+[data-theme="dark"] button.hover\:bg-gray-50:hover       { background-color: #1c2d40; }
+[data-theme="dark"] button.border-gray-300               { border-color: #253d55; }
+
+/* ── Borders ─── */
+[data-theme="dark"] .border-gray-100 { border-color: #1a2d40; }
+[data-theme="dark"] .border-gray-200 { border-color: #1e3350; }
+[data-theme="dark"] .border-gray-300 { border-color: #253d55; }
+
+/* ── Text ─── */
+[data-theme="dark"] .text-gray-900   { color: #e8f1f8; }
+[data-theme="dark"] .text-gray-700   { color: #c0d4e8; }
+[data-theme="dark"] .text-gray-600   { color: #8fa8be; }
+/* gray-500 and gray-400 are already light enough to read on dark bg */
+
+/* ── Hover backgrounds (rows, links, icons) ─── */
+[data-theme="dark"] .hover\:bg-gray-50:hover             { background-color: #1c2d40; }
+[data-theme="dark"] .hover\:bg-gray-100:hover            { background-color: #1c2d40; }
+[data-theme="dark"] .hover\:text-gray-700:hover          { color: #e8f1f8; }
+[data-theme="dark"] .hover\:text-gray-800:hover          { color: #f0f4f8; }
+[data-theme="dark"] .hover\:bg-red-50:hover              { background-color: #2a1822; }
+
+/* ── Table dividers ─── */
+/* Fix: Tailwind generates :not([hidden]) ~ :not([hidden]), not * + *        */
+/* UniFi: near-invisible row separators in dark, very subtle in light        */
+[data-theme="dark"] .divide-gray-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Light mode: UniFi uses softer, lower-contrast row separators than gray-100 */
+:root:not([data-theme="dark"]) .divide-gray-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #f0f2f5;
+}
+
+/* ── Inputs / textareas / selects ─── */
+[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]) {
+  background-color: #111b28;
+  color: #e8f1f8;
+}
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+  background-color: #111b28;
+  color: #e8f1f8;
+}
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder { color: #3d5570; }
+
+[data-theme="dark"] input[type="file"]::file-selector-button {
+  background-color: #1c2d40;
+  border-color: #253d55;
+  color: #c0d4e8;
+}
+
+/* ── Focus rings → accent blue ─── */
+[data-theme="dark"] .focus\:ring-gray-400:focus  { --tw-ring-color: rgba(0, 111, 255, 0.5); }
+[data-theme="dark"] .focus-within\:ring-gray-400:focus-within { --tw-ring-color: rgba(0, 111, 255, 0.5); }
+[data-theme="dark"] .focus\:border-gray-400:focus  { border-color: #006fff; }
+[data-theme="dark"] .focus\:border-gray-600:focus  { border-color: #006fff; }
+[data-theme="dark"] .focus\:border-gray-900:focus  { border-color: #006fff; }
+
+/* ── Modal shadow → subtle border on dark bg ─── */
+[data-theme="dark"] .shadow-2xl {
+  box-shadow: 0 0 0 1px #1e3350, 0 24px 48px rgba(0, 0, 0, 0.6);
+}
+
+/* ── Border-b focus (title inputs) ─── */
+[data-theme="dark"] .focus\:border-gray-900 { border-color: #006fff; }
+
+/* ── Misc ─── */
+[data-theme="dark"] .bg-black\/40 { background-color: rgba(0, 0, 0, 0.7); }
+[data-theme="dark"] .scrollbar-thin {
+  scrollbar-color: #253d55 #111b28;
+}
+
+/* ── Status / pending badge backgrounds → translucent tints on dark ─── */
+[data-theme="dark"] .bg-amber-100   { background-color: rgba(245, 158, 11, 0.14); }
+[data-theme="dark"] .text-amber-700 { color: #fbbf24; }
+[data-theme="dark"] .bg-green-100   { background-color: rgba(34, 197, 94, 0.14); }
+[data-theme="dark"] .text-green-700 { color: #4ade80; }
+[data-theme="dark"] .bg-red-100     { background-color: rgba(239, 68, 68, 0.14); }
+[data-theme="dark"] .text-red-700   { color: #f87171; }
+[data-theme="dark"] .bg-yellow-100  { background-color: rgba(234, 179, 8, 0.14); }
+[data-theme="dark"] .text-yellow-700{ color: #fde047; }
+[data-theme="dark"] .bg-emerald-100 { background-color: rgba(52, 211, 153, 0.14); }
+[data-theme="dark"] .text-emerald-700 { color: #34d399; }
+[data-theme="dark"] .bg-emerald-600 { background-color: rgba(5, 150, 105, 0.5); }
+[data-theme="dark"] .bg-blue-100    { background-color: rgba(59, 130, 246, 0.14); }
+[data-theme="dark"] .text-blue-800  { color: #60a5fa; }
+[data-theme="dark"] .bg-violet-100  { background-color: rgba(139, 92, 246, 0.14); }
+[data-theme="dark"] .text-violet-700{ color: #a78bfa; }
+[data-theme="dark"] .bg-indigo-100  { background-color: rgba(99, 102, 241, 0.14); }
+[data-theme="dark"] .text-indigo-700{ color: #818cf8; }
+
+/* ── KPI metric accent colors — keep vivid on dark ─── */
+[data-theme="dark"] .text-emerald-500 { color: #34d399; }
+[data-theme="dark"] .text-amber-500   { color: #fbbf24; }
+
+/* ── Subtle action backgrounds (green confirm panels) ─── */
+[data-theme="dark"] .bg-green-50     { background-color: rgba(34, 197, 94, 0.08); }
+[data-theme="dark"] .border-green-200{ border-color: rgba(34, 197, 94, 0.25); }
+[data-theme="dark"] .text-green-800  { color: #86efac; }
+[data-theme="dark"] .text-green-700  { color: #4ade80; }
+[data-theme="dark"] .bg-red-50       { background-color: rgba(239, 68, 68, 0.08); }
+[data-theme="dark"] .border-red-200  { border-color: rgba(239, 68, 68, 0.25); }
+[data-theme="dark"] .text-red-600    { color: #f87171; }

@@ -44,7 +44,9 @@ export function LogSection({
   const [error, setError] = useState("")
 
   const userEntries = entries.filter((e) => !e.system)
-  const visible = showSystem ? entries : userEntries
+  const visible = (showSystem ? entries : userEntries)
+    .slice()
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
   async function handleSubmit() {
     if (!content.trim()) return

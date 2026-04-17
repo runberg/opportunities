@@ -43,7 +43,7 @@ export const STATUS_LABELS: Record<string, string> = {
   NEW: "New",
   RFQ_RECEIVED: "RFQ Received",
   QUOTE_SENT: "Quote Sent",
-  EL_REQUEST_RECEIVED: "EL Request Received",
+  EL_REQUEST_RECEIVED: "EL Requested",
   EL_DRAFT_SHARED: "EL Draft Shared",
   EL_SIGNED_SHARED: "EL Signed Shared",
   EL_FULLY_SIGNED: "EL Fully Signed",
@@ -52,8 +52,9 @@ export const STATUS_LABELS: Record<string, string> = {
   CANCELLED: "Cancelled",
 }
 
-// Statuses available in the Quotes workflow
+// Statuses available in each workflow stage
 export const QUOTE_STATUSES = ["RFQ_RECEIVED", "QUOTE_SENT"] as const
+export const EL_STATUSES = ["EL_REQUEST_RECEIVED", "EL_DRAFT_SHARED", "EL_SIGNED_SHARED"] as const
 
 // Grouped for the form dropdown — makes the flow clearer
 export const STATUS_GROUPS = [

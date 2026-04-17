@@ -66,18 +66,13 @@ export default async function EditOpportunityPage({
 
         <QuoteSection
           opportunityId={opportunity.id}
-          currentStatus={opportunity.status}
-          quoteSentDate={
-            opportunity.quoteSentDate
-              ? opportunity.quoteSentDate.toISOString().split("T")[0]
-              : null
-          }
           documents={opportunity.documents.map((d) => ({
             ...d,
             uploadedAt: d.uploadedAt.toISOString(),
           }))}
           currentUserId={session!.user.id}
           isAdmin={isAdmin}
+          docType="QUOTE"
         />
       </div>
     </div>

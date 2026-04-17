@@ -2,43 +2,38 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { MessageSquarePlus, Plus } from "lucide-react"
+import { MessageSquarePlus } from "lucide-react"
 import { StatusBadge, PendingBadge } from "@/components/opportunities/status-badge"
 import { Dialog } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { OpportunityModal } from "@/components/opportunities/opportunity-modal"
-import { NewOpportunityModal } from "@/components/opportunities/new-opportunity-modal"
 
-export interface OpportunityRow {
+export interface ELRow {
   id: string
   internalId: string | null
   title: string
   customer: string
   reference: string | null
-  rfqDate: string | null
-  quoteSentDate: string | null
+  elRequestedDate: string | null
   product: string | null
   status: string
   waitingOn: string
   _count: { comments: number; documents: number }
 }
 
-export function OpportunitiesTable({
+export function ELTable({
   opportunities,
   currentUserId,
   isAdmin,
 }: {
-  opportunities: OpportunityRow[]
+  opportunities: ELRow[]
   currentUserId: string
   isAdmin: boolean
 }) {
   const router = useRouter()
   const [openModalId, setOpenModalId] = useState<string | null>(null)
-  const [openModalInitialMode, setOpenModalInitialMode] = useState<"view" | "edit">("view")
-  const [openModalAccept, setOpenModalAccept] = useState(false)
-  const [newModalOpen, setNewModalOpen] = useState(false)
-  const [commentTarget, setCommentTarget] = useState<OpportunityRow | null>(null)
+  const [commentTarget, setCommentTarget] = useState<ELRow | null>(null)
   const [comment, setComment] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [commentError, setCommentError] = useState("")
@@ -65,14 +60,6 @@ export function OpportunitiesTable({
 
   return (
     <>
-      {/* Toolbar */}
-      <div className="flex items-center justify-end mb-4">
-        <Button onClick={() => setNewModalOpen(true)}>
-          <Plus size={15} className="mr-1.5" />
-          New Opportunity
-        </Button>
-      </div>
-
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-200">
@@ -85,7 +72,7 @@ export function OpportunitiesTable({
                 Product
               </th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 hidden lg:table-cell">
-                RFQ Date
+                EL Requested
               </th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500">Status</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 hidden lg:table-cell">
@@ -98,21 +85,14 @@ export function OpportunitiesTable({
             {opportunities.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-4 py-10 text-center text-gray-400">
-                  No opportunities found.{" "}
-                  <button
-                    type="button"
-                    onClick={() => setNewModalOpen(true)}
-                    className="underline"
-                  >
-                    Create the first one
-                  </button>
+                  No engagement letters found.
                 </td>
               </tr>
             )}
             {opportunities.map((opp) => (
               <tr
                 key={opp.id}
-                onClick={() => { setOpenModalInitialMode("view"); setOpenModalId(opp.id) }}
+                onClick={() => setOpenModalId(opp.id)}
                 className="hover:bg-gray-50 transition-colors cursor-pointer"
               >
                 <td className="px-4 py-3">
@@ -131,7 +111,7 @@ export function OpportunitiesTable({
                   {opp.product ?? "—"}
                 </td>
                 <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">
-                  {opp.rfqDate ?? "—"}
+                  {opp.elRequestedDate ?? "—"}
                 </td>
                 <td className="px-4 py-3">
                   <StatusBadge status={opp.status} short />
@@ -141,20 +121,6 @@ export function OpportunitiesTable({
                 </td>
                 <td className="px-2 py-3" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center gap-1 justify-end">
-                    {opp.quoteSentDate && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setOpenModalInitialMode("view")
-                          setOpenModalAccept(true)
-                          setOpenModalId(opp.id)
-                        }}
-                        className="px-2.5 py-1 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition-colors whitespace-nowrap"
-                      >
-                        Quote Accepted →
-                      </button>
-                    )}
                     <button
                       type="button"
                       onClick={() => {
@@ -175,27 +141,12 @@ export function OpportunitiesTable({
         </table>
       </div>
 
-      {/* New opportunity modal */}
-      {newModalOpen && (
-        <NewOpportunityModal
-          onClose={() => setNewModalOpen(false)}
-          onCreated={(newId) => {
-            setNewModalOpen(false)
-            setOpenModalInitialMode("edit")
-            setOpenModalId(newId)
-            router.refresh()
-          }}
-        />
-      )}
-
       {/* Opportunity modal */}
       <OpportunityModal
         opportunityId={openModalId}
-        onClose={() => { setOpenModalId(null); setOpenModalAccept(false); router.refresh() }}
+        onClose={() => { setOpenModalId(null); router.refresh() }}
         currentUserId={currentUserId}
         isAdmin={isAdmin}
-        initialMode={openModalInitialMode}
-        initialAccept={openModalAccept}
       />
 
       {/* Quick comment dialog */}

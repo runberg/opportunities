@@ -11,8 +11,11 @@ import {
   Users,
   LogOut,
   User,
+  Sun,
+  Monitor,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useTheme } from "@/components/theme/theme-provider"
 
 interface SidebarProps {
   userName: string
@@ -22,6 +25,8 @@ interface SidebarProps {
 export function Sidebar({ userName, userRole }: SidebarProps) {
   const pathname = usePathname()
   const isAdmin = userRole === "ADMIN"
+  const { theme, setTheme } = useTheme()
+  const isDark = theme === "dark"
 
   function isActive(href: string) {
     if (href === "/dashboard") return pathname === "/dashboard"
@@ -32,15 +37,22 @@ export function Sidebar({ userName, userRole }: SidebarProps) {
     cn(
       "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
       isActive(href)
-        ? "bg-gray-700 text-white"
+        ? "bg-blue-600/20 text-blue-400"
+        : isDark
+        ? "text-gray-400 hover:bg-white/5 hover:text-blue-300"
         : "text-gray-400 hover:bg-gray-800 hover:text-white"
     )
 
+  const sidebarBg = isDark ? "bg-[#0a1220]" : "bg-gray-900"
+  const borderColor = isDark ? "border-[#1a2d40]" : "border-gray-800"
+
   return (
-    <aside className="w-60 bg-gray-900 text-white flex flex-col h-full fixed top-0 left-0 bottom-0">
+    <aside className={cn("w-60 text-white flex flex-col h-full fixed top-0 left-0 bottom-0", sidebarBg)}>
       {/* Logo */}
-      <div className="px-5 py-5 border-b border-gray-800">
-        <span className="text-lg font-semibold tracking-tight">Opportunities</span>
+      <div className={cn("px-5 py-5 border-b", borderColor)}>
+        <span className="text-lg font-semibold tracking-tight text-blue-400">
+          Opportunities<sup className="text-[10px] font-bold text-white ml-0.5 tracking-normal">AI</sup>
+        </span>
       </div>
 
       {/* Navigation */}
@@ -52,7 +64,7 @@ export function Sidebar({ userName, userRole }: SidebarProps) {
 
         {/* Opportunities section */}
         <div className="pt-4 pb-1 px-3">
-          <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+          <span className={cn("text-xs font-semibold uppercase tracking-wider", isDark ? "text-[#3d5570]" : "text-gray-500")}>
             Opportunities
           </span>
         </div>
@@ -73,7 +85,7 @@ export function Sidebar({ userName, userRole }: SidebarProps) {
         {isAdmin && (
           <>
             <div className="pt-4 pb-1 px-3">
-              <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+              <span className={cn("text-xs font-semibold uppercase tracking-wider", isDark ? "text-[#3d5570]" : "text-gray-500")}>
                 Admin
               </span>
             </div>
@@ -85,18 +97,51 @@ export function Sidebar({ userName, userRole }: SidebarProps) {
         )}
       </nav>
 
+      {/* Theme toggle */}
+      <div className={cn("px-3 py-3 border-t", borderColor)}>
+        <div className={cn("flex items-center gap-1 rounded-lg p-1", isDark ? "bg-[#111b28]" : "bg-gray-800")}>
+          <button
+            onClick={() => setTheme("light")}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded text-xs font-medium transition-colors",
+              theme === "light"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-400 hover:text-gray-200"
+            )}
+          >
+            <Sun size={12} />
+            Light
+          </button>
+          <button
+            onClick={() => setTheme("dark")}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded text-xs font-medium transition-colors",
+              theme === "dark"
+                ? "bg-blue-600 text-white shadow-sm"
+                : "text-gray-400 hover:text-gray-200"
+            )}
+          >
+            <Monitor size={12} />
+            Dark
+          </button>
+        </div>
+      </div>
+
       {/* User section */}
-      <div className="px-3 py-4 border-t border-gray-800 space-y-1">
+      <div className={cn("px-3 py-4 border-t space-y-1", borderColor)}>
         <Link href="/profile" className={linkCls("/profile")}>
           <User size={18} />
           <div className="min-w-0">
             <div className="text-sm truncate text-white">{userName}</div>
-            <div className="text-xs text-gray-500 capitalize">{userRole.toLowerCase()}</div>
+            <div className={cn("text-xs capitalize", isDark ? "text-[#3d5570]" : "text-gray-500")}>{userRole.toLowerCase()}</div>
           </div>
         </Link>
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+          className={cn(
+            "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 transition-colors",
+            isDark ? "hover:bg-white/5 hover:text-blue-300" : "hover:bg-gray-800 hover:text-white"
+          )}
         >
           <LogOut size={18} />
           Sign out

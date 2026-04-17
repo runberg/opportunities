@@ -2,7 +2,7 @@ import { Suspense } from "react"
 import { db } from "@/lib/db"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { formatDate } from "@/lib/utils"
+import { formatDate, QUOTE_STATUSES } from "@/lib/utils"
 import { FilterBar } from "@/components/opportunities/filter-bar"
 import { OpportunitiesTable } from "@/components/opportunities/table"
 
@@ -36,7 +36,9 @@ export default async function OpportunitiesPage({
               ],
             }
           : {},
-        selectedStatuses.length > 0 ? { status: { in: selectedStatuses as never[] } } : {},
+        selectedStatuses.length > 0
+          ? { status: { in: selectedStatuses as never[] } }
+          : { status: { in: QUOTE_STATUSES as unknown as never[] } },
         selectedPending.length > 0 ? { waitingOn: { in: selectedPending as never[] } } : {},
       ],
     },
@@ -64,7 +66,7 @@ export default async function OpportunitiesPage({
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Opportunities</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">Quotes</h1>
           <p className="text-sm text-gray-500 mt-0.5">{opportunities.length} results</p>
         </div>
       </div>

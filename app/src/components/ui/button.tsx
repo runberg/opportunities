@@ -14,7 +14,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         className={cn(
           "inline-flex items-center justify-center font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
           {
-            "bg-gray-900 text-white hover:bg-gray-700": variant === "primary",
+            "bg-[#006fff] text-white hover:bg-[#005ee6]": variant === "primary",
             "bg-gray-100 text-gray-700 hover:bg-gray-200": variant === "secondary",
             "text-gray-600 hover:bg-gray-100": variant === "ghost",
             "bg-red-600 text-white hover:bg-red-700": variant === "danger",

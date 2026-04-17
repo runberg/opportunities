@@ -6,12 +6,14 @@ Built for small teams on a private network. All data stays on your own server.
 
 ## Features
 
-- **Quotes pipeline** — track opportunities from RFQ Received through Quote Sent; ELs and Production coming soon
-- **Modal-based workflow** — create, view, and edit opportunities in a slide-over modal without leaving the list
-- **Document management** — upload and download quote documents per opportunity
-- **Activity log** — user comments plus automatic system events for status changes and file uploads; system events hidden by default
-- **Dashboard** — quote activity KPIs (RFQs received, quotes shared, avg days to quote) with a trend chart and configurable time period
-- **Filtering** — multi-select status and pending filters, full-text search
+- **Quotes pipeline** — track opportunities from RFQ Received through Quote Sent and on to Engagement Letter
+- **EL pipeline** — dedicated EL view tracking EL Requested → Draft Shared → Signed Shared → Fully Signed
+- **Modal-based workflow** — create, view, and edit opportunities in a slide-over modal without leaving the list; one-click transition from Quote Accepted to EL flow
+- **Document management** — upload and download quote and EL documents per opportunity
+- **Activity log** — user comments plus automatic system events for status changes and file uploads; system events hidden by default; shown latest-first
+- **Dashboard** — quote and EL activity KPIs with trend charts and configurable time period selector; avg days to quote and avg days EL requested → signed
+- **Filtering** — multi-select status and pending filters, dynamic full-text search (filters after 3 characters)
+- **Light / Dark theme** — UniFi-inspired UI with a persistent theme toggle in the sidebar
 - **User management** — admin can create/edit users and assign roles (Admin / User)
 
 ## Tech stack

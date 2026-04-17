@@ -22,6 +22,7 @@ interface QuoteSectionProps {
   currentUserId: string
   isAdmin: boolean
   onRefresh?: () => void
+  docType?: "QUOTE" | "EL"
 }
 
 export function QuoteSection({
@@ -30,6 +31,7 @@ export function QuoteSection({
   currentUserId,
   isAdmin,
   onRefresh,
+  docType = "QUOTE",
 }: QuoteSectionProps) {
   const router = useRouter()
 
@@ -40,7 +42,7 @@ export function QuoteSection({
   async function handleUpload(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
-    formData.set("type", "QUOTE")
+    formData.set("type", docType)
     setUploading(true)
     setUploadError("")
 
@@ -71,18 +73,20 @@ export function QuoteSection({
 
   return (
     <div className="mt-6 bg-white border border-gray-200 rounded-xl p-6">
-      <h2 className="text-base font-semibold text-gray-900 mb-5">Documents</h2>
+      <h2 className="text-base font-semibold text-gray-900 mb-5">
+        {docType === "EL" ? "EL Documents" : "Quote Documents"}
+      </h2>
 
       {/* Documents */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <p className="text-sm font-medium text-gray-700">
-            Documents
+            {docType === "EL" ? "EL Documents" : "Quote Documents"}
             <span className="ml-1.5 text-gray-400 font-normal">({documents.length})</span>
           </p>
           <Button variant="secondary" size="sm" onClick={() => setShowUpload((v) => !v)}>
             <Upload size={13} className="mr-1.5" />
-            Upload Quote
+            {docType === "EL" ? "Upload EL" : "Upload Quote"}
           </Button>
         </div>
 
@@ -142,7 +146,9 @@ export function QuoteSection({
         )}
 
         {documents.length === 0 ? (
-          <p className="text-sm text-gray-400">No quote documents yet.</p>
+          <p className="text-sm text-gray-400">
+            {docType === "EL" ? "No EL documents yet." : "No quote documents yet."}
+          </p>
         ) : (
           <div className="border border-gray-200 rounded-xl overflow-hidden">
             <table className="w-full text-sm">
