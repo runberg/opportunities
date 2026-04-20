@@ -13,6 +13,15 @@ import { Button } from "@/components/ui/button"
 // EL_FULLY_SIGNED added so the modal can display fully-signed ELs (read-only, no further transitions)
 const ALL_EL_STATUSES = [...EL_STATUSES, "EL_FULLY_SIGNED"]
 
+// Which date field must be set for a given status
+const STATUS_DATE_REQUIRED: Record<string, { field: string; label: string }> = {
+  RFQ_RECEIVED:        { field: "rfqDate",           label: "RFQ Date" },
+  QUOTE_SENT:          { field: "quoteSentDate",      label: "Quote Shared" },
+  EL_REQUEST_RECEIVED: { field: "elRequestedDate",    label: "EL Requested" },
+  EL_DRAFT_SHARED:     { field: "elDraftSharedDate",  label: "EL Draft Shared" },
+  EL_SIGNED_SHARED:    { field: "elSignedSharedDate", label: "EL Signed Shared" },
+}
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 interface ModalDoc {
@@ -154,6 +163,14 @@ export function OpportunityModal({
 
   async function handleSave() {
     if (!editForm || !data) return
+
+    // Validate: required date for current status must be set
+    const req = STATUS_DATE_REQUIRED[editForm.status]
+    if (req && !editForm[req.field as keyof typeof editForm]) {
+      setSaveError(`"${STATUS_LABELS[editForm.status]}" requires the "${req.label}" date to be set.`)
+      return
+    }
+
     setSaving(true)
     setSaveError("")
 
@@ -247,7 +264,7 @@ function ViewMode({ data, onEdit, currentUserId, isAdmin, onRefresh, initialAcce
 }) {
   const isEL = ALL_EL_STATUSES.includes(data.status)
   const isProduction = (PRODUCTION_STATUSES as readonly string[]).includes(data.status)
-  const canAcceptQuote = data.status === "QUOTE_SENT" && !!data.quoteSentDate
+  const canAcceptQuote = data.status === "QUOTE_SENT"
 
   // Quote Accepted confirmation state
   const [acceptingQuote, setAcceptingQuote] = useState(initialAccept ?? false)
@@ -308,6 +325,12 @@ function ViewMode({ data, onEdit, currentUserId, isAdmin, onRefresh, initialAcce
               Quote Accepted →
             </Button>
           )}
+          {data.status === "EL_SIGNED_SHARED" && !counterSigning && (
+            <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white border-0"
+              onClick={() => setCounterSigning(true)}>
+              Counter-signed EL Received →
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={onEdit}>
             <Pencil size={13} className="mr-1.5" />Edit
           </Button>
@@ -339,6 +362,25 @@ function ViewMode({ data, onEdit, currentUserId, isAdmin, onRefresh, initialAcce
         </div>
       )}
 
+      {/* Counter-signed EL inline confirmation */}
+      {counterSigning && (
+        <div className="mb-5 flex flex-wrap items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-xl">
+          <p className="text-xs font-semibold text-green-800">
+            Confirm counter-signed EL received — this will transition the opportunity to Production.
+          </p>
+          <div className="flex gap-2">
+            <button type="button" onClick={handleCounterSigned} disabled={counterSigning2}
+              className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg disabled:opacity-50 transition-colors">
+              {counterSigning2 ? "Saving…" : "Confirm"}
+            </button>
+            <button type="button" onClick={() => setCounterSigning(false)}
+              className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-800">
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Info grid */}
       <div className="flex flex-col gap-3 mb-5">
         <InfoCard label="Customer" value={data.customer} />
@@ -352,32 +394,6 @@ function ViewMode({ data, onEdit, currentUserId, isAdmin, onRefresh, initialAcce
           <InfoCard label="EL Signed Shared" value={data.elSignedSharedDate ? formatDate(data.elSignedSharedDate) : null} />
         </div>
       </div>
-
-      {/* EL section — counter-signed button */}
-      {isEL && data.status === "EL_SIGNED_SHARED" && (
-        <div className="mb-5">
-          {!counterSigning ? (
-            <button type="button" onClick={() => setCounterSigning(true)}
-              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">
-              Counter-signed EL Received →
-            </button>
-          ) : (
-            <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-xl">
-              <p className="text-xs text-green-800 font-medium">
-                This will transition the opportunity to Production.
-              </p>
-              <button type="button" onClick={handleCounterSigned} disabled={counterSigning2}
-                className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg disabled:opacity-50 transition-colors">
-                {counterSigning2 ? "Saving…" : "Confirm"}
-              </button>
-              <button type="button" onClick={() => setCounterSigning(false)}
-                className="text-xs text-gray-500 hover:text-gray-700">
-                Cancel
-              </button>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Details */}
       {data.description && (
@@ -429,6 +445,10 @@ function EditMode({ data, form, setField, onCancel, onSave, saving, saveError,
     : isEL ? [...EL_STATUSES, "EL_FULLY_SIGNED"]
     : QUOTE_STATUSES
 
+  // Highlight the specific date card that is blocking save
+  const req = STATUS_DATE_REQUIRED[form.status]
+  const missingField = saveError && req && !form[req.field as keyof EditForm] ? req.field : null
+
   return (
     <div>
       {/* Title + inline badges */}
@@ -475,23 +495,23 @@ function EditMode({ data, form, setField, onCancel, onSave, saving, saveError,
         </EditCard>
         {/* Dates row */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          <EditCard label="RFQ Date">
+          <EditCard label="RFQ Date" highlight={missingField === "rfqDate"}>
             <input type="date" value={form.rfqDate}
               onChange={(e) => setField("rfqDate", e.target.value)} className={inputCls} />
           </EditCard>
-          <EditCard label="Quote Shared">
+          <EditCard label="Quote Shared" highlight={missingField === "quoteSentDate"}>
             <input type="date" value={form.quoteSentDate}
               onChange={(e) => setField("quoteSentDate", e.target.value)} className={inputCls} />
           </EditCard>
-          <EditCard label="EL Requested">
+          <EditCard label="EL Requested" highlight={missingField === "elRequestedDate"}>
             <input type="date" value={form.elRequestedDate}
               onChange={(e) => setField("elRequestedDate", e.target.value)} className={inputCls} />
           </EditCard>
-          <EditCard label="EL Draft Shared">
+          <EditCard label="EL Draft Shared" highlight={missingField === "elDraftSharedDate"}>
             <input type="date" value={form.elDraftSharedDate}
               onChange={(e) => setField("elDraftSharedDate", e.target.value)} className={inputCls} />
           </EditCard>
-          <EditCard label="EL Signed Shared">
+          <EditCard label="EL Signed Shared" highlight={missingField === "elSignedSharedDate"}>
             <input type="date" value={form.elSignedSharedDate}
               onChange={(e) => setField("elSignedSharedDate", e.target.value)} className={inputCls} />
           </EditCard>
@@ -516,7 +536,7 @@ function EditMode({ data, form, setField, onCancel, onSave, saving, saveError,
       )}
 
       {saveError && (
-        <p className="mt-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+        <p className="mt-4 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
           {saveError}
         </p>
       )}
@@ -549,13 +569,18 @@ function InfoCard({ label, value, className }: {
   )
 }
 
-function EditCard({ label, children, className, required = false }: {
-  label: string; children: React.ReactNode; className?: string; required?: boolean
+function EditCard({ label, children, className, required = false, highlight = false }: {
+  label: string; children: React.ReactNode; className?: string; required?: boolean; highlight?: boolean
 }) {
   return (
-    <div className={cn("bg-white border border-gray-200 rounded-xl p-4", className)}>
-      <p className="text-xs font-medium text-gray-400 mb-2">
+    <div className={cn(
+      "border rounded-xl p-4 transition-colors",
+      highlight ? "border-amber-400 bg-amber-50" : "bg-white border-gray-200",
+      className
+    )}>
+      <p className={cn("text-xs font-medium mb-2", highlight ? "text-amber-700" : "text-gray-400")}>
         {label}{required && <span className="text-red-400 ml-0.5">*</span>}
+        {highlight && <span className="ml-1 font-semibold">— required</span>}
       </p>
       {children}
     </div>
