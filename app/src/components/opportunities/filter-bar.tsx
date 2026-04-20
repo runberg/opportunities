@@ -7,7 +7,15 @@ import { cn, STATUS_GROUPS, STATUS_LABELS, PENDING_LABELS } from "@/lib/utils"
 
 const PENDING_OPTIONS = ["INTERNAL", "CUSTOMER"] as const
 
-export function FilterBar({ basePath = "/opportunities" }: { basePath?: string }) {
+type StatusGroup = { label: string; statuses: string[] }
+
+export function FilterBar({
+  basePath = "/opportunities",
+  statusGroups = STATUS_GROUPS,
+}: {
+  basePath?: string
+  statusGroups?: StatusGroup[]
+}) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [statusOpen, setStatusOpen] = useState(false)
@@ -139,7 +147,7 @@ export function FilterBar({ basePath = "/opportunities" }: { basePath?: string }
                 Clear selection
               </button>
             )}
-            {STATUS_GROUPS.map((group) => (
+            {statusGroups.map((group) => (
               <div key={group.label}>
                 <div className="px-3 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide">
                   {group.label}

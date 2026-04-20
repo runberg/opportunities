@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { Upload, Download, Trash2 } from "lucide-react"
+import { Upload, Download, Trash2, FileUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { formatBytes, formatDate } from "@/lib/utils"
+import { cn, formatBytes, formatDate } from "@/lib/utils"
 
 interface QuoteDoc {
   id: string
@@ -38,10 +38,43 @@ export function QuoteSection({
   const [showUpload, setShowUpload] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState("")
+  const [displayName, setDisplayName] = useState("")
+  const [docStatus, setDocStatus] = useState("DRAFT")
+  const [file, setFile] = useState<File | null>(null)
+  const [dragging, setDragging] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  function nameFromFile(f: File): string {
+    return f.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim()
+  }
+
+  function applyFile(f: File) {
+    setFile(f)
+    // Auto-fill name only if the user hasn't typed one
+    setDisplayName((prev) => (prev.trim() === "" ? nameFromFile(f) : prev))
+  }
+
+  const onDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setDragging(true)
+  }, [])
+
+  const onDragLeave = useCallback(() => setDragging(false), [])
+
+  const onDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setDragging(false)
+    const f = e.dataTransfer.files[0]
+    if (f) applyFile(f)
+  }, [])
 
   async function handleUpload(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    const formData = new FormData(e.currentTarget)
+    if (!file) return
+    const formData = new FormData()
+    formData.set("file", file)
+    formData.set("displayName", displayName.trim())
+    formData.set("docStatus", docStatus)
     formData.set("type", docType)
     setUploading(true)
     setUploadError("")
@@ -59,7 +92,9 @@ export function QuoteSection({
     }
 
     setShowUpload(false)
-    ;(e.target as HTMLFormElement).reset()
+    setDisplayName("")
+    setDocStatus("DRAFT")
+    setFile(null)
     onRefresh?.()
     router.refresh()
   }
@@ -93,55 +128,87 @@ export function QuoteSection({
         {showUpload && (
           <form
             onSubmit={handleUpload}
-            className="mb-4 p-4 border border-gray-200 rounded-xl bg-gray-50 space-y-3"
+            className="mb-4 p-4 border border-gray-200 rounded-xl bg-gray-50"
           >
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Document Name *
-                </label>
-                <input
-                  name="displayName"
-                  required
-                  placeholder="e.g. Quote v1 — ACME"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
-                />
+            <div className="flex flex-col sm:flex-row gap-4">
+              {/* Left: fields */}
+              <div className="flex flex-col gap-3 sm:w-56 shrink-0">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Document Name *
+                  </label>
+                  <input
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    required
+                    placeholder="e.g. Quote v1 — ACME"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Version</label>
+                  <select
+                    value={docStatus}
+                    onChange={(e) => setDocStatus(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
+                  >
+                    <option value="DRAFT">Draft</option>
+                    <option value="FINAL">Final</option>
+                  </select>
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <Button type="submit" size="sm" disabled={uploading || !file}>
+                    {uploading ? "Uploading…" : "Upload"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => { setShowUpload(false); setFile(null); setDisplayName("") }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">File *</label>
-                <input
-                  name="file"
-                  type="file"
-                  required
-                  className="w-full text-sm text-gray-600"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Version</label>
-                <select
-                  name="docStatus"
-                  defaultValue="DRAFT"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
-                >
-                  <option value="DRAFT">Draft</option>
-                  <option value="FINAL">Final</option>
-                </select>
-              </div>
-            </div>
-            {uploadError && <p className="text-xs text-red-600">{uploadError}</p>}
-            <div className="flex gap-2">
-              <Button type="submit" size="sm" disabled={uploading}>
-                {uploading ? "Uploading…" : "Upload"}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowUpload(false)}
+
+              {/* Right: drop zone */}
+              <div
+                onDragOver={onDragOver}
+                onDragLeave={onDragLeave}
+                onDrop={onDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className={cn(
+                  "flex-1 flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed cursor-pointer transition-colors min-h-[120px]",
+                  dragging
+                    ? "border-[#006fff] bg-blue-50"
+                    : file
+                    ? "border-green-400 bg-green-50"
+                    : "border-gray-300 hover:border-gray-400"
+                )}
               >
-                Cancel
-              </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) applyFile(f) }}
+                />
+                {file ? (
+                  <>
+                    <FileUp size={20} className="text-green-600" />
+                    <p className="text-sm font-medium text-green-700 text-center px-3">{file.name}</p>
+                    <p className="text-xs text-gray-400">{formatBytes(file.size)} · click to change</p>
+                  </>
+                ) : (
+                  <>
+                    <FileUp size={20} className={dragging ? "text-[#006fff]" : "text-gray-400"} />
+                    <p className="text-sm text-gray-500 text-center">
+                      <span className="font-medium text-gray-700">Drop file here</span> or click to browse
+                    </p>
+                  </>
+                )}
+              </div>
             </div>
+            {uploadError && <p className="text-xs text-red-600 mt-2">{uploadError}</p>}
           </form>
         )}
 

@@ -2,7 +2,7 @@ import { Suspense } from "react"
 import { db } from "@/lib/db"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { formatDate, QUOTE_STATUSES } from "@/lib/utils"
+import { formatDate, QUOTE_STATUSES, STATUS_GROUPS } from "@/lib/utils"
 import { FilterBar } from "@/components/opportunities/filter-bar"
 import { OpportunitiesTable } from "@/components/opportunities/table"
 
@@ -72,7 +72,7 @@ export default async function OpportunitiesPage({
       </div>
 
       <Suspense fallback={<div className="h-12 bg-gray-50 rounded-lg animate-pulse mb-6" />}>
-        <FilterBar />
+        <FilterBar statusGroups={STATUS_GROUPS.filter((g) => g.label === "Quote")} />
       </Suspense>
 
       <OpportunitiesTable

@@ -13,6 +13,22 @@ import {
   Legend,
 } from "recharts"
 import { STATUS_LABELS } from "@/lib/utils"
+import { useTheme } from "@/components/theme/theme-provider"
+
+function useTooltipStyle() {
+  const { theme } = useTheme()
+  const dark = theme === "dark"
+  return {
+    contentStyle: {
+      background: dark ? "#1c2d40" : "#ffffff",
+      border: `1px solid ${dark ? "#253d55" : "#e5e7eb"}`,
+      borderRadius: 8,
+      fontSize: 12,
+      color: dark ? "#e8f1f8" : "#111827",
+    },
+    cursor: { fill: dark ? "rgba(255,255,255,0.04)" : "#f9fafb" },
+  }
+}
 
 // ─── RFQ Trend Chart ─────────────────────────────────────────────────────────
 
@@ -21,6 +37,7 @@ interface RfqTrendProps {
 }
 
 export function RfqTrendChart({ data }: RfqTrendProps) {
+  const tooltip = useTooltipStyle()
   if (data.every((d) => d.rfq === 0 && d.quotes === 0)) {
     return (
       <div className="h-[200px] flex items-center justify-center text-sm text-gray-400">
@@ -44,15 +61,7 @@ export function RfqTrendChart({ data }: RfqTrendProps) {
           axisLine={false}
           allowDecimals={false}
         />
-        <Tooltip
-          contentStyle={{
-            background: "#fff",
-            border: "1px solid #e5e7eb",
-            borderRadius: 8,
-            fontSize: 12,
-          }}
-          cursor={{ fill: "#f9fafb" }}
-        />
+        <Tooltip {...tooltip} />
         <Legend
           iconType="circle"
           iconSize={8}
@@ -73,6 +82,7 @@ interface ElTrendProps {
 }
 
 export function ElTrendChart({ data }: ElTrendProps) {
+  const tooltip = useTooltipStyle()
   if (data.every((d) => d.requested === 0 && d.drafted === 0 && d.signed === 0)) {
     return (
       <div className="h-[200px] flex items-center justify-center text-sm text-gray-400">
@@ -96,15 +106,7 @@ export function ElTrendChart({ data }: ElTrendProps) {
           axisLine={false}
           allowDecimals={false}
         />
-        <Tooltip
-          contentStyle={{
-            background: "#fff",
-            border: "1px solid #e5e7eb",
-            borderRadius: 8,
-            fontSize: 12,
-          }}
-          cursor={{ fill: "#f9fafb" }}
-        />
+        <Tooltip {...tooltip} />
         <Legend
           iconType="circle"
           iconSize={8}
@@ -128,6 +130,7 @@ interface PipelineBarProps {
 }
 
 export function PipelineBarChart({ data }: PipelineBarProps) {
+  const tooltip = useTooltipStyle()
   const formatted = data.map((d) => ({
     name: STATUS_LABELS[d.status] ?? d.status,
     count: d.count,
@@ -152,15 +155,7 @@ export function PipelineBarChart({ data }: PipelineBarProps) {
           axisLine={false}
           allowDecimals={false}
         />
-        <Tooltip
-          contentStyle={{
-            background: "#fff",
-            border: "1px solid #e5e7eb",
-            borderRadius: 8,
-            fontSize: 12,
-          }}
-          cursor={{ fill: "#f9fafb" }}
-        />
+        <Tooltip {...tooltip} />
         <Bar dataKey="count" fill="#374151" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
@@ -178,6 +173,7 @@ const WAITING_LABELS: Record<string, string> = {
 }
 
 export function WaitingOnPieChart({ data }: WaitingOnPieProps) {
+  const tooltip = useTooltipStyle()
   const formatted = data
     .filter((d) => d.waitingOn !== "NONE")
     .map((d) => ({
@@ -209,14 +205,7 @@ export function WaitingOnPieChart({ data }: WaitingOnPieProps) {
             <Cell key={`cell-${index}`} fill={GRAY_SHADES[index % GRAY_SHADES.length]} />
           ))}
         </Pie>
-        <Tooltip
-          contentStyle={{
-            background: "#fff",
-            border: "1px solid #e5e7eb",
-            borderRadius: 8,
-            fontSize: 12,
-          }}
-        />
+        <Tooltip {...tooltip} />
         <Legend
           iconType="circle"
           iconSize={8}

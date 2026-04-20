@@ -1,7 +1,7 @@
 import { db } from "@/lib/db"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { formatDate, EL_STATUSES } from "@/lib/utils"
+import { formatDate, EL_STATUSES, STATUS_GROUPS } from "@/lib/utils"
 import { ELTable } from "@/components/opportunities/el-table"
 import { FilterBar } from "@/components/opportunities/filter-bar"
 
@@ -69,7 +69,7 @@ export default async function ELsPage({
         </div>
       </div>
 
-      <FilterBar basePath="/els" />
+      <FilterBar basePath="/els" statusGroups={STATUS_GROUPS.filter((g) => g.label === "Engagement Letter")} />
 
       <ELTable
         opportunities={rows}
