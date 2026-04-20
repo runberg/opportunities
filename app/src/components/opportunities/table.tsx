@@ -35,7 +35,6 @@ export function OpportunitiesTable({
 }) {
   const router = useRouter()
   const [openModalId, setOpenModalId] = useState<string | null>(null)
-  const [openModalInitialMode, setOpenModalInitialMode] = useState<"view" | "edit">("view")
   const [openModalAccept, setOpenModalAccept] = useState(false)
   const [newModalOpen, setNewModalOpen] = useState(false)
   const [commentTarget, setCommentTarget] = useState<OpportunityRow | null>(null)
@@ -112,7 +111,7 @@ export function OpportunitiesTable({
             {opportunities.map((opp) => (
               <tr
                 key={opp.id}
-                onClick={() => { setOpenModalInitialMode("view"); setOpenModalId(opp.id) }}
+                onClick={() => setOpenModalId(opp.id)}
                 className="hover:bg-gray-50 transition-colors cursor-pointer"
               >
                 <td className="px-4 py-3">
@@ -146,7 +145,6 @@ export function OpportunitiesTable({
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation()
-                          setOpenModalInitialMode("view")
                           setOpenModalAccept(true)
                           setOpenModalId(opp.id)
                         }}
@@ -181,7 +179,6 @@ export function OpportunitiesTable({
           onClose={() => setNewModalOpen(false)}
           onCreated={(newId) => {
             setNewModalOpen(false)
-            setOpenModalInitialMode("edit")
             setOpenModalId(newId)
             router.refresh()
           }}
@@ -194,7 +191,6 @@ export function OpportunitiesTable({
         onClose={() => { setOpenModalId(null); setOpenModalAccept(false); router.refresh() }}
         currentUserId={currentUserId}
         isAdmin={isAdmin}
-        initialMode={openModalInitialMode}
         initialAccept={openModalAccept}
       />
 
