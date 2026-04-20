@@ -1,9 +1,10 @@
 FROM node:20-alpine
+RUN apk add --no-cache openssl
 WORKDIR /app
 
-# Install dependencies
+# Install dependencies (skip postinstall — prisma generate runs explicitly below)
 COPY package.json package-lock.json* ./
-RUN npm ci
+RUN npm ci --ignore-scripts
 
 # Copy source
 COPY . .
