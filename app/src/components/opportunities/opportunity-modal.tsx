@@ -174,10 +174,12 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, initialAccept }: {
   const [acceptingQuote, setAcceptingQuote] = useState(initialAccept ?? false)
   const [elDate, setElDate] = useState(todayISO())
   const [accepting, setAccepting] = useState(false)
+  const [acceptError, setAcceptError] = useState("")
 
   // Counter-sign flow
   const [counterSigning, setCounterSigning] = useState(false)
   const [counterSigning2, setCounterSigning2] = useState(false)
+  const [counterSignError, setCounterSignError] = useState("")
 
   // Inline details edit
   const [editing, setEditing] = useState(false)
@@ -225,24 +227,48 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, initialAccept }: {
 
   async function handleAcceptQuote() {
     setAccepting(true)
-    const res = await fetch(`/api/opportunities/${data.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "EL_REQUEST_RECEIVED", elRequestedDate: elDate }),
-    })
-    setAccepting(false)
-    if (res.ok) { setAcceptingQuote(false); onRefresh() }
+    setAcceptError("")
+    try {
+      const res = await fetch(`/api/opportunities/${data.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "EL_REQUEST_RECEIVED", elRequestedDate: elDate }),
+      })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        setAcceptError(d.error ?? "Failed to save. Please try again.")
+      } else {
+        setAcceptingQuote(false)
+        onRefresh()
+      }
+    } catch {
+      setAcceptError("Network error. Please try again.")
+    } finally {
+      setAccepting(false)
+    }
   }
 
   async function handleCounterSigned() {
     setCounterSigning2(true)
-    const res = await fetch(`/api/opportunities/${data.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "PENDING_ADVANCE_PAYMENT", waitingOn: "CUSTOMER" }),
-    })
-    setCounterSigning2(false)
-    if (res.ok) { setCounterSigning(false); onRefresh() }
+    setCounterSignError("")
+    try {
+      const res = await fetch(`/api/opportunities/${data.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "PENDING_ADVANCE_PAYMENT", waitingOn: "CUSTOMER" }),
+      })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        setCounterSignError(d.error ?? "Failed to save. Please try again.")
+      } else {
+        setCounterSigning(false)
+        onRefresh()
+      }
+    } catch {
+      setCounterSignError("Network error. Please try again.")
+    } finally {
+      setCounterSigning2(false)
+    }
   }
 
   // Derive missing field for highlight (only after a failed save attempt)
@@ -313,11 +339,12 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, initialAccept }: {
               className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg disabled:opacity-50 transition-colors">
               {accepting ? "Saving…" : "Confirm"}
             </button>
-            <button type="button" onClick={() => setAcceptingQuote(false)}
+            <button type="button" onClick={() => { setAcceptingQuote(false); setAcceptError("") }}
               className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-800">
               Cancel
             </button>
           </div>
+          {acceptError && <p className="w-full text-xs text-red-600 mt-1">{acceptError}</p>}
         </div>
       )}
 
@@ -332,11 +359,12 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, initialAccept }: {
               className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg disabled:opacity-50 transition-colors">
               {counterSigning2 ? "Saving…" : "Confirm"}
             </button>
-            <button type="button" onClick={() => setCounterSigning(false)}
+            <button type="button" onClick={() => { setCounterSigning(false); setCounterSignError("") }}
               className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-800">
               Cancel
             </button>
           </div>
+          {counterSignError && <p className="text-xs text-red-600 mt-1">{counterSignError}</p>}
         </div>
       )}
 
