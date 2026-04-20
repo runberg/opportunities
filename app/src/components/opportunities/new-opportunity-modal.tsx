@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { X } from "lucide-react"
-import { cn, QUOTE_STATUSES, STATUS_LABELS, todayISO } from "@/lib/utils"
+import { QUOTE_STATUSES, STATUS_LABELS, todayISO } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
 interface NewOpportunityModalProps {
@@ -140,10 +140,9 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
               </div>
             </div>
 
-            {/* Info grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-              {/* Customer full width */}
-              <FormCard label="Customer *" required className="col-span-2 md:col-span-4">
+            {/* Info fields */}
+            <div className="flex flex-col gap-3 mb-5">
+              <FormCard label="Customer *" required>
                 <input
                   value={form.customer}
                   onChange={(e) => setField("customer", e.target.value)}
@@ -153,8 +152,7 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
                 />
               </FormCard>
 
-              {/* Product 50%, RFQ Date 25%, Quote Sent 25% */}
-              <FormCard label="Product / Service" className="col-span-2">
+              <FormCard label="Product / Service">
                 <input
                   value={form.product}
                   onChange={(e) => setField("product", e.target.value)}
@@ -162,25 +160,27 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
                   className={inputCls}
                 />
               </FormCard>
-              <FormCard label="RFQ Date">
-                <input
-                  type="date"
-                  value={form.rfqDate}
-                  onChange={(e) => setField("rfqDate", e.target.value)}
-                  className={inputCls}
-                />
-              </FormCard>
-              <FormCard label="Quote Sent Date">
-                <input
-                  type="date"
-                  value={form.quoteSentDate}
-                  onChange={(e) => setField("quoteSentDate", e.target.value)}
-                  className={inputCls}
-                />
-              </FormCard>
 
-              {/* Details full width */}
-              <FormCard label="Details" className="col-span-2 md:col-span-4">
+              <div className="grid grid-cols-2 gap-3">
+                <FormCard label="RFQ Date">
+                  <input
+                    type="date"
+                    value={form.rfqDate}
+                    onChange={(e) => setField("rfqDate", e.target.value)}
+                    className={inputCls}
+                  />
+                </FormCard>
+                <FormCard label="Quote Sent Date">
+                  <input
+                    type="date"
+                    value={form.quoteSentDate}
+                    onChange={(e) => setField("quoteSentDate", e.target.value)}
+                    className={inputCls}
+                  />
+                </FormCard>
+              </div>
+
+              <FormCard label="Details">
                 <textarea
                   value={form.description}
                   onChange={(e) => setField("description", e.target.value)}
@@ -223,16 +223,14 @@ const inputCls =
 function FormCard({
   label,
   children,
-  className,
   required = false,
 }: {
   label: string
   children: React.ReactNode
-  className?: string
   required?: boolean
 }) {
   return (
-    <div className={cn("bg-white border border-gray-200 rounded-xl p-4", className)}>
+    <div className="bg-white border border-gray-200 rounded-xl p-4">
       <p className="text-xs font-medium text-gray-400 mb-2">
         {label}
         {required && <span className="text-red-400 ml-0.5">*</span>}
