@@ -53,7 +53,9 @@ export const STATUS_SHORT_LABELS: Record<string, string> = {
   EL_DRAFT_SHARED: "EL Draft",
   EL_SIGNED_SHARED: "EL Signed",
   EL_FULLY_SIGNED: "EL Full",
-  PRODUCTION: "Prod",
+  PENDING_ADVANCE_PAYMENT: "Adv. Payment",
+  IN_PRODUCTION: "In Prod.",
+  PRODUCTION: "In Prod.",
   DELIVERED: "Delivered",
   CANCELLED: "Cancelled",
 }
@@ -66,7 +68,9 @@ export const STATUS_LABELS: Record<string, string> = {
   EL_DRAFT_SHARED: "EL Draft Shared",
   EL_SIGNED_SHARED: "EL Signed Shared",
   EL_FULLY_SIGNED: "EL Fully Signed",
-  PRODUCTION: "Production",
+  PENDING_ADVANCE_PAYMENT: "Pending Advance Payment",
+  IN_PRODUCTION: "In Production",
+  PRODUCTION: "In Production",
   DELIVERED: "Delivered",
   CANCELLED: "Cancelled",
 }
@@ -74,8 +78,14 @@ export const STATUS_LABELS: Record<string, string> = {
 // Statuses available in each workflow stage
 export const QUOTE_STATUSES = ["RFQ_RECEIVED", "QUOTE_SENT"] as const
 export const EL_STATUSES = ["EL_REQUEST_RECEIVED", "EL_DRAFT_SHARED", "EL_SIGNED_SHARED"] as const
+export const PRODUCTION_STATUSES = [
+  "PENDING_ADVANCE_PAYMENT",
+  "IN_PRODUCTION",
+  "PRODUCTION", // legacy
+  "DELIVERED",
+] as const
 
-// Grouped for the form dropdown — makes the flow clearer
+// Grouped for the filter dropdowns
 export const STATUS_GROUPS = [
   {
     label: "Quote",
@@ -91,8 +101,8 @@ export const STATUS_GROUPS = [
     ],
   },
   {
-    label: "Outcome",
-    statuses: ["PRODUCTION", "DELIVERED", "CANCELLED"],
+    label: "Production",
+    statuses: ["PENDING_ADVANCE_PAYMENT", "IN_PRODUCTION", "DELIVERED"],
   },
 ]
 
@@ -123,5 +133,7 @@ export const ACTIVE_STATUSES = [
   "EL_DRAFT_SHARED",
   "EL_SIGNED_SHARED",
   "EL_FULLY_SIGNED",
+  "PENDING_ADVANCE_PAYMENT",
+  "IN_PRODUCTION",
   "PRODUCTION",
 ]

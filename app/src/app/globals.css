@@ -152,3 +152,11 @@
 [data-theme="dark"] .bg-red-50       { background-color: rgba(239, 68, 68, 0.08); }
 [data-theme="dark"] .border-red-200  { border-color: rgba(239, 68, 68, 0.25); }
 [data-theme="dark"] .text-red-600    { color: #f87171; }
+
+/* ── Production phase panels ─── */
+[data-theme="dark"] .bg-blue-50      { background-color: rgba(59, 130, 246, 0.08); }
+[data-theme="dark"] .border-blue-200 { border-color: rgba(59, 130, 246, 0.25); }
+[data-theme="dark"] .text-blue-700   { color: #60a5fa; }
+[data-theme="dark"] .text-blue-900   { color: #93c5fd; }
+[data-theme="dark"] .bg-gray-200     { background-color: #253d55; }
+[data-theme="dark"] .text-gray-800   { color: #c0d4e8; }

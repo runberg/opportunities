@@ -41,6 +41,14 @@ model Opportunity {
   elRequestedDate    DateTime?         // Date the EL was requested (quote accepted)
   elDraftSharedDate  DateTime?         // Date the EL draft was shared with the customer
   elSignedSharedDate DateTime?         // Date the signed EL was shared back
+  // Production fields
+  advancePaymentDate DateTime?         // Date advance payment was confirmed received
+  fatDate            DateTime?         // Scheduled FAT date
+  fatPassedDate      DateTime?         // Date FAT was confirmed passed
+  satApplicable      Boolean           @default(true)
+  satDate            DateTime?         // Scheduled SAT date
+  satPassedDate      DateTime?         // Date SAT was confirmed passed
+  deliveredDate      DateTime?         // Date marked as delivered
   description        String?           // General notes
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
@@ -60,7 +68,9 @@ enum OpportunityStatus {
   EL_DRAFT_SHARED
   EL_SIGNED_SHARED
   EL_FULLY_SIGNED
-  PRODUCTION
+  PENDING_ADVANCE_PAYMENT
+  IN_PRODUCTION
+  PRODUCTION           // legacy — superseded by PENDING_ADVANCE_PAYMENT / IN_PRODUCTION
   DELIVERED
   CANCELLED
 }
@@ -106,6 +116,8 @@ model Document {
 enum DocumentType {
   QUOTE
   EL
+  FAT
+  SAT
   OTHER
 }
 

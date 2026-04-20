@@ -22,7 +22,7 @@ interface QuoteSectionProps {
   currentUserId: string
   isAdmin: boolean
   onRefresh?: () => void
-  docType?: "QUOTE" | "EL"
+  docType?: "QUOTE" | "EL" | "FAT" | "SAT"
 }
 
 export function QuoteSection({
@@ -106,22 +106,30 @@ export function QuoteSection({
     router.refresh()
   }
 
-  return (
-    <div className="mt-6 bg-white border border-gray-200 rounded-xl p-6">
-      <h2 className="text-base font-semibold text-gray-900 mb-5">
-        {docType === "EL" ? "EL Documents" : "Quote Documents"}
-      </h2>
+  const sectionLabel =
+    docType === "EL" ? "EL Documents"
+    : docType === "FAT" ? "FAT Documents"
+    : docType === "SAT" ? "SAT Documents"
+    : "Quote Documents"
 
+  const emptyLabel =
+    docType === "EL" ? "No EL documents yet."
+    : docType === "FAT" ? "No FAT documents yet."
+    : docType === "SAT" ? "No SAT documents yet."
+    : "No quote documents yet."
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-4">
       {/* Documents */}
-      <div className="mb-6">
+      <div className="mb-4">
         <div className="flex items-center justify-between mb-3">
           <p className="text-sm font-medium text-gray-700">
-            {docType === "EL" ? "EL Documents" : "Quote Documents"}
+            {sectionLabel}
             <span className="ml-1.5 text-gray-400 font-normal">({documents.length})</span>
           </p>
           <Button variant="secondary" size="sm" onClick={() => setShowUpload((v) => !v)}>
             <Upload size={13} className="mr-1.5" />
-            {docType === "EL" ? "Upload EL" : "Upload Quote"}
+            Upload
           </Button>
         </div>
 
@@ -214,7 +222,7 @@ export function QuoteSection({
 
         {documents.length === 0 ? (
           <p className="text-sm text-gray-400">
-            {docType === "EL" ? "No EL documents yet." : "No quote documents yet."}
+            {emptyLabel}
           </p>
         ) : (
           <div className="border border-gray-200 rounded-xl overflow-hidden">

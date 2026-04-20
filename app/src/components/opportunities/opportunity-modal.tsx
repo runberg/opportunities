@@ -3,9 +3,10 @@
 import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { X, Pencil, ChevronLeft } from "lucide-react"
-import { cn, formatDate, QUOTE_STATUSES, EL_STATUSES, STATUS_LABELS, todayISO, toDateString } from "@/lib/utils"
+import { cn, formatDate, QUOTE_STATUSES, EL_STATUSES, PRODUCTION_STATUSES, STATUS_LABELS, todayISO, toDateString } from "@/lib/utils"
 import { StatusBadge, PendingBadge } from "@/components/opportunities/status-badge"
 import { QuoteSection } from "@/components/opportunities/quote-section"
+import { ProductionSection } from "@/components/opportunities/production-section"
 import { LogSection, type LogEntry } from "@/components/opportunities/log-section"
 import { Button } from "@/components/ui/button"
 
@@ -40,6 +41,14 @@ interface OpportunityFull {
   elRequestedDate: string | null
   elDraftSharedDate: string | null
   elSignedSharedDate: string | null
+  // Production fields
+  advancePaymentDate: string | null
+  fatDate: string | null
+  fatPassedDate: string | null
+  satApplicable: boolean
+  satDate: string | null
+  satPassedDate: string | null
+  deliveredDate: string | null
   description: string | null
   createdAt: string
   updatedAt: string
@@ -189,7 +198,11 @@ export function OpportunityModal({
               </button>
             ) : (
               <span className="text-xs text-gray-400 font-medium tracking-wide uppercase">
-                {data && ALL_EL_STATUSES.includes(data.status) ? "Engagement Letter" : "Quote"}
+                {data && (PRODUCTION_STATUSES as readonly string[]).includes(data.status)
+                  ? "Production"
+                  : data && ALL_EL_STATUSES.includes(data.status)
+                  ? "Engagement Letter"
+                  : "Quote"}
               </span>
             )}
             <button type="button" onClick={onClose}
@@ -233,6 +246,7 @@ function ViewMode({ data, onEdit, currentUserId, isAdmin, onRefresh, initialAcce
   initialAccept?: boolean
 }) {
   const isEL = ALL_EL_STATUSES.includes(data.status)
+  const isProduction = (PRODUCTION_STATUSES as readonly string[]).includes(data.status)
   const canAcceptQuote = data.status === "QUOTE_SENT" && !!data.quoteSentDate
 
   // Quote Accepted confirmation state
@@ -260,7 +274,7 @@ function ViewMode({ data, onEdit, currentUserId, isAdmin, onRefresh, initialAcce
     const res = await fetch(`/api/opportunities/${data.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "PRODUCTION" }),
+      body: JSON.stringify({ status: "PENDING_ADVANCE_PAYMENT", waitingOn: "CUSTOMER" }),
     })
     setCounterSigning2(false)
     if (res.ok) { setCounterSigning(false); onRefresh() }
@@ -377,10 +391,14 @@ function ViewMode({ data, onEdit, currentUserId, isAdmin, onRefresh, initialAcce
         documents={data.documents.filter((d) => d.type === "QUOTE")}
         currentUserId={currentUserId} isAdmin={isAdmin} onRefresh={onRefresh} docType="QUOTE" />
 
-      {isEL && (
+      {(isEL || isProduction) && (
         <QuoteSection opportunityId={data.id}
           documents={data.documents.filter((d) => d.type === "EL")}
           currentUserId={currentUserId} isAdmin={isAdmin} onRefresh={onRefresh} docType="EL" />
+      )}
+
+      {isProduction && (
+        <ProductionSection data={data} currentUserId={currentUserId} isAdmin={isAdmin} onRefresh={onRefresh} />
       )}
 
       <LogSection opportunityId={data.id} entries={data.comments}
@@ -405,7 +423,11 @@ function EditMode({ data, form, setField, onCancel, onSave, saving, saveError,
   onRefresh: () => void
 }) {
   const isEL = ALL_EL_STATUSES.includes(form.status)
-  const statusOptions = isEL ? EL_STATUSES : QUOTE_STATUSES
+  const isProd = (PRODUCTION_STATUSES as readonly string[]).includes(form.status)
+  const statusOptions = isProd
+    ? ["PENDING_ADVANCE_PAYMENT", "IN_PRODUCTION", "DELIVERED"]
+    : isEL ? [...EL_STATUSES, "EL_FULLY_SIGNED"]
+    : QUOTE_STATUSES
 
   return (
     <div>
@@ -487,7 +509,7 @@ function EditMode({ data, form, setField, onCancel, onSave, saving, saveError,
         documents={data.documents.filter((d) => d.type === "QUOTE")}
         currentUserId={currentUserId} isAdmin={isAdmin} onRefresh={onRefresh} docType="QUOTE" />
 
-      {isEL && (
+      {(isEL || isProd) && (
         <QuoteSection opportunityId={data.id}
           documents={data.documents.filter((d) => d.type === "EL")}
           currentUserId={currentUserId} isAdmin={isAdmin} onRefresh={onRefresh} docType="EL" />
