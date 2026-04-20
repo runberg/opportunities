@@ -2,6 +2,7 @@ import { db } from "@/lib/db"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { notFound } from "next/navigation"
+import { toDateString } from "@/lib/utils"
 import { OpportunityForm } from "@/components/opportunities/opportunity-form"
 import { QuoteSection } from "@/components/opportunities/quote-section"
 import Link from "next/link"
@@ -53,9 +54,7 @@ export default async function EditOpportunityPage({
               title: opportunity.title,
               customer: opportunity.customer,
               reference: opportunity.reference ?? "",
-              rfqDate: opportunity.rfqDate
-                ? opportunity.rfqDate.toISOString().split("T")[0]
-                : "",
+              rfqDate: toDateString(opportunity.rfqDate),
               product: opportunity.product ?? "",
               status: opportunity.status,
               waitingOn: opportunity.waitingOn,

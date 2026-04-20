@@ -3,16 +3,13 @@
 import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { X, Pencil, ChevronLeft } from "lucide-react"
-import { cn, formatDate, QUOTE_STATUSES, EL_STATUSES, STATUS_LABELS } from "@/lib/utils"
+import { cn, formatDate, QUOTE_STATUSES, EL_STATUSES, STATUS_LABELS, todayISO, toDateString } from "@/lib/utils"
 import { StatusBadge, PendingBadge } from "@/components/opportunities/status-badge"
 import { QuoteSection } from "@/components/opportunities/quote-section"
 import { LogSection, type LogEntry } from "@/components/opportunities/log-section"
 import { Button } from "@/components/ui/button"
 
-function todayISO() {
-  return new Date().toISOString().split("T")[0]
-}
-
+// EL_FULLY_SIGNED added so the modal can display fully-signed ELs (read-only, no further transitions)
 const ALL_EL_STATUSES = [...EL_STATUSES, "EL_FULLY_SIGNED"]
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -132,11 +129,11 @@ export function OpportunityModal({
       title: data.title,
       customer: data.customer,
       reference: data.reference ?? "",
-      rfqDate: data.rfqDate ? data.rfqDate.split("T")[0] : "",
-      quoteSentDate: data.quoteSentDate ? data.quoteSentDate.split("T")[0] : "",
-      elRequestedDate: data.elRequestedDate ? data.elRequestedDate.split("T")[0] : "",
-      elDraftSharedDate: data.elDraftSharedDate ? data.elDraftSharedDate.split("T")[0] : "",
-      elSignedSharedDate: data.elSignedSharedDate ? data.elSignedSharedDate.split("T")[0] : "",
+      rfqDate: toDateString(data.rfqDate),
+      quoteSentDate: toDateString(data.quoteSentDate),
+      elRequestedDate: toDateString(data.elRequestedDate),
+      elDraftSharedDate: toDateString(data.elDraftSharedDate),
+      elSignedSharedDate: toDateString(data.elSignedSharedDate),
       product: data.product ?? "",
       status: data.status,
       waitingOn: data.waitingOn,

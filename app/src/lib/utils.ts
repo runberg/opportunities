@@ -6,6 +6,25 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/** Returns today as YYYY-MM-DD in local time (safe for date inputs). */
+export function todayISO(): string {
+  return new Date().toISOString().split("T")[0]
+}
+
+/** Returns a date N days ago as YYYY-MM-DD. */
+export function daysAgoISO(days: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() - days)
+  return d.toISOString().split("T")[0]
+}
+
+/** Extracts the YYYY-MM-DD portion from a Date, ISO string, or nullish value. */
+export function toDateString(date: Date | string | null | undefined): string {
+  if (!date) return ""
+  const s = typeof date === "string" ? date : date.toISOString()
+  return s.split("T")[0]
+}
+
 export function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B"
   const k = 1024

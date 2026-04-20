@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { QUOTE_STATUSES, STATUS_LABELS } from "@/lib/utils"
+import { QUOTE_STATUSES, STATUS_LABELS, todayISO } from "@/lib/utils"
 
 interface OpportunityFormProps {
   mode: "create" | "edit"
@@ -23,10 +23,6 @@ interface OpportunityFormProps {
     waitingOn?: string
     description?: string
   }
-}
-
-function todayISO() {
-  return new Date().toISOString().split("T")[0]
 }
 
 export function OpportunityForm({ mode, initialData = {} }: OpportunityFormProps) {

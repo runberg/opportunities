@@ -2,12 +2,8 @@
 
 import { useState } from "react"
 import { X } from "lucide-react"
-import { cn, QUOTE_STATUSES, STATUS_LABELS } from "@/lib/utils"
+import { cn, QUOTE_STATUSES, STATUS_LABELS, todayISO } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-
-function todayISO() {
-  return new Date().toISOString().split("T")[0]
-}
 
 interface NewOpportunityModalProps {
   onClose: () => void

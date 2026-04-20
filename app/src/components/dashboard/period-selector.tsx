@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { cn } from "@/lib/utils"
+import { cn, todayISO, daysAgoISO } from "@/lib/utils"
 
 const PERIODS = [
   { key: "7d", label: "7 days" },
@@ -11,16 +11,6 @@ const PERIODS = [
   { key: "90d", label: "90 days" },
   { key: "year", label: "This year" },
 ]
-
-function todayISO() {
-  return new Date().toISOString().split("T")[0]
-}
-
-function daysAgoISO(days: number) {
-  const d = new Date()
-  d.setDate(d.getDate() - days)
-  return d.toISOString().split("T")[0]
-}
 
 export function PeriodSelector({
   current,

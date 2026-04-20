@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { z } from "zod"
-import { STATUS_LABELS } from "@/lib/utils"
+import { STATUS_LABELS, toDateString } from "@/lib/utils"
+import { requireSession, requireAdmin } from "@/lib/api"
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const { error } = await requireSession()
+  if (error) return error
 
   const { id } = await params
   const opportunity = await db.opportunity.findUnique({
@@ -52,8 +51,8 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const { session, error } = await requireSession()
+  if (error) return error
 
   const { id } = await params
   const body = await req.json()
@@ -69,10 +68,8 @@ export async function PATCH(
 
   // Capture system events before updating
   const statusChanged = rest.status && rest.status !== existing.status
-  const quoteSentNew =
-    quoteSentDate && quoteSentDate !== existing.quoteSentDate?.toISOString().split("T")[0]
-  const elRequestedNew =
-    elRequestedDate && elRequestedDate !== existing.elRequestedDate?.toISOString().split("T")[0]
+  const quoteSentNew = quoteSentDate && quoteSentDate !== toDateString(existing.quoteSentDate)
+  const elRequestedNew = elRequestedDate && elRequestedDate !== toDateString(existing.elRequestedDate)
 
   const updated = await db.opportunity.update({
     where: { id },
@@ -127,14 +124,11 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  if (session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-  }
+  const { error } = await requireAdmin()
+  if (error) return error
 
   const { id } = await params
   await db.opportunity.delete({ where: { id } })

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
 import { db } from "@/lib/db"
+import { requireSession } from "@/lib/api"
 import { readFile, unlink } from "fs/promises"
 import { join, extname } from "path"
 import { existsSync } from "fs"
@@ -9,11 +8,11 @@ import { existsSync } from "fs"
 const UPLOAD_DIR = process.env.UPLOAD_DIR ?? join(process.cwd(), "uploads")
 
 export async function GET(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const { error } = await requireSession()
+  if (error) return error
 
   const { id } = await params
 
@@ -37,11 +36,11 @@ export async function GET(
 }
 
 export async function DELETE(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const { session, error } = await requireSession()
+  if (error) return error
 
   const { id } = await params
 
