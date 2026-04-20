@@ -2,8 +2,8 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Check, ChevronRight } from "lucide-react"
-import { cn, formatDate, todayISO } from "@/lib/utils"
+import { Check } from "lucide-react"
+import { cn, formatDate, todayISO, toDateString } from "@/lib/utils"
 import { QuoteSection } from "@/components/opportunities/quote-section"
 
 interface ProductionData {
@@ -26,75 +26,13 @@ interface ProductionSectionProps {
   onRefresh: () => void
 }
 
-// ─── Phase step indicator ─────────────────────────────────────────────────────
-
-function PhaseStep({ label, done, active }: { label: string; done: boolean; active: boolean }) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <div className={cn(
-        "w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0",
-        done ? "bg-green-500 text-white" : active ? "bg-[#006fff] text-white" : "bg-gray-200 text-gray-400"
-      )}>
-        {done ? <Check size={11} /> : null}
-      </div>
-      <span className={cn(
-        "text-xs font-medium whitespace-nowrap",
-        done ? "text-green-600" : active ? "text-gray-900" : "text-gray-400"
-      )}>{label}</span>
-    </div>
-  )
-}
-
-function PhaseDivider() {
-  return <ChevronRight size={14} className="text-gray-300 flex-shrink-0" />
-}
-
-// ─── Shared sub-components ────────────────────────────────────────────────────
-
-function DateInput({ label, value, onChange, onBlur }: {
-  label: string
-  value: string
-  onChange: (v: string) => void
-  onBlur?: () => void
-}) {
-  return (
-    <div>
-      <p className="text-xs text-gray-500 mb-1">{label}</p>
-      <input
-        type="date"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onBlur={onBlur}
-        className="text-xs border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-gray-400"
-      />
-    </div>
-  )
-}
-
-function CheckButton({ label, onClick, disabled }: { label: string; onClick: () => void; disabled?: boolean }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className="self-end px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg disabled:opacity-50 transition-colors flex items-center gap-1.5"
-    >
-      <Check size={12} />
-      {label}
-    </button>
-  )
-}
-
-// ─── Main component ───────────────────────────────────────────────────────────
-
 export function ProductionSection({ data, currentUserId, isAdmin, onRefresh }: ProductionSectionProps) {
   const router = useRouter()
   const [saving, setSaving] = useState<string | null>(null)
 
-  const [advanceDate, setAdvanceDate] = useState(data.advancePaymentDate ? todayISO() : todayISO())
-  const [fatDate, setFatDate] = useState(data.fatDate ?? "")
-  const [satDate, setSatDate] = useState(data.satDate ?? "")
-  const [togglingNA, setTogglingNA] = useState(false)
+  const [advanceDate, setAdvanceDate] = useState(todayISO())
+  const [fatDate, setFatDate] = useState(toDateString(data.fatDate))
+  const [satDate, setSatDate] = useState(toDateString(data.satDate))
 
   async function patch(payload: Record<string, unknown>, savingKey: string) {
     setSaving(savingKey)
@@ -108,168 +46,221 @@ export function ProductionSection({ data, currentUserId, isAdmin, onRefresh }: P
     return res.ok
   }
 
-  const advancePaid = !!data.advancePaymentDate
-  const fatPassed = !!data.fatPassedDate
-  const satPassed = !!data.satPassedDate
-  const delivered = data.status === "DELIVERED"
-  const satNA = !data.satApplicable
-  const satDone = satNA || satPassed
+  const advancePaid   = !!data.advancePaymentDate
+  const fatPassed     = !!data.fatPassedDate
+  const satPassed     = !!data.satPassedDate
+  const delivered     = data.status === "DELIVERED"
+  const satNA         = !data.satApplicable
+  const satDone       = satNA || satPassed
+  const canDeliver    = satDone && !delivered
 
   return (
     <div className="mt-6 bg-white border border-gray-200 rounded-xl p-6">
       <h2 className="text-base font-semibold text-gray-900 mb-5">Production</h2>
 
-      {/* Phase progress bar */}
-      <div className="flex items-center gap-2 flex-wrap mb-6 p-3 bg-gray-50 border border-gray-100 rounded-xl">
-        <PhaseStep label="Advance Payment" done={advancePaid} active={!advancePaid} />
-        <PhaseDivider />
-        <PhaseStep label="FAT" done={fatPassed} active={advancePaid && !fatPassed} />
-        <PhaseDivider />
-        <PhaseStep label={satNA ? "SAT (N/A)" : "SAT"} done={satDone} active={fatPassed && !satDone} />
-        <PhaseDivider />
-        <PhaseStep label="Delivered" done={delivered} active={satDone && !delivered} />
+      {/* Dates row — same pattern as the dates grid in view/edit mode */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+
+        {/* Advance Payment */}
+        <DateCard
+          label="Advance Payment"
+          done={advancePaid}
+          doneValue={advancePaid ? formatDate(data.advancePaymentDate!) : null}
+        >
+          <input
+            type="date"
+            value={advanceDate}
+            onChange={(e) => setAdvanceDate(e.target.value)}
+            className={dateCls}
+          />
+          <ActionButton
+            label="Received"
+            savingKey="advance"
+            saving={saving}
+            disabled={!advanceDate}
+            onClick={() => patch({ advancePaymentDate: advanceDate, waitingOn: "INTERNAL" }, "advance")}
+          />
+        </DateCard>
+
+        {/* FAT */}
+        <DateCard
+          label="FAT"
+          done={fatPassed}
+          doneValue={fatPassed ? formatDate(data.fatPassedDate!) : null}
+          locked={!advancePaid}
+        >
+          <input
+            type="date"
+            value={fatDate}
+            onChange={(e) => setFatDate(e.target.value)}
+            onBlur={() => fatDate && patch({ fatDate }, "fatDate")}
+            className={dateCls}
+          />
+          <ActionButton
+            label="Passed"
+            savingKey="fat"
+            saving={saving}
+            onClick={() => patch({ fatPassedDate: todayISO(), fatDate: fatDate || undefined }, "fat")}
+          />
+        </DateCard>
+
+        {/* SAT */}
+        <DateCard
+          label="SAT"
+          done={satDone}
+          doneValue={satNA ? "N/A" : satPassed ? formatDate(data.satPassedDate!) : null}
+          locked={!fatPassed && !satNA}
+          na={satNA}
+          naToggle={fatPassed || satNA ? () => patch({ satApplicable: satNA }, "satNA") : undefined}
+          naToggleSaving={saving === "satNA"}
+        >
+          <input
+            type="date"
+            value={satDate}
+            onChange={(e) => setSatDate(e.target.value)}
+            onBlur={() => satDate && patch({ satDate }, "satDate")}
+            disabled={satNA}
+            className={cn(dateCls, satNA && "opacity-40 cursor-not-allowed")}
+          />
+          <ActionButton
+            label="Passed"
+            savingKey="sat"
+            saving={saving}
+            disabled={satNA}
+            onClick={() => patch({ satPassedDate: todayISO(), satDate: satDate || undefined }, "sat")}
+          />
+        </DateCard>
+
+        {/* Delivered */}
+        <DateCard
+          label="Delivered"
+          done={delivered}
+          doneValue={delivered && data.deliveredDate ? formatDate(data.deliveredDate) : null}
+          locked={!satDone}
+          deliverButton={canDeliver ? (
+            <ActionButton
+              label="Mark Delivered"
+              savingKey="deliver"
+              saving={saving}
+              onClick={() => patch({ deliveredDate: todayISO(), waitingOn: "NONE" }, "deliver")}
+              green
+            />
+          ) : undefined}
+        />
+
       </div>
 
-      {/* ── Phase 1: Advance Payment ── */}
-      <PhaseCard title="Advance Payment" done={advancePaid}
-        doneLabel={`Received ${formatDate(data.advancePaymentDate!)}`}>
-        {!advancePaid && (
-          <div className="flex items-end gap-3 flex-wrap">
-            <DateInput label="Date received" value={advanceDate} onChange={setAdvanceDate} />
-            <CheckButton
-              label={saving === "advance" ? "Saving…" : "Payment Received"}
-              onClick={() => patch({ advancePaymentDate: advanceDate, waitingOn: "INTERNAL" }, "advance")}
-              disabled={!advanceDate || saving === "advance"}
-            />
-          </div>
-        )}
-      </PhaseCard>
-
-      {/* ── Phase 2: FAT ── */}
-      <PhaseCard title="FAT — Factory Acceptance Test" done={fatPassed}
-        doneLabel={`Passed ${formatDate(data.fatPassedDate!)}`} locked={!advancePaid}>
-        {advancePaid && !fatPassed && (
-          <div className="flex items-end gap-3 flex-wrap">
-            <DateInput
-              label="FAT date"
-              value={fatDate}
-              onChange={setFatDate}
-              onBlur={() => fatDate && patch({ fatDate }, "fatDate")}
-            />
-            <CheckButton
-              label={saving === "fat" ? "Saving…" : "FAT Passed"}
-              onClick={() => patch({ fatPassedDate: todayISO(), fatDate: fatDate || undefined }, "fat")}
-              disabled={saving === "fat"}
-            />
-          </div>
-        )}
-        {advancePaid && (
-          <div className="mt-4">
-            <QuoteSection opportunityId={data.id}
-              documents={data.documents.filter((d) => d.type === "FAT")}
-              currentUserId={currentUserId} isAdmin={isAdmin} onRefresh={onRefresh} docType="FAT" />
-          </div>
-        )}
-      </PhaseCard>
-
-      {/* ── Phase 3: SAT ── */}
-      <PhaseCard
-        title="SAT — Site Acceptance Test"
-        done={satDone}
-        doneLabel={satNA ? "Not applicable" : `Passed ${formatDate(data.satPassedDate!)}`}
-        locked={!fatPassed && !satNA}
-      >
-        {(fatPassed || satNA) && (
-          <div className="flex items-end gap-3 flex-wrap">
-            {/* N/A toggle */}
-            <button
-              type="button"
-              onClick={() => {
-                setTogglingNA(true)
-                patch({ satApplicable: satNA }, "satNA").then(() => setTogglingNA(false))
-              }}
-              disabled={togglingNA || satPassed}
-              className={cn(
-                "self-end px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors",
-                satNA
-                  ? "bg-gray-100 border-gray-300 text-gray-600 hover:bg-gray-200"
-                  : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
-              )}
-            >
-              {satNA ? "Mark SAT applicable" : "Mark SAT as N/A"}
-            </button>
-
-            {!satNA && !satPassed && (
-              <>
-                <DateInput
-                  label="SAT date"
-                  value={satDate}
-                  onChange={setSatDate}
-                  onBlur={() => satDate && patch({ satDate }, "satDate")}
-                />
-                <CheckButton
-                  label={saving === "sat" ? "Saving…" : "SAT Passed"}
-                  onClick={() => patch({ satPassedDate: todayISO(), satDate: satDate || undefined }, "sat")}
-                  disabled={saving === "sat"}
-                />
-              </>
-            )}
-          </div>
-        )}
-        {!satNA && fatPassed && (
-          <div className="mt-4">
-            <QuoteSection opportunityId={data.id}
-              documents={data.documents.filter((d) => d.type === "SAT")}
-              currentUserId={currentUserId} isAdmin={isAdmin} onRefresh={onRefresh} docType="SAT" />
-          </div>
-        )}
-      </PhaseCard>
-
-      {/* ── Phase 4: Delivery ── */}
-      <PhaseCard title="Delivery" done={delivered}
-        doneLabel={`Delivered ${data.deliveredDate ? formatDate(data.deliveredDate) : ""}`}
-        locked={!satDone}>
-        {satDone && !delivered && (
-          <CheckButton
-            label={saving === "deliver" ? "Saving…" : "Mark as Delivered"}
-            onClick={() => patch({ deliveredDate: todayISO(), waitingOn: "NONE" }, "deliver")}
-            disabled={saving === "deliver"}
+      {/* FAT documents */}
+      {advancePaid && (
+        <div className="mb-4">
+          <QuoteSection
+            opportunityId={data.id}
+            documents={data.documents.filter((d) => d.type === "FAT")}
+            currentUserId={currentUserId}
+            isAdmin={isAdmin}
+            onRefresh={onRefresh}
+            docType="FAT"
           />
-        )}
-      </PhaseCard>
+        </div>
+      )}
+
+      {/* SAT documents — hidden when N/A */}
+      {fatPassed && !satNA && (
+        <QuoteSection
+          opportunityId={data.id}
+          documents={data.documents.filter((d) => d.type === "SAT")}
+          currentUserId={currentUserId}
+          isAdmin={isAdmin}
+          onRefresh={onRefresh}
+          docType="SAT"
+        />
+      )}
     </div>
   )
 }
 
-// ─── Phase card wrapper ───────────────────────────────────────────────────────
+// ─── Date card ────────────────────────────────────────────────────────────────
 
-function PhaseCard({
-  title, done, doneLabel, locked = false, children,
+function DateCard({
+  label, done, doneValue, locked = false, na = false,
+  naToggle, naToggleSaving = false,
+  deliverButton, children,
 }: {
-  title: string
+  label: string
   done: boolean
-  doneLabel?: string
+  doneValue: string | null
   locked?: boolean
+  na?: boolean
+  naToggle?: () => void
+  naToggleSaving?: boolean
+  deliverButton?: React.ReactNode
   children?: React.ReactNode
 }) {
   return (
     <div className={cn(
-      "mb-4 border rounded-xl p-4 transition-colors",
-      done ? "border-green-200 bg-green-50" : locked ? "border-gray-100 bg-gray-50 opacity-50" : "border-gray-200 bg-white"
+      "border rounded-xl p-4 flex flex-col gap-2 transition-colors",
+      done ? "border-green-200 bg-green-50" : locked ? "border-gray-100 bg-gray-50" : "border-gray-200 bg-white"
     )}>
-      <div className="flex items-center gap-2 mb-3">
-        <div className={cn(
-          "w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0",
-          done ? "bg-green-500" : "bg-gray-200"
-        )}>
-          {done && <Check size={9} className="text-white" />}
-        </div>
-        <h3 className={cn("text-sm font-semibold", done ? "text-green-800" : "text-gray-900")}>{title}</h3>
-        {done && doneLabel && (
-          <span className="text-xs text-green-600 ml-1">— {doneLabel}</span>
-        )}
+      <div className="flex items-center justify-between gap-1">
+        <p className={cn("text-xs font-medium", done ? "text-green-700" : locked ? "text-gray-300" : "text-gray-400")}>
+          {label}
+        </p>
+        {done && <Check size={12} className="text-green-500 flex-shrink-0" />}
       </div>
-      {!locked && children}
+
+      {done ? (
+        <p className="text-sm font-semibold text-green-800">{doneValue ?? "—"}</p>
+      ) : locked ? (
+        <p className="text-sm font-medium text-gray-300">—</p>
+      ) : (
+        <>
+          {deliverButton ?? children}
+          {naToggle && (
+            <button
+              type="button"
+              onClick={naToggle}
+              disabled={naToggleSaving}
+              className={cn(
+                "mt-1 text-xs font-medium transition-colors text-left",
+                na ? "text-gray-500 hover:text-gray-700" : "text-gray-400 hover:text-gray-600"
+              )}
+            >
+              {na ? "Mark applicable" : "Mark as N/A"}
+            </button>
+          )}
+        </>
+      )}
     </div>
   )
 }
+
+// ─── Action button ────────────────────────────────────────────────────────────
+
+function ActionButton({ label, savingKey, saving, onClick, disabled = false, green = false }: {
+  label: string
+  savingKey: string
+  saving: string | null
+  onClick: () => void
+  disabled?: boolean
+  green?: boolean
+}) {
+  const isSaving = saving === savingKey
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled || isSaving}
+      className={cn(
+        "w-full flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors disabled:opacity-40",
+        green
+          ? "bg-green-600 hover:bg-green-700 text-white"
+          : "bg-[#006fff] hover:bg-[#005ee6] text-white"
+      )}
+    >
+      <Check size={11} />
+      {isSaving ? "Saving…" : label}
+    </button>
+  )
+}
+
+const dateCls = "w-full text-xs border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-gray-400"
