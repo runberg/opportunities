@@ -52,7 +52,15 @@ export async function DELETE(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  // Delete file from disk
+  await db.comment.create({
+    data: {
+      content: `"${doc.displayName}" deleted (${doc.type === "QUOTE" ? "Quote" : doc.type === "EL" ? "EL" : "Document"})`,
+      system: true,
+      opportunityId: doc.opportunityId,
+      authorId: session.user.id,
+    },
+  })
+
   const filePath = join(UPLOAD_DIR, doc.filename)
   try {
     if (existsSync(filePath)) await unlink(filePath)

@@ -69,6 +69,11 @@ export function ProductionSection({ data, currentUserId, isAdmin, onRefresh }: P
   const [editForm, setEditForm]   = useState<ProdEditForm>(formFromData(data))
   const [editSaving, setEditSaving] = useState(false)
 
+  // Revert
+  const [revertTarget, setRevertTarget] = useState<{ field: string; status: string; label: string } | null>(null)
+  const [reverting, setReverting] = useState(false)
+  const [revertError, setRevertError] = useState("")
+
   function enterEdit() {
     setEditForm(formFromData(data))
     setEditing(true)
@@ -76,6 +81,31 @@ export function ProductionSection({ data, currentUserId, isAdmin, onRefresh }: P
 
   function cancelEdit() {
     setEditing(false)
+  }
+
+  async function handleProductionRevert() {
+    if (!revertTarget) return
+    setReverting(true)
+    setRevertError("")
+    try {
+      const res = await fetch(`/api/opportunities/${data.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [revertTarget.field]: null, status: revertTarget.status }),
+      })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        setRevertError(d.error ?? "Failed to revert.")
+      } else {
+        setRevertTarget(null)
+        onRefresh()
+        router.refresh()
+      }
+    } catch {
+      setRevertError("Network error. Please try again.")
+    } finally {
+      setReverting(false)
+    }
   }
 
   async function saveEdit() {
@@ -206,22 +236,24 @@ export function ProductionSection({ data, currentUserId, isAdmin, onRefresh }: P
         </button>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
 
         {/* Advance Payment */}
         <DateCard label="Advance Payment" done={advancePaid}
-          doneValue={advancePaid ? formatDate(data.advancePaymentDate!) : null}>
+          doneValue={advancePaid ? formatDate(data.advancePaymentDate!) : null}
+          onRevert={advancePaid ? () => setRevertTarget({ field: "advancePaymentDate", status: "PENDING_ADVANCE_PAYMENT", label: "Pending Advance Payment" }) : undefined}>
           <input type="date" value={advanceDate} onChange={(e) => setAdvanceDate(e.target.value)}
             className={inputCls} />
           <ActionButton label="Received" savingKey="advance" saving={saving}
             disabled={!advanceDate}
-            onClick={() => patch({ advancePaymentDate: advanceDate, waitingOn: "INTERNAL" }, "advance")} />
+            onClick={() => patch({ advancePaymentDate: advanceDate }, "advance")} />
         </DateCard>
 
         {/* FAT */}
         <DateCard label="FAT" done={fatPassed}
           doneValue={fatPassed ? formatDate(data.fatPassedDate!) : null}
-          locked={!advancePaid}>
+          locked={!advancePaid}
+          onRevert={fatPassed ? () => setRevertTarget({ field: "fatPassedDate", status: "IN_PRODUCTION", label: "In Production" }) : undefined}>
           <input type="date" value={fatDate} onChange={(e) => setFatDate(e.target.value)}
             onBlur={() => fatDate && patch({ fatDate }, "fatDate")}
             className={inputCls} />
@@ -235,7 +267,8 @@ export function ProductionSection({ data, currentUserId, isAdmin, onRefresh }: P
           locked={!fatPassed && !satNA}
           na={satNA}
           naToggle={fatPassed || satNA ? () => patch({ satApplicable: satNA }, "satNA") : undefined}
-          naToggleSaving={saving === "satNA"}>
+          naToggleSaving={saving === "satNA"}
+          onRevert={satPassed ? () => setRevertTarget({ field: "satPassedDate", status: "IN_PRODUCTION", label: "In Production" }) : undefined}>
           <input type="date" value={satDate} onChange={(e) => setSatDate(e.target.value)}
             onBlur={() => satDate && patch({ satDate }, "satDate")}
             disabled={satNA}
@@ -248,11 +281,31 @@ export function ProductionSection({ data, currentUserId, isAdmin, onRefresh }: P
         <DateCard label="Delivered" done={delivered}
           doneValue={delivered && data.deliveredDate ? formatDate(data.deliveredDate) : null}
           locked={!satDone}
+          onRevert={delivered ? () => setRevertTarget({ field: "deliveredDate", status: "IN_PRODUCTION", label: "In Production" }) : undefined}
           deliverButton={canDeliver ? (
             <ActionButton label="Mark Delivered" savingKey="deliver" saving={saving} green
-              onClick={() => patch({ deliveredDate: todayISO(), waitingOn: "NONE" }, "deliver")} />
+              onClick={() => patch({ deliveredDate: todayISO() }, "deliver")} />
           ) : undefined} />
       </div>
+
+      {revertTarget && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl">
+          <p className="text-xs font-medium text-red-800 mb-3">
+            Revert status to <span className="font-semibold">"{revertTarget.label}"</span>? The milestone date will be cleared.
+          </p>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={handleProductionRevert} disabled={reverting}
+              className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-lg disabled:opacity-50 transition-colors">
+              {reverting ? "Reverting…" : "Confirm Revert"}
+            </button>
+            <button type="button" onClick={() => { setRevertTarget(null); setRevertError("") }}
+              className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 transition-colors">
+              Cancel
+            </button>
+          </div>
+          {revertError && <p className="mt-2 text-xs text-red-600">{revertError}</p>}
+        </div>
+      )}
 
       {advancePaid && (
         <div className="mb-4">
@@ -275,17 +328,18 @@ export function ProductionSection({ data, currentUserId, isAdmin, onRefresh }: P
 
 function DateCard({
   label, done, doneValue, locked = false, na = false,
-  naToggle, naToggleSaving = false, deliverButton, children,
+  naToggle, naToggleSaving = false, deliverButton, onRevert, children,
 }: {
   label: string; done: boolean; doneValue: string | null
   locked?: boolean; na?: boolean
   naToggle?: () => void; naToggleSaving?: boolean
-  deliverButton?: React.ReactNode; children?: React.ReactNode
+  deliverButton?: React.ReactNode; onRevert?: () => void; children?: React.ReactNode
 }) {
   return (
     <div className={cn(
       "border rounded-xl p-4 flex flex-col gap-2 transition-colors",
-      done ? "border-green-200 bg-green-50" : locked ? "border-gray-100 bg-gray-50" : "border-gray-200 bg-white"
+      done ? "border-green-200 bg-green-50" : locked ? "border-gray-100 bg-gray-50" : "border-gray-200 bg-white",
+      done && onRevert && "group/card"
     )}>
       <div className="flex items-center justify-between gap-1">
         <p className={cn("text-xs font-medium", done ? "text-green-700" : locked ? "text-gray-300" : "text-gray-400")}>
@@ -295,7 +349,15 @@ function DateCard({
       </div>
 
       {done ? (
-        <p className="text-sm font-semibold text-green-800">{doneValue ?? "—"}</p>
+        <>
+          <p className="text-sm font-semibold text-green-800">{doneValue ?? "—"}</p>
+          {onRevert && (
+            <button type="button" onClick={onRevert}
+              className="opacity-0 group-hover/card:opacity-100 w-full px-2 py-1 bg-white hover:bg-red-50 text-red-500 border border-red-200 text-xs font-medium rounded-lg transition-all">
+              Revert
+            </button>
+          )}
+        </>
       ) : locked ? (
         <p className="text-sm font-medium text-gray-300">—</p>
       ) : (

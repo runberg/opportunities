@@ -13,7 +13,6 @@ interface NewOpportunityModalProps {
 interface NewForm {
   title: string
   status: string
-  waitingOn: string
   internalId: string
   reference: string
   customer: string
@@ -27,7 +26,6 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
   const [form, setForm] = useState<NewForm>({
     title: "",
     status: "RFQ_RECEIVED",
-    waitingOn: "INTERNAL",
     internalId: "",
     reference: "",
     customer: "",
@@ -66,7 +64,7 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-[60] overflow-y-auto">
       <div className="flex min-h-full items-start justify-center p-4 pt-[4vh]">
         {/* Backdrop */}
         <div className="fixed inset-0 bg-black/40" onClick={onClose} />
@@ -109,14 +107,6 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
                   {QUOTE_STATUSES.map((s) => (
                     <option key={s} value={s}>{STATUS_LABELS[s]}</option>
                   ))}
-                </select>
-                <select
-                  value={form.waitingOn}
-                  onChange={(e) => setField("waitingOn", e.target.value)}
-                  className="px-3 py-1 border border-gray-300 rounded-full text-xs font-medium bg-white focus:outline-none focus:ring-1 focus:ring-gray-400"
-                >
-                  <option value="INTERNAL">Internal</option>
-                  <option value="CUSTOMER">Customer</option>
                 </select>
                 <label className="inline-flex items-center gap-1.5 px-3 py-1 border border-gray-300 rounded-full bg-white focus-within:ring-1 focus-within:ring-gray-400 cursor-text">
                   <span className="text-xs text-gray-400 shrink-0">ID</span>

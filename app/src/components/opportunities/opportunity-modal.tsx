@@ -2,13 +2,13 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { X, Pencil } from "lucide-react"
+import { X, Pencil, Check } from "lucide-react"
 import {
   cn, formatDate,
   QUOTE_STATUSES, EL_STATUSES, PRODUCTION_STATUSES, STATUS_LABELS,
   todayISO, toDateString,
 } from "@/lib/utils"
-import { StatusBadge, PendingBadge } from "@/components/opportunities/status-badge"
+import { StatusBadge } from "@/components/opportunities/status-badge"
 import { QuoteSection } from "@/components/opportunities/quote-section"
 import { ProductionSection } from "@/components/opportunities/production-section"
 import { LogSection, type LogEntry } from "@/components/opportunities/log-section"
@@ -18,7 +18,6 @@ const ALL_EL_STATUSES = [...EL_STATUSES, "EL_FULLY_SIGNED"]
 
 const STATUS_DATE_REQUIRED: Record<string, { field: string; label: string }> = {
   RFQ_RECEIVED:        { field: "rfqDate",           label: "RFQ Date" },
-  QUOTE_SENT:          { field: "quoteSentDate",      label: "Quote Shared" },
   EL_REQUEST_RECEIVED: { field: "elRequestedDate",    label: "EL Requested" },
   EL_DRAFT_SHARED:     { field: "elDraftSharedDate",  label: "EL Draft Shared" },
   EL_SIGNED_SHARED:    { field: "elSignedSharedDate", label: "EL Signed Shared" },
@@ -38,6 +37,7 @@ interface OpportunityFull {
   status: string; waitingOn: string
   quoteSentDate: string | null; elRequestedDate: string | null
   elDraftSharedDate: string | null; elSignedSharedDate: string | null
+  elCountersignedDate: string | null
   advancePaymentDate: string | null; fatDate: string | null
   fatPassedDate: string | null; satApplicable: boolean
   satDate: string | null; satPassedDate: string | null; deliveredDate: string | null
@@ -49,13 +49,12 @@ interface OpportunityFull {
 // ─── Main modal ──────────────────────────────────────────────────────────────
 
 export function OpportunityModal({
-  opportunityId, onClose, currentUserId, isAdmin, initialAccept = false,
+  opportunityId, onClose, currentUserId, isAdmin,
 }: {
   opportunityId: string | null
   onClose: () => void
   currentUserId: string
   isAdmin: boolean
-  initialAccept?: boolean
 }) {
   const router = useRouter()
   const [data, setData] = useState<OpportunityFull | null>(null)
@@ -63,13 +62,11 @@ export function OpportunityModal({
   const [fetchError, setFetchError] = useState("")
   const [refreshKey, setRefreshKey] = useState(0)
 
-  // Full refresh — triggers loading spinner, remounts ViewMode
   const refresh = useCallback(() => {
     setRefreshKey((k) => k + 1)
     router.refresh()
   }, [router])
 
-  // Silent refresh — updates data in-place, ViewMode stays mounted
   const silentRefresh = useCallback(() => {
     if (!opportunityId) return
     fetch(`/api/opportunities/${opportunityId}`)
@@ -128,7 +125,7 @@ export function OpportunityModal({
                 isAdmin={isAdmin}
                 onRefresh={refresh}
                 onSilentRefresh={silentRefresh}
-                initialAccept={initialAccept}
+
               />
             )}
           </div>
@@ -140,28 +137,29 @@ export function OpportunityModal({
 
 // ─── View mode ────────────────────────────────────────────────────────────────
 
-function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh, initialAccept }: {
+function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: {
   data: OpportunityFull
   currentUserId: string
   isAdmin: boolean
   onRefresh: () => void
   onSilentRefresh: () => void
-  initialAccept?: boolean
 }) {
   const isEL = ALL_EL_STATUSES.includes(data.status)
   const isProduction = (PRODUCTION_STATUSES as readonly string[]).includes(data.status)
   const canAcceptQuote = data.status === "QUOTE_SENT"
 
-  const [acceptingQuote, setAcceptingQuote] = useState(initialAccept ?? false)
+  // Quote accepted panel
+  const [acceptingQuote, setAcceptingQuote] = useState(false)
   const [elDate, setElDate] = useState(todayISO())
   const [accepting, setAccepting] = useState(false)
   const [acceptError, setAcceptError] = useState("")
 
+  // Counter-sign panel
   const [counterSigning, setCounterSigning] = useState(false)
+  const [counterSignDate, setCounterSignDate] = useState(todayISO())
   const [counterSigning2, setCounterSigning2] = useState(false)
   const [counterSignError, setCounterSignError] = useState("")
 
-  // Patch helper — use silent refresh so ViewMode stays mounted during field edits
   async function patch(payload: Record<string, unknown>): Promise<string | null> {
     try {
       const res = await fetch(`/api/opportunities/${data.id}`, {
@@ -210,7 +208,7 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh, in
       const res = await fetch(`/api/opportunities/${data.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "PENDING_ADVANCE_PAYMENT", waitingOn: "CUSTOMER" }),
+        body: JSON.stringify({ status: "PENDING_ADVANCE_PAYMENT", elCountersignedDate: counterSignDate }),
       })
       if (!res.ok) {
         const d = await res.json().catch(() => ({}))
@@ -259,7 +257,7 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh, in
             <div className="flex items-center gap-1.5">
               <span className="text-xs text-green-700">EL Requested</span>
               <input type="date" value={elDate} onChange={(e) => setElDate(e.target.value)}
-                className="text-xs border border-green-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-green-400" />
+                className="text-xs border border-green-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-green-400 bg-white" />
             </div>
           </div>
           <div className="flex gap-2">
@@ -278,12 +276,18 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh, in
 
       {/* Counter-sign panel */}
       {counterSigning && (
-        <div className="mb-5 flex flex-wrap items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-xl">
-          <p className="text-xs font-semibold text-green-800">
-            Confirm counter-signed EL received — this will transition the opportunity to Production.
-          </p>
+        <div className="mb-5 flex flex-wrap items-end gap-3 p-4 bg-green-50 border border-green-200 rounded-xl">
+          <div>
+            <p className="text-xs font-semibold text-green-800 mb-1">EL Countersigned — Transition to Production</p>
+            <p className="text-xs text-green-700 mb-3">Records the countersigned date and moves the opportunity to Production.</p>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-green-700">Countersigned date</span>
+              <input type="date" value={counterSignDate} onChange={(e) => setCounterSignDate(e.target.value)}
+                className="text-xs border border-green-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-green-400 bg-white" />
+            </div>
+          </div>
           <div className="flex gap-2">
-            <button type="button" onClick={handleCounterSigned} disabled={counterSigning2}
+            <button type="button" onClick={handleCounterSigned} disabled={counterSigning2 || !counterSignDate}
               className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg disabled:opacity-50 transition-colors">
               {counterSigning2 ? "Saving…" : "Confirm"}
             </button>
@@ -292,22 +296,22 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh, in
               Cancel
             </button>
           </div>
-          {counterSignError && <p className="text-xs text-red-600">{counterSignError}</p>}
+          {counterSignError && <p className="w-full text-xs text-red-600">{counterSignError}</p>}
         </div>
       )}
 
-      {/* Info section — each field hover-editable */}
+      {/* Info section */}
       <div className="flex flex-col gap-3 mb-5">
         <HoverEditField label="Customer" value={data.customer} required
           onSave={(v) => patch({ customer: v })} />
         <HoverEditField label="Product / Service" value={data.product}
           onSave={(v) => patch({ product: v })} />
-        <HoverEditDates data={data} onSave={patch} />
+        <HoverEditDates data={data} onSave={patch} onRefresh={onRefresh} />
         <HoverEditField label="Details" value={data.description} multiline
           onSave={(v) => patch({ description: v })} />
       </div>
 
-      {/* Documents, Production, Log — always visible */}
+      {/* Documents, Production, Log */}
       <QuoteSection opportunityId={data.id}
         documents={data.documents.filter((d) => d.type === "QUOTE")}
         currentUserId={currentUserId} isAdmin={isAdmin} onRefresh={onRefresh} docType="QUOTE" />
@@ -371,24 +375,25 @@ function HoverEditMeta({ data, onSave }: {
   onSave: (payload: Record<string, unknown>) => Promise<string | null>
 }) {
   const [editing, setEditing] = useState(false)
-  const [form, setForm] = useState({ status: data.status, waitingOn: data.waitingOn, internalId: data.internalId ?? "", reference: data.reference ?? "" })
+  const [form, setForm] = useState({ status: data.status, internalId: data.internalId ?? "", reference: data.reference ?? "" })
   const [error, setError] = useState("")
   const [saving, setSaving] = useState(false)
 
   const isEL = ALL_EL_STATUSES.includes(form.status)
   const isProd = (PRODUCTION_STATUSES as readonly string[]).includes(form.status)
+  const isQuote = (QUOTE_STATUSES as readonly string[]).includes(form.status)
   const statusOptions = isProd
     ? ["PENDING_ADVANCE_PAYMENT", "IN_PRODUCTION", "DELIVERED"]
-    : isEL ? [...EL_STATUSES, "EL_FULLY_SIGNED"]
-    : QUOTE_STATUSES
+    : [...EL_STATUSES, "EL_FULLY_SIGNED"]
 
   function enter() {
-    setForm({ status: data.status, waitingOn: data.waitingOn, internalId: data.internalId ?? "", reference: data.reference ?? "" })
+    setForm({ status: data.status, internalId: data.internalId ?? "", reference: data.reference ?? "" })
     setError("")
     setEditing(true)
   }
 
   async function save() {
+    const payload: Record<string, unknown> = { ...form }
     const req = STATUS_DATE_REQUIRED[form.status]
     if (req) {
       const existing = data[req.field as keyof OpportunityFull] as string | null
@@ -397,8 +402,6 @@ function HoverEditMeta({ data, onSave }: {
         return
       }
     }
-    // Auto-advance: if quote date was just set and status is RFQ_RECEIVED, bump to QUOTE_SENT
-    const payload = { ...form }
     setSaving(true)
     const err = await onSave(payload)
     setSaving(false)
@@ -411,15 +414,14 @@ function HoverEditMeta({ data, onSave }: {
     return (
       <div className="mb-5">
         <div className="flex flex-wrap items-center gap-2">
-          <select value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
-            className="px-3 py-1 border border-gray-300 rounded-full text-xs font-medium bg-white focus:outline-none focus:ring-1 focus:ring-gray-400">
-            {statusOptions.map((s) => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
-          </select>
-          <select value={form.waitingOn} onChange={(e) => setForm((f) => ({ ...f, waitingOn: e.target.value }))}
-            className="px-3 py-1 border border-gray-300 rounded-full text-xs font-medium bg-white focus:outline-none focus:ring-1 focus:ring-gray-400">
-            <option value="INTERNAL">Internal</option>
-            <option value="CUSTOMER">Customer</option>
-          </select>
+          {isQuote || isEL ? (
+            <StatusBadge status={form.status} />
+          ) : (
+            <select value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
+              className="px-3 py-1 border border-gray-300 rounded-full text-xs font-medium bg-white focus:outline-none focus:ring-1 focus:ring-gray-400">
+              {statusOptions.map((s) => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
+            </select>
+          )}
           <label className="inline-flex items-center gap-1.5 px-3 py-1 border border-gray-300 rounded-full bg-white focus-within:ring-1 focus-within:ring-gray-400">
             <span className="text-xs text-gray-400 shrink-0">ID</span>
             <input value={form.internalId} onChange={(e) => setForm((f) => ({ ...f, internalId: e.target.value }))}
@@ -440,7 +442,7 @@ function HoverEditMeta({ data, onSave }: {
           </button>
         </div>
         {error && (
-          <p className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          <p className="mt-2 text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
             {error}
           </p>
         )}
@@ -451,7 +453,6 @@ function HoverEditMeta({ data, onSave }: {
   return (
     <div className="group flex flex-wrap items-center gap-2 mb-5 cursor-pointer" onClick={enter}>
       <StatusBadge status={data.status} />
-      <PendingBadge waitingOn={data.waitingOn} />
       {data.internalId && (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
           {data.internalId}
@@ -539,40 +540,61 @@ function HoverEditField({ label, value, onSave, required = false, multiline = fa
 
 // ─── Hover-edit: Dates row ────────────────────────────────────────────────────
 
-function HoverEditDates({ data, onSave }: {
+function HoverEditDates({ data, onSave, onRefresh }: {
   data: OpportunityFull
   onSave: (payload: Record<string, unknown>) => Promise<string | null>
+  onRefresh: () => void
 }) {
-  const [editing, setEditing] = useState(false)
-  const [form, setForm] = useState({
-    rfqDate:           toDateString(data.rfqDate),
-    quoteSentDate:     toDateString(data.quoteSentDate),
-    elRequestedDate:   toDateString(data.elRequestedDate),
-    elDraftSharedDate: toDateString(data.elDraftSharedDate),
-    elSignedSharedDate:toDateString(data.elSignedSharedDate),
+  const isEL = ALL_EL_STATUSES.includes(data.status)
+  const isQuote = (QUOTE_STATUSES as readonly string[]).includes(data.status)
+
+  const isProduction = (PRODUCTION_STATUSES as readonly string[]).includes(data.status)
+
+  const allFields = [
+    { key: "rfqDate"              as const, label: "RFQ Date",           raw: data.rfqDate },
+    { key: "quoteSentDate"        as const, label: "Quote Shared",        raw: data.quoteSentDate },
+    { key: "elRequestedDate"      as const, label: "EL Requested",        raw: data.elRequestedDate },
+    { key: "elDraftSharedDate"    as const, label: "EL Draft Shared",     raw: data.elDraftSharedDate },
+    { key: "elSignedSharedDate"   as const, label: "EL Signed Shared",    raw: data.elSignedSharedDate },
+    { key: "elCountersignedDate"  as const, label: "EL Countersigned",    raw: data.elCountersignedDate },
+  ]
+
+  const dateFields = isQuote ? allFields.slice(0, 2) : allFields
+
+  const initForm = () => ({
+    rfqDate:              toDateString(data.rfqDate),
+    quoteSentDate:        toDateString(data.quoteSentDate),
+    elRequestedDate:      toDateString(data.elRequestedDate),
+    elDraftSharedDate:    toDateString(data.elDraftSharedDate),
+    elSignedSharedDate:   toDateString(data.elSignedSharedDate),
+    elCountersignedDate:  toDateString(data.elCountersignedDate),
   })
+
+  const [editing, setEditing] = useState(false)
+  const [form, setForm] = useState(initForm)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
 
-  const dateFields = [
-    { key: "rfqDate"            as const, label: "RFQ Date",        raw: data.rfqDate },
-    { key: "quoteSentDate"      as const, label: "Quote Shared",     raw: data.quoteSentDate },
-    { key: "elRequestedDate"    as const, label: "EL Requested",     raw: data.elRequestedDate },
-    { key: "elDraftSharedDate"  as const, label: "EL Draft Shared",  raw: data.elDraftSharedDate },
-    { key: "elSignedSharedDate" as const, label: "EL Signed Shared", raw: data.elSignedSharedDate },
-  ]
+  const [shareDate, setShareDate] = useState(todayISO())
+  const [sharing, setSharing] = useState(false)
+  const [shareError, setShareError] = useState("")
 
-  function enter() {
-    setForm({
-      rfqDate:           toDateString(data.rfqDate),
-      quoteSentDate:     toDateString(data.quoteSentDate),
-      elRequestedDate:   toDateString(data.elRequestedDate),
-      elDraftSharedDate: toDateString(data.elDraftSharedDate),
-      elSignedSharedDate:toDateString(data.elSignedSharedDate),
-    })
-    setError("")
-    setEditing(true)
-  }
+  const [elDraftDate, setElDraftDate] = useState(todayISO())
+  const [elDraftSharing, setElDraftSharing] = useState(false)
+  const [elDraftShareError, setElDraftShareError] = useState("")
+
+  const [elSignedDate, setElSignedDate] = useState(todayISO())
+  const [elSignedSharing, setElSignedSharing] = useState(false)
+  const [elSignedShareError, setElSignedShareError] = useState("")
+
+  const [revertTarget, setRevertTarget] = useState<{ status: string; label: string; clearField: string } | null>(null)
+  const [reverting, setReverting] = useState(false)
+  const [revertError, setRevertError] = useState("")
+
+  const quoteDocCount = data.documents.filter((d) => d.type === "QUOTE").length
+  const elDocCount = data.documents.filter((d) => d.type === "EL").length
+
+  function enter() { setForm(initForm()); setError(""); setEditing(true) }
 
   async function save() {
     setSaving(true)
@@ -581,6 +603,96 @@ function HoverEditDates({ data, onSave }: {
     if (err) { setError(err); return }
     setEditing(false)
     setError("")
+  }
+
+  async function handleShareQuote() {
+    setSharing(true)
+    setShareError("")
+    try {
+      const res = await fetch(`/api/opportunities/${data.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quoteSentDate: shareDate, status: "QUOTE_SENT" }),
+      })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        setShareError(d.error ?? "Failed to save.")
+      } else {
+        onRefresh()
+      }
+    } catch {
+      setShareError("Network error. Please try again.")
+    } finally {
+      setSharing(false)
+    }
+  }
+
+  async function handleShareELDraft() {
+    setElDraftSharing(true)
+    setElDraftShareError("")
+    try {
+      const res = await fetch(`/api/opportunities/${data.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ elDraftSharedDate: elDraftDate, status: "EL_DRAFT_SHARED" }),
+      })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        setElDraftShareError(d.error ?? "Failed to save.")
+      } else {
+        onRefresh()
+      }
+    } catch {
+      setElDraftShareError("Network error. Please try again.")
+    } finally {
+      setElDraftSharing(false)
+    }
+  }
+
+  async function handleRevert() {
+    if (!revertTarget) return
+    setReverting(true)
+    setRevertError("")
+    try {
+      const res = await fetch(`/api/opportunities/${data.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: revertTarget.status, [revertTarget.clearField]: null }),
+      })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        setRevertError(d.error ?? "Failed to revert.")
+      } else {
+        setRevertTarget(null)
+        onRefresh()
+      }
+    } catch {
+      setRevertError("Network error. Please try again.")
+    } finally {
+      setReverting(false)
+    }
+  }
+
+  async function handleShareSignedEL() {
+    setElSignedSharing(true)
+    setElSignedShareError("")
+    try {
+      const res = await fetch(`/api/opportunities/${data.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ elSignedSharedDate: elSignedDate, status: "EL_SIGNED_SHARED" }),
+      })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        setElSignedShareError(d.error ?? "Failed to save.")
+      } else {
+        onRefresh()
+      }
+    } catch {
+      setElSignedShareError("Network error. Please try again.")
+    } finally {
+      setElSignedSharing(false)
+    }
   }
 
   if (editing) {
@@ -599,7 +711,7 @@ function HoverEditDates({ data, onSave }: {
             </button>
           </div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className={cn("grid gap-3", isEL || isProduction ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-6" : "grid-cols-2")}>
           {dateFields.map(({ key, label }) => (
             <div key={key} className="bg-white border border-gray-200 rounded-xl p-4">
               <p className="text-xs font-medium text-gray-400 mb-2">{label}</p>
@@ -615,19 +727,170 @@ function HoverEditDates({ data, onSave }: {
   }
 
   return (
-    <div className="group relative">
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        {dateFields.map(({ key, label, raw }) => (
-          <div key={key} className="bg-white border border-gray-200 rounded-xl p-4">
-            <p className="text-xs font-medium text-gray-400 mb-1">{label}</p>
-            <p className="text-sm font-medium text-gray-900">{raw ? formatDate(raw) : "—"}</p>
-          </div>
-        ))}
+    <div className="group/dates">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs font-medium text-gray-400">Dates</p>
+        <button type="button" onClick={enter}
+          className="flex items-center gap-1 opacity-0 group-hover/dates:opacity-100 px-2 py-1 text-xs font-medium text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all">
+          <Pencil size={11} />Edit dates
+        </button>
       </div>
-      <button type="button" onClick={enter}
-        className="absolute -top-1 right-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 px-2 py-1 text-xs font-medium text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all">
-        <Pencil size={11} />Edit dates
-      </button>
+
+      {isQuote ? (
+        <div className="grid gap-3 grid-cols-2">
+          {/* RFQ Date */}
+          <div className="bg-white border border-gray-200 rounded-xl p-4">
+            <p className="text-xs font-medium text-gray-400 mb-1">RFQ Date</p>
+            <p className="text-sm font-medium text-gray-900">{data.rfqDate ? formatDate(data.rfqDate) : "—"}</p>
+          </div>
+
+          {/* Quote Shared — action card or done card */}
+          {data.quoteSentDate ? (
+            <div className="group/card border border-green-200 bg-green-50 rounded-xl p-4 flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-1">
+                <p className="text-xs font-medium text-green-700">Quote Shared</p>
+                <Check size={12} className="text-green-500 flex-shrink-0" />
+              </div>
+              <p className="text-sm font-semibold text-green-800">{formatDate(data.quoteSentDate)}</p>
+              <button type="button"
+                onClick={() => setRevertTarget({ status: "RFQ_RECEIVED", label: "RFQ Received", clearField: "quoteSentDate" })}
+                className="opacity-0 group-hover/card:opacity-100 w-full px-2 py-1 bg-white hover:bg-red-50 text-red-500 border border-red-200 text-xs font-medium rounded-lg transition-all">
+                Revert
+              </button>
+            </div>
+          ) : (
+            <div className="border border-gray-200 bg-white rounded-xl p-4 flex flex-col gap-2">
+              <p className="text-xs font-medium text-gray-400">Quote Shared</p>
+              <input type="date" value={shareDate} onChange={(e) => setShareDate(e.target.value)}
+                className="w-full text-xs border-b border-gray-200 focus:border-gray-600 outline-none py-0.5 bg-transparent" />
+              {quoteDocCount === 0 && (
+                <p className="text-xs text-red-500">No quote document attached</p>
+              )}
+              <button type="button" onClick={handleShareQuote} disabled={sharing || !shareDate}
+                className="mt-1 w-full px-3 py-1.5 bg-[#006fff] hover:bg-blue-700 text-white text-xs font-medium rounded-lg disabled:opacity-50 transition-colors">
+                {sharing ? "Saving…" : "Share Quote"}
+              </button>
+              {shareError && <p className="text-xs text-red-600">{shareError}</p>}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+          {/* RFQ Date — no revert, it's the start */}
+          <ELDoneCard label="RFQ Date" value={data.rfqDate} />
+          {/* Quote Shared */}
+          <ELDoneCard label="Quote Shared" value={data.quoteSentDate}
+            onRevert={data.quoteSentDate ? () => setRevertTarget({ status: "RFQ_RECEIVED", label: "RFQ Received", clearField: "quoteSentDate" }) : undefined} />
+          {/* EL Requested */}
+          <ELDoneCard label="EL Requested" value={data.elRequestedDate}
+            onRevert={data.elRequestedDate ? () => setRevertTarget({ status: "QUOTE_SENT", label: "Quote Sent", clearField: "elRequestedDate" }) : undefined} />
+
+          {/* EL Draft Shared */}
+          {data.elDraftSharedDate ? (
+            <ELDoneCard label="EL Draft Shared" value={data.elDraftSharedDate}
+              onRevert={() => setRevertTarget({ status: "EL_REQUEST_RECEIVED", label: "EL Requested", clearField: "elDraftSharedDate" })} />
+          ) : data.status === "EL_REQUEST_RECEIVED" ? (
+            <div className="border border-gray-200 bg-white rounded-xl p-4 flex flex-col gap-2">
+              <p className="text-xs font-medium text-gray-400">EL Draft Shared</p>
+              <input type="date" value={elDraftDate} onChange={(e) => setElDraftDate(e.target.value)}
+                className="w-full text-xs border-b border-gray-200 focus:border-gray-600 outline-none py-0.5 bg-transparent" />
+              {elDocCount === 0 && (
+                <p className="text-xs text-red-500">No EL document attached</p>
+              )}
+              <button type="button" onClick={handleShareELDraft} disabled={elDraftSharing || !elDraftDate}
+                className="mt-1 w-full px-3 py-1.5 bg-[#006fff] hover:bg-blue-700 text-white text-xs font-medium rounded-lg disabled:opacity-50 transition-colors">
+                {elDraftSharing ? "Saving…" : "Share EL Draft"}
+              </button>
+              {elDraftShareError && <p className="text-xs text-red-600">{elDraftShareError}</p>}
+            </div>
+          ) : (
+            <ELLockedCard label="EL Draft Shared" />
+          )}
+
+          {/* EL Signed Shared */}
+          {data.elSignedSharedDate ? (
+            <ELDoneCard label="EL Signed Shared" value={data.elSignedSharedDate}
+              onRevert={() => setRevertTarget({ status: "EL_DRAFT_SHARED", label: "EL Draft Shared", clearField: "elSignedSharedDate" })} />
+          ) : data.status === "EL_DRAFT_SHARED" ? (
+            <div className="border border-gray-200 bg-white rounded-xl p-4 flex flex-col gap-2">
+              <p className="text-xs font-medium text-gray-400">EL Signed Shared</p>
+              <input type="date" value={elSignedDate} onChange={(e) => setElSignedDate(e.target.value)}
+                className="w-full text-xs border-b border-gray-200 focus:border-gray-600 outline-none py-0.5 bg-transparent" />
+              {elDocCount === 0 && (
+                <p className="text-xs text-red-500">No EL document attached</p>
+              )}
+              <button type="button" onClick={handleShareSignedEL} disabled={elSignedSharing || !elSignedDate}
+                className="mt-1 w-full px-3 py-1.5 bg-[#006fff] hover:bg-blue-700 text-white text-xs font-medium rounded-lg disabled:opacity-50 transition-colors">
+                {elSignedSharing ? "Saving…" : "Share Signed EL"}
+              </button>
+              {elSignedShareError && <p className="text-xs text-red-600">{elSignedShareError}</p>}
+            </div>
+          ) : (
+            <ELLockedCard label="EL Signed Shared" />
+          )}
+
+          {/* EL Countersigned */}
+          {data.elCountersignedDate ? (
+            <ELDoneCard label="EL Countersigned" value={data.elCountersignedDate}
+              onRevert={() => setRevertTarget({ status: "EL_SIGNED_SHARED", label: "EL Signed Shared", clearField: "elCountersignedDate" })} />
+          ) : (
+            <ELLockedCard label="EL Countersigned" />
+          )}
+        </div>
+      )}
+
+      {revertTarget && (
+        <div className="mt-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+          <p className="text-xs font-medium text-red-800 mb-3">
+            Revert status to <span className="font-semibold">"{revertTarget.label}"</span>? The milestone date will be cleared.
+          </p>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={handleRevert} disabled={reverting}
+              className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-lg disabled:opacity-50 transition-colors">
+              {reverting ? "Reverting…" : "Confirm Revert"}
+            </button>
+            <button type="button" onClick={() => { setRevertTarget(null); setRevertError("") }}
+              className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 transition-colors">
+              Cancel
+            </button>
+          </div>
+          {revertError && <p className="mt-2 text-xs text-red-600">{revertError}</p>}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── EL date card helpers ─────────────────────────────────────────────────────
+
+function ELDoneCard({ label, value, onRevert }: { label: string; value: string | null; onRevert?: () => void }) {
+  return value ? (
+    <div className={cn("border border-green-200 bg-green-50 rounded-xl p-4 flex flex-col gap-2", onRevert && "group/card")}>
+      <div className="flex items-center justify-between gap-1">
+        <p className="text-xs font-medium text-green-700">{label}</p>
+        <Check size={12} className="text-green-500 flex-shrink-0" />
+      </div>
+      <p className="text-sm font-semibold text-green-800">{formatDate(value)}</p>
+      {onRevert && (
+        <button type="button" onClick={onRevert}
+          className="opacity-0 group-hover/card:opacity-100 w-full px-2 py-1 bg-white hover:bg-red-50 text-red-500 border border-red-200 text-xs font-medium rounded-lg transition-all">
+          Revert
+        </button>
+      )}
+    </div>
+  ) : (
+    <div className="border border-gray-100 bg-gray-50 rounded-xl p-4">
+      <p className="text-xs font-medium text-gray-300">{label}</p>
+      <p className="text-sm font-medium text-gray-300 mt-1">—</p>
+    </div>
+  )
+}
+
+function ELLockedCard({ label }: { label: string }) {
+  return (
+    <div className="border border-gray-100 bg-gray-50 rounded-xl p-4">
+      <p className="text-xs font-medium text-gray-300">{label}</p>
+      <p className="text-sm font-medium text-gray-300 mt-1">—</p>
     </div>
   )
 }

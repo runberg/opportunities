@@ -78,12 +78,12 @@ export async function POST(
     include: { uploadedBy: { select: { id: true, name: true } } },
   })
 
-  // System event
   await db.comment.create({
     data: {
       content: `"${displayName.trim()}" uploaded (${type === "QUOTE" ? "Quote" : type === "EL" ? "EL" : "Document"})`,
       system: true,
       opportunityId,
+      authorId: session.user.id,
     },
   })
 

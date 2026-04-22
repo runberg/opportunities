@@ -177,7 +177,10 @@ function SystemEntry({ entry }: { entry: LogEntry }) {
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-xs text-gray-400 italic">{entry.content}</p>
-        <p className="text-xs text-gray-300 mt-0.5">{timeAgo(entry.createdAt)}</p>
+        <p className="text-xs text-gray-300 mt-0.5">
+          {entry.author && <span className="text-gray-400 not-italic">{entry.author.name} · </span>}
+          {timeAgo(entry.createdAt)}
+        </p>
       </div>
     </div>
   )

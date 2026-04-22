@@ -1,33 +1,22 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { MessageSquarePlus, Plus } from "lucide-react"
-import { StatusBadge, PendingBadge } from "@/components/opportunities/status-badge"
+import { MessageSquarePlus } from "lucide-react"
+import { sortRows, type SortDir } from "@/components/ui/sortable-header"
+import { OpportunityDataTable, type OppTableRow } from "@/components/opportunities/opportunity-data-table"
+import { OpportunityModal } from "@/components/opportunities/opportunity-modal"
 import { Dialog } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { OpportunityModal } from "@/components/opportunities/opportunity-modal"
-import { NewOpportunityModal } from "@/components/opportunities/new-opportunity-modal"
 
-export interface OpportunityRow {
-  id: string
-  internalId: string | null
-  title: string
-  customer: string
-  reference: string | null
-  rfqDate: string | null
-  quoteSentDate: string | null
-  product: string | null
-  status: string
-  waitingOn: string
+export interface OpportunityRow extends OppTableRow {
+  quoteSentDate?: string | null
   _count: { comments: number; documents: number }
 }
 
 export function OpportunitiesTable({
-  opportunities,
-  currentUserId,
-  isAdmin,
+  opportunities, currentUserId, isAdmin,
 }: {
   opportunities: OpportunityRow[]
   currentUserId: string
@@ -35,12 +24,14 @@ export function OpportunitiesTable({
 }) {
   const router = useRouter()
   const [openModalId, setOpenModalId] = useState<string | null>(null)
-  const [openModalAccept, setOpenModalAccept] = useState(false)
-  const [newModalOpen, setNewModalOpen] = useState(false)
   const [commentTarget, setCommentTarget] = useState<OpportunityRow | null>(null)
   const [comment, setComment] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [commentError, setCommentError] = useState("")
+  const [sortKey, setSortKey] = useState("rfqDate")
+  const [sortDir, setSortDir] = useState<SortDir>("desc")
+
+  const sorted = useMemo(() => sortRows(opportunities, sortKey, sortDir), [opportunities, sortKey, sortDir])
 
   async function submitComment() {
     if (!commentTarget || !comment.trim()) return
@@ -53,8 +44,7 @@ export function OpportunitiesTable({
     })
     setSubmitting(false)
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}))
-      setCommentError(data.error ?? "Failed to save comment.")
+      setCommentError((await res.json().catch(() => ({}))).error ?? "Failed to save comment.")
       return
     }
     setCommentTarget(null)
@@ -64,149 +54,39 @@ export function OpportunitiesTable({
 
   return (
     <>
-      {/* Toolbar */}
-      <div className="flex items-center justify-end mb-4">
-        <Button onClick={() => setNewModalOpen(true)}>
-          <Plus size={15} className="mr-1.5" />
-          New Opportunity
-        </Button>
-      </div>
-
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500">Title</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 hidden sm:table-cell">
-                Customer
-              </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 hidden md:table-cell">
-                Product
-              </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 hidden lg:table-cell">
-                RFQ Date
-              </th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500">Status</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 hidden lg:table-cell">
-                Pending
-              </th>
-              <th className="w-10 px-2 py-3" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {opportunities.length === 0 && (
-              <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-gray-400">
-                  No opportunities found.{" "}
-                  <button
-                    type="button"
-                    onClick={() => setNewModalOpen(true)}
-                    className="underline"
-                  >
-                    Create the first one
-                  </button>
-                </td>
-              </tr>
-            )}
-            {opportunities.map((opp) => (
-              <tr
-                key={opp.id}
-                onClick={() => setOpenModalId(opp.id)}
-                className="hover:bg-gray-50 transition-colors cursor-pointer"
-              >
-                <td className="px-4 py-3">
-                  <span className="font-medium text-gray-900">{opp.title}</span>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    {opp.internalId && (
-                      <span className="text-xs text-gray-400">{opp.internalId}</span>
-                    )}
-                    {opp.reference && (
-                      <span className="text-xs text-gray-400">{opp.reference}</span>
-                    )}
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-gray-600 hidden sm:table-cell">{opp.customer}</td>
-                <td className="px-4 py-3 text-gray-500 max-w-xs truncate hidden md:table-cell">
-                  {opp.product ?? "—"}
-                </td>
-                <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">
-                  {opp.rfqDate ?? "—"}
-                </td>
-                <td className="px-4 py-3">
-                  <StatusBadge status={opp.status} short />
-                </td>
-                <td className="px-4 py-3 hidden lg:table-cell">
-                  <PendingBadge waitingOn={opp.waitingOn} />
-                </td>
-                <td className="px-2 py-3" onClick={(e) => e.stopPropagation()}>
-                  <div className="flex items-center gap-1 justify-end">
-                    {opp.quoteSentDate && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setOpenModalAccept(true)
-                          setOpenModalId(opp.id)
-                        }}
-                        className="px-2.5 py-1 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition-colors whitespace-nowrap"
-                      >
-                        Quote Accepted →
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCommentTarget(opp)
-                        setComment("")
-                        setCommentError("")
-                      }}
-                      className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                      title="Add comment"
-                    >
-                      <MessageSquarePlus size={16} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* New opportunity modal */}
-      {newModalOpen && (
-        <NewOpportunityModal
-          onClose={() => setNewModalOpen(false)}
-          onCreated={(newId) => {
-            setNewModalOpen(false)
-            setOpenModalId(newId)
-            router.refresh()
-          }}
-        />
-      )}
-
-      {/* Opportunity modal */}
-      <OpportunityModal
-        opportunityId={openModalId}
-        onClose={() => { setOpenModalId(null); setOpenModalAccept(false); router.refresh() }}
-        currentUserId={currentUserId}
-        isAdmin={isAdmin}
-        initialAccept={openModalAccept}
+      <OpportunityDataTable
+        rows={sorted}
+        emptyMessage="No opportunities found."
+        sortKey={sortKey}
+        sortDir={sortDir}
+        onSort={(k, d) => { setSortKey(k); setSortDir(d) }}
+        dateColumn={{ label: "RFQ Date", sortKey: "rfqDate", getValue: (r) => r.rfqDate }}
+        onRowClick={setOpenModalId}
+        renderAction={(row) => (
+          <button
+            type="button"
+            onClick={() => { setCommentTarget(row as OpportunityRow); setComment(""); setCommentError("") }}
+            className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            title="Add comment"
+          >
+            <MessageSquarePlus size={16} />
+          </button>
+        )}
       />
 
-      {/* Quick comment dialog */}
-      <Dialog
-        open={!!commentTarget}
-        onClose={() => setCommentTarget(null)}
-        title="Add Comment"
-      >
+      <OpportunityModal
+        opportunityId={openModalId}
+        onClose={() => { setOpenModalId(null); router.refresh() }}
+        currentUserId={currentUserId}
+        isAdmin={isAdmin}
+      />
+
+      <Dialog open={!!commentTarget} onClose={() => setCommentTarget(null)} title="Add Comment">
         {commentTarget && (
           <div className="space-y-4">
             <div>
               <p className="font-medium text-gray-900">{commentTarget.title}</p>
-              {commentTarget.internalId && (
-                <p className="text-sm text-gray-500">{commentTarget.internalId}</p>
-              )}
+              {commentTarget.internalId && <p className="text-sm text-gray-500">{commentTarget.internalId}</p>}
             </div>
             <Textarea
               value={comment}
@@ -214,18 +94,14 @@ export function OpportunitiesTable({
               placeholder="Write a comment…"
               rows={4}
               autoFocus
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) submitComment()
-              }}
+              onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) submitComment() }}
             />
             {commentError && <p className="text-sm text-red-600">{commentError}</p>}
             <div className="flex items-center gap-3">
               <Button onClick={submitComment} disabled={submitting || !comment.trim()}>
                 {submitting ? "Saving…" : "Add Comment"}
               </Button>
-              <Button variant="ghost" type="button" onClick={() => setCommentTarget(null)}>
-                Cancel
-              </Button>
+              <Button variant="ghost" onClick={() => setCommentTarget(null)}>Cancel</Button>
               <span className="text-xs text-gray-400 ml-auto">Ctrl+Enter</span>
             </div>
           </div>

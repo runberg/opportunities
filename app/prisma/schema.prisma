@@ -40,7 +40,8 @@ model Opportunity {
   quoteSentDate      DateTime?         // Date the quote was shared with the customer
   elRequestedDate    DateTime?         // Date the EL was requested (quote accepted)
   elDraftSharedDate  DateTime?         // Date the EL draft was shared with the customer
-  elSignedSharedDate DateTime?         // Date the signed EL was shared back
+  elSignedSharedDate    DateTime?         // Date the signed EL was shared back
+  elCountersignedDate  DateTime?         // Date the EL was countersigned (fully signed by both parties)
   // Production fields
   advancePaymentDate DateTime?         // Date advance payment was confirmed received
   fatDate            DateTime?         // Scheduled FAT date

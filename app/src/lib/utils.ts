@@ -51,8 +51,8 @@ export const STATUS_SHORT_LABELS: Record<string, string> = {
   QUOTE_SENT: "Quoted",
   EL_REQUEST_RECEIVED: "EL Req",
   EL_DRAFT_SHARED: "EL Draft",
-  EL_SIGNED_SHARED: "EL Signed",
-  EL_FULLY_SIGNED: "EL Full",
+  EL_SIGNED_SHARED: "Signed Shared",
+  EL_FULLY_SIGNED: "Countersigned",
   PENDING_ADVANCE_PAYMENT: "Adv. Payment",
   IN_PRODUCTION: "In Prod.",
   PRODUCTION: "In Prod.",
@@ -124,6 +124,12 @@ export const DOC_STATUS_LABELS: Record<string, string> = {
 }
 
 export const ALL_STATUSES = Object.keys(STATUS_LABELS) as (keyof typeof STATUS_LABELS)[]
+
+export const PIPELINE_STATUSES = [
+  "RFQ_RECEIVED", "QUOTE_SENT",
+  "EL_REQUEST_RECEIVED", "EL_DRAFT_SHARED", "EL_SIGNED_SHARED", "EL_FULLY_SIGNED",
+  "PENDING_ADVANCE_PAYMENT", "IN_PRODUCTION", "DELIVERED",
+] as const
 
 export const ACTIVE_STATUSES = [
   "NEW",

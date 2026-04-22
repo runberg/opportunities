@@ -6,15 +6,38 @@ Built for small teams on a private network. All data stays on your own server.
 
 ## Features
 
-- **Quotes pipeline** — track opportunities from RFQ Received through Quote Sent and on to Engagement Letter
-- **EL pipeline** — dedicated EL view tracking EL Requested → Draft Shared → Signed Shared → Fully Signed
-- **Modal-based workflow** — create, view, and edit opportunities in a slide-over modal without leaving the list; one-click transition from Quote Accepted to EL flow
+### Pipeline views
+- **Quotes** — track opportunities from RFQ Received → Quote Sent
+- **Engagement Letters** — dedicated EL view: EL Requested → Draft Shared → Signed Shared → Countersigned
+- **Production** — track progress from Pending Advance Payment → In Production → Delivered, with per-row phase indicators (Adv. Payment, FAT, SAT)
+
+### Opportunity workflow
+- **Modal-based editing** — create, view, and edit opportunities in a slide-over modal without leaving the list
+- **Inline hover-edit** — click any field in the modal to edit it in place; changes save immediately
+- **One-click status transitions** — Quote Accepted promotes to EL flow; EL Countersigned promotes to Production
 - **Document management** — upload and download quote and EL documents per opportunity
-- **Activity log** — user comments plus automatic system events for status changes and file uploads; system events hidden by default; shown latest-first
-- **Dashboard** — quote and EL activity KPIs with trend charts and configurable time period selector; avg days to quote and avg days EL requested → signed
-- **Filtering** — multi-select status and pending filters, dynamic full-text search (filters after 3 characters)
-- **Light / Dark theme** — UniFi-inspired UI with a persistent theme toggle in the sidebar
+
+### Dashboard
+- **Pipeline snapshot** — live counts per status across all three pipeline stages; click any number to drill into that cohort
+- **Quote Activity** — RFQs Received, Quotes Shared, avg days to quote; trend chart by period
+- **EL Activity** — ELs Requested, Drafts Shared, Signed Shared, avg days EL requested → signed; trend chart
+- **Production Activity** — Countersigned, Advance Payments, FAT Passed, Delivered; trend chart
+- **Drill-down tables** — clicking any KPI or chart bar opens a filtered table showing the relevant date column
+- **Configurable period** — 7 days / 30 days / 90 days / year-to-date / custom date range
+
+### Data management
+- **Audit log** — every status change, field edit, document upload and deletion is captured as a system event with actor and timestamp; user comments sit alongside system events in the same timeline
+- **Column sorting** — all tables across the app support click-to-sort on every column header
+- **Full-text search** — search by title, customer, internal ID, or reference number
+- **Status + pending filters** — multi-select status filter and waiting-on filter on all list views
+- **CSV export** — export filtered results from any list view or drill-down modal
+
+### Administration
 - **User management** — admin can create/edit users and assign roles (Admin / User)
+- **Bulk delete** — admin can select and permanently delete opportunities
+
+### UI
+- **Light / Dark theme** — UniFi-inspired UI with a persistent theme toggle in the sidebar
 
 ## Tech stack
 

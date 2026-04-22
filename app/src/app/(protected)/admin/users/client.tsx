@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { formatDate } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { UserPlus, Pencil } from "lucide-react"
+import { SortableHeader, sortRows, type SortDir } from "@/components/ui/sortable-header"
 
 interface User {
   id: string
@@ -31,6 +32,11 @@ export function AdminUsersClient({
   const [editUser, setEditUser] = useState<User | null>(null)
   const [error, setError] = useState("")
   const [saving, setSaving] = useState(false)
+  const [sortKey, setSortKey] = useState("name")
+  const [sortDir, setSortDir] = useState<SortDir>("asc")
+
+  function handleSort(key: string, dir: SortDir) { setSortKey(key); setSortDir(dir) }
+  const sorted = useMemo(() => sortRows(users, sortKey, sortDir), [users, sortKey, sortDir])
 
   // Create user form state
   const [newUser, setNewUser] = useState({
@@ -123,18 +129,16 @@ export function AdminUsersClient({
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500">Name</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500">Email</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500">Role</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500">Status</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 hidden md:table-cell">
-                Created
-              </th>
+              <SortableHeader label="Name" sortKey="name" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} />
+              <SortableHeader label="Email" sortKey="email" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} />
+              <SortableHeader label="Role" sortKey="role" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} />
+              <SortableHeader label="Status" sortKey="active" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} />
+              <SortableHeader label="Created" sortKey="createdAt" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="hidden md:table-cell" />
               <th className="px-4 py-3" />
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {users.map((user) => (
+            {sorted.map((user) => (
               <tr key={user.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3 font-medium text-gray-900">{user.name}</td>
                 <td className="px-4 py-3 text-gray-600">{user.email}</td>

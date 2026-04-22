@@ -2,9 +2,13 @@ import { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { db } from "./db"
 import bcrypt from "bcryptjs"
+import { checkRateLimit, recordFailure, clearAttempts } from "./rate-limit"
 
 export const authOptions: NextAuthOptions = {
-  session: { strategy: "jwt" },
+  session: {
+    strategy: "jwt",
+    maxAge: 8 * 60 * 60, // 8 hours
+  },
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -15,15 +19,27 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null
 
-        const user = await db.user.findUnique({
-          where: { email: credentials.email },
-        })
+        const key = credentials.email.toLowerCase()
+        const { allowed, retryAfterSeconds } = checkRateLimit(key)
+        if (!allowed) {
+          const minutes = Math.ceil((retryAfterSeconds ?? 900) / 60)
+          throw new Error(`Too many failed attempts. Try again in ${minutes} minute${minutes !== 1 ? "s" : ""}.`)
+        }
 
-        if (!user || !user.active) return null
+        const user = await db.user.findUnique({ where: { email: credentials.email } })
+
+        if (!user || !user.active) {
+          recordFailure(key)
+          return null
+        }
 
         const valid = await bcrypt.compare(credentials.password, user.password)
-        if (!valid) return null
+        if (!valid) {
+          recordFailure(key)
+          return null
+        }
 
+        clearAttempts(key)
         return {
           id: user.id,
           name: user.name,

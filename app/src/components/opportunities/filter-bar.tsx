@@ -2,33 +2,29 @@
 
 import { useRouter, useSearchParams } from "next/navigation"
 import { useState, useRef, useEffect } from "react"
-import { Search, ChevronDown, Check, X } from "lucide-react"
-import { cn, STATUS_GROUPS, STATUS_LABELS, PENDING_LABELS } from "@/lib/utils"
-
-const PENDING_OPTIONS = ["INTERNAL", "CUSTOMER"] as const
+import { Search, ChevronDown, Check, X, Download } from "lucide-react"
+import { cn, STATUS_GROUPS, STATUS_LABELS } from "@/lib/utils"
 
 type StatusGroup = { label: string; statuses: string[] }
 
 export function FilterBar({
   basePath = "/opportunities",
   statusGroups = STATUS_GROUPS,
+  exportType,
 }: {
   basePath?: string
   statusGroups?: StatusGroup[]
+  exportType?: "quotes" | "els" | "production"
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [statusOpen, setStatusOpen] = useState(false)
-  const [pendingOpen, setPendingOpen] = useState(false)
   const statusRef = useRef<HTMLDivElement>(null)
-  const pendingRef = useRef<HTMLDivElement>(null)
 
   const query = searchParams.get("q") ?? ""
   const statusParam = searchParams.get("status") ?? ""
-  const waitingOnParam = searchParams.get("waitingOn") ?? ""
 
   const selectedStatuses = statusParam ? statusParam.split(",").filter(Boolean) : []
-  const selectedPending = waitingOnParam ? waitingOnParam.split(",").filter(Boolean) : []
 
   const [inputValue, setInputValue] = useState(query)
 
@@ -51,7 +47,6 @@ export function FilterBar({
     function handleClick(e: MouseEvent) {
       const target = e.target as Node
       if (statusRef.current && !statusRef.current.contains(target)) setStatusOpen(false)
-      if (pendingRef.current && !pendingRef.current.contains(target)) setPendingOpen(false)
     }
     document.addEventListener("mousedown", handleClick)
     return () => document.removeEventListener("mousedown", handleClick)
@@ -60,9 +55,11 @@ export function FilterBar({
   function updateParams(updates: Record<string, string | null>) {
     const params = new URLSearchParams(searchParams.toString())
     for (const [key, value] of Object.entries(updates)) {
-      if (!value) params.delete(key)
+      if (value === null) params.delete(key)
       else params.set(key, value)
     }
+    // Reset to page 1 whenever a filter (not page navigation) changes
+    if (!("page" in updates)) params.delete("page")
     const qs = params.toString()
     router.push(`${basePath}${qs ? `?${qs}` : ""}`)
   }
@@ -74,13 +71,6 @@ export function FilterBar({
     updateParams({ status: next.length > 0 ? next.join(",") : null })
   }
 
-  function togglePending(p: string) {
-    const next = selectedPending.includes(p)
-      ? selectedPending.filter((x) => x !== p)
-      : [...selectedPending, p]
-    updateParams({ waitingOn: next.length > 0 ? next.join(",") : null })
-  }
-
   const statusLabel =
     selectedStatuses.length === 0
       ? "All Statuses"
@@ -88,14 +78,7 @@ export function FilterBar({
       ? (STATUS_LABELS[selectedStatuses[0]] ?? selectedStatuses[0])
       : `${selectedStatuses.length} statuses`
 
-  const pendingLabel =
-    selectedPending.length === 0
-      ? "All — Pending"
-      : selectedPending.length === 1
-      ? (PENDING_LABELS[selectedPending[0]] ?? selectedPending[0])
-      : `${selectedPending.length} pending`
-
-  const hasFilters = query || statusParam || waitingOnParam
+  const hasFilters = query || statusParam
 
   return (
     <div className="flex flex-wrap gap-3 mb-6">
@@ -117,10 +100,7 @@ export function FilterBar({
       <div ref={statusRef} className="relative">
         <button
           type="button"
-          onClick={() => {
-            setStatusOpen((o) => !o)
-            setPendingOpen(false)
-          }}
+          onClick={() => setStatusOpen((o) => !o)}
           className={cn(
             "flex items-center gap-2 px-3 py-2 border rounded-lg text-sm transition-colors focus:outline-none",
             selectedStatuses.length > 0
@@ -179,73 +159,25 @@ export function FilterBar({
         )}
       </div>
 
-      {/* Pending multi-select */}
-      <div ref={pendingRef} className="relative">
-        <button
-          type="button"
-          onClick={() => {
-            setPendingOpen((o) => !o)
-            setStatusOpen(false)
-          }}
-          className={cn(
-            "flex items-center gap-2 px-3 py-2 border rounded-lg text-sm transition-colors focus:outline-none",
-            selectedPending.length > 0
-              ? "border-[#006fff] bg-[#006fff] text-white"
-              : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-          )}
-        >
-          {pendingLabel}
-          <ChevronDown
-            size={14}
-            className={cn("transition-transform flex-shrink-0", pendingOpen && "rotate-180")}
-          />
-        </button>
-
-        {pendingOpen && (
-          <div className="absolute top-full left-0 mt-1 w-44 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-1.5">
-            {selectedPending.length > 0 && (
-              <button
-                type="button"
-                onClick={() => updateParams({ waitingOn: null })}
-                className="w-full text-left px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-50 flex items-center gap-2"
-              >
-                <X size={12} />
-                Clear selection
-              </button>
-            )}
-            {PENDING_OPTIONS.map((p) => {
-              const checked = selectedPending.includes(p)
-              return (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => togglePending(p)}
-                  className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2.5"
-                >
-                  <span
-                    className={cn(
-                      "w-4 h-4 rounded border flex items-center justify-center flex-shrink-0",
-                      checked ? "bg-gray-900 border-gray-900" : "border-gray-300"
-                    )}
-                  >
-                    {checked && <Check size={10} className="text-white" />}
-                  </span>
-                  {PENDING_LABELS[p]}
-                </button>
-              )
-            })}
-          </div>
-        )}
-      </div>
-
       {hasFilters && (
         <button
           type="button"
-          onClick={() => router.push("/opportunities")}
+          onClick={() => router.push(basePath)}
           className="px-4 py-2 text-gray-500 text-sm rounded-lg hover:bg-gray-100 transition-colors"
         >
           Clear all
         </button>
+      )}
+
+      {exportType && (
+        <a
+          href={`/api/export?type=${exportType}${query ? `&q=${encodeURIComponent(query)}` : ""}${statusParam ? `&status=${encodeURIComponent(statusParam)}` : ""}`}
+          download
+          className="flex items-center gap-1.5 px-3 py-2 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 rounded-lg text-sm transition-colors ml-auto"
+        >
+          <Download size={14} />
+          Export CSV
+        </a>
       )}
     </div>
   )

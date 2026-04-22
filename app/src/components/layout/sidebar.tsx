@@ -1,21 +1,26 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { signOut } from "next-auth/react"
+import { useState, useEffect } from "react"
+import { createPortal } from "react-dom"
 import {
   LayoutDashboard,
   FileText,
   ScrollText,
   Factory,
   Users,
+  Trash2,
   LogOut,
   User,
   Sun,
   Monitor,
+  Plus,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTheme } from "@/components/theme/theme-provider"
+import { NewOpportunityModal } from "@/components/opportunities/new-opportunity-modal"
 
 interface SidebarProps {
   userName: string
@@ -24,9 +29,13 @@ interface SidebarProps {
 
 export function Sidebar({ userName, userRole }: SidebarProps) {
   const pathname = usePathname()
+  const router = useRouter()
   const isAdmin = userRole === "ADMIN"
   const { theme, setTheme } = useTheme()
   const isDark = theme === "dark"
+  const [newModalOpen, setNewModalOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
 
   function isActive(href: string) {
     if (href === "/dashboard") return pathname === "/dashboard"
@@ -47,12 +56,25 @@ export function Sidebar({ userName, userRole }: SidebarProps) {
   const borderColor = isDark ? "border-[#1a2d40]" : "border-gray-800"
 
   return (
+    <>
     <aside className={cn("w-60 text-white flex flex-col h-full fixed top-0 left-0 bottom-0", sidebarBg)}>
       {/* Logo */}
       <div className={cn("px-5 py-5 border-b", borderColor)}>
         <span className="text-lg font-semibold tracking-tight text-blue-400">
           Opportunities<sup className="text-[10px] font-bold text-white ml-0.5 tracking-normal">AI</sup>
         </span>
+      </div>
+
+      {/* New Opportunity */}
+      <div className={cn("px-3 py-3 border-b", borderColor)}>
+        <button
+          type="button"
+          onClick={() => setNewModalOpen(true)}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#006fff] hover:bg-blue-600 text-white text-sm font-medium rounded-lg transition-colors"
+        >
+          <Plus size={16} />
+          New Opportunity
+        </button>
       </div>
 
       {/* Navigation */}
@@ -92,6 +114,10 @@ export function Sidebar({ userName, userRole }: SidebarProps) {
             <Link href="/admin/users" className={linkCls("/admin/users")}>
               <Users size={18} />
               Users
+            </Link>
+            <Link href="/admin/opportunities" className={linkCls("/admin/opportunities")}>
+              <Trash2 size={18} />
+              Delete
             </Link>
           </>
         )}
@@ -148,5 +174,18 @@ export function Sidebar({ userName, userRole }: SidebarProps) {
         </button>
       </div>
     </aside>
+
+    {mounted && newModalOpen && createPortal(
+      <NewOpportunityModal
+        onClose={() => setNewModalOpen(false)}
+        onCreated={() => {
+          setNewModalOpen(false)
+          router.push("/opportunities")
+          router.refresh()
+        }}
+      />,
+      document.body
+    )}
+  </>
   )
 }
