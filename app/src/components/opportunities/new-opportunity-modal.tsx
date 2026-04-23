@@ -94,7 +94,7 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
                 onChange={(e) => setField("title", e.target.value)}
                 placeholder="Opportunity title"
                 autoFocus
-                className="w-full text-2xl font-semibold text-gray-900 bg-transparent border-b-2 border-gray-200 focus:border-gray-900 outline-none pb-1 leading-tight placeholder-gray-300"
+                className="w-full text-2xl font-semibold text-gray-900 bg-gray-50 border border-gray-200 rounded-md px-3 py-2 focus:outline-none focus:border-[#006fff] focus:bg-white leading-tight placeholder-gray-300 transition-colors"
               />
 
               {/* Status + Pending + ID + Ref inline */}
@@ -131,8 +131,8 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
             </div>
 
             {/* Info fields */}
-            <div className="flex flex-col gap-3 mb-5">
-              <FormCard label="Customer *" required>
+            <div className="flex flex-col gap-4 mb-5">
+              <FormField label="Customer" required>
                 <input
                   value={form.customer}
                   onChange={(e) => setField("customer", e.target.value)}
@@ -140,45 +140,45 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
                   className={inputCls}
                   required
                 />
-              </FormCard>
+              </FormField>
 
-              <FormCard label="Product / Service">
+              <FormField label="Product / Service">
                 <input
                   value={form.product}
                   onChange={(e) => setField("product", e.target.value)}
                   placeholder="Requested product or service"
                   className={inputCls}
                 />
-              </FormCard>
+              </FormField>
 
               <div className="grid grid-cols-2 gap-3">
-                <FormCard label="RFQ Date">
+                <FormField label="RFQ Date">
                   <input
                     type="date"
                     value={form.rfqDate}
                     onChange={(e) => setField("rfqDate", e.target.value)}
                     className={inputCls}
                   />
-                </FormCard>
-                <FormCard label="Quote Sent Date">
+                </FormField>
+                <FormField label="Quote Sent Date">
                   <input
                     type="date"
                     value={form.quoteSentDate}
                     onChange={(e) => setField("quoteSentDate", e.target.value)}
                     className={inputCls}
                   />
-                </FormCard>
+                </FormField>
               </div>
 
-              <FormCard label="Details">
+              <FormField label="Details">
                 <textarea
                   value={form.description}
                   onChange={(e) => setField("description", e.target.value)}
                   rows={3}
                   placeholder="Additional context, requirements, or background…"
-                  className="w-full text-sm text-gray-700 bg-transparent resize-none focus:outline-none placeholder-gray-400"
+                  className={textareaCls}
                 />
-              </FormCard>
+              </FormField>
             </div>
 
             {error && (
@@ -208,9 +208,12 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const inputCls =
-  "w-full text-sm font-medium text-gray-900 bg-transparent border-b border-gray-200 focus:border-gray-600 outline-none py-0.5 placeholder-gray-400"
+  "w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#006fff] focus:bg-white transition-colors"
 
-function FormCard({
+const textareaCls =
+  "w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#006fff] focus:bg-white resize-none transition-colors"
+
+function FormField({
   label,
   children,
   required = false,
@@ -220,8 +223,8 @@ function FormCard({
   required?: boolean
 }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4">
-      <p className="text-xs font-medium text-gray-400 mb-2">
+    <div className="flex flex-col gap-1.5">
+      <p className="text-xs font-medium text-gray-500">
         {label}
         {required && <span className="text-red-400 ml-0.5">*</span>}
       </p>

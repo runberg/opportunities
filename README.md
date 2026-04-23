@@ -13,7 +13,7 @@ Built for small teams on a private network. All data stays on your own server.
 
 ### Opportunity workflow
 - **Modal-based editing** — create, view, and edit opportunities in a slide-over modal without leaving the list
-- **Inline hover-edit** — click any field in the modal to edit it in place; changes save immediately
+- **Always-editable fields** — click any field to edit it; an "Apply Changes" bar appears when there are unsaved changes
 - **One-click status transitions** — Quote Accepted promotes to EL flow; EL Countersigned promotes to Production
 - **Document management** — upload and download quote and EL documents per opportunity
 
@@ -54,19 +54,27 @@ Built for small teams on a private network. All data stays on your own server.
 
 ## Deployment
 
-### Prerequisites
+The application ships as a pre-built Docker image published to the GitHub Container Registry on every release. No build step is required on the server — you only need Docker and the compose file.
+
+Three deployment paths are covered below: standard (server has internet access), air-gapped (server has no internet access), and updating an existing installation.
+
+---
+
+### Standard deployment (server has internet access)
+
+#### Prerequisites
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (or Docker Engine + Compose plugin on Linux)
 - Git
 
-### 1. Clone the repository
+#### 1. Clone the repository
 
 ```bash
 git clone https://github.com/runberg/opportunities.git
 cd opportunities
 ```
 
-### 2. Create the environment file
+#### 2. Create the environment file
 
 ```bash
 cp .env.example .env
@@ -94,21 +102,15 @@ Generate a secure `NEXTAUTH_SECRET`:
 openssl rand -base64 32
 ```
 
-> On Windows without OpenSSL: run the command inside a Git Bash terminal, or use any password manager to generate a 32+ character random string.
+> On Windows without OpenSSL: run this inside a Git Bash terminal, or use any password manager to generate a 32+ character random string.
 
-### 3. Build and start
+#### 3. Start
 
 ```bash
-docker compose up -d --build
+docker compose up -d
 ```
 
-This will:
-- Pull the PostgreSQL image
-- Build the Next.js application
-- Apply database migrations and create the default admin user
-- Start Nginx on port 80
-
-The first build takes a few minutes. Check progress with:
+This pulls the pre-built app image from `ghcr.io`, starts PostgreSQL and Nginx, applies database migrations, and creates the default admin user. Check progress with:
 
 ```bash
 docker compose logs -f app
@@ -116,7 +118,7 @@ docker compose logs -f app
 
 Wait until you see `✓ Ready` in the app logs.
 
-### 4. Open the app
+#### 4. Open the app
 
 Navigate to `http://<your-server-ip>` in a browser.
 
@@ -129,20 +131,87 @@ Navigate to `http://<your-server-ip>` in a browser.
 
 > **Change this password immediately** after first login via the profile page (top-right menu → Profile).
 
-### 5. Create user accounts
+#### 5. Create user accounts
 
 Go to **Admin → Users** to create accounts for your team. Users need an account to log in — there is no self-registration.
 
 ---
 
-## Updating to a new version
+### Air-gapped deployment (server has no internet access)
+
+The server never needs to reach the internet. All three Docker images are saved on a machine that does have access, transferred to the server (USB key, file share, or any other means), and loaded locally before starting the stack.
+
+#### Step 1 — Save images on a machine with internet access
 
 ```bash
-git pull
-docker compose up -d --build
+# Pull the images you want to transfer
+docker pull ghcr.io/runberg/opportunities:latest
+docker pull postgres:16-alpine
+docker pull nginx:alpine
+
+# Save them to tar archives
+docker save ghcr.io/runberg/opportunities:latest -o opportunities-app.tar
+docker save postgres:16-alpine                   -o opportunities-postgres.tar
+docker save nginx:alpine                         -o opportunities-nginx.tar
 ```
 
-Database migrations run automatically on startup. Data is stored in a Docker volume (`postgres_data`) and is not affected by rebuilds.
+To pin a specific release instead of `latest`, replace `latest` with the version tag (e.g. `v0.1.0`). The matching tag is available on every GitHub release.
+
+#### Step 2 — Transfer files to the server
+
+Copy the following to the server (USB key, SCP, shared drive, etc.):
+
+```
+opportunities-app.tar
+opportunities-postgres.tar
+opportunities-nginx.tar
+docker-compose.yml
+.env                  ← create from .env.example and fill in values
+nginx/nginx.conf
+nginx/certs/          ← required directory, can be empty unless using HTTPS
+```
+
+You do **not** need Git or the full source repository on the server.
+
+#### Step 3 — Load images on the server
+
+```bash
+docker load -i opportunities-app.tar
+docker load -i opportunities-postgres.tar
+docker load -i opportunities-nginx.tar
+```
+
+#### Step 4 — Start the stack
+
+```bash
+docker compose up -d --pull never
+```
+
+The `--pull never` flag tells Docker Compose not to attempt pulling any images from the internet — it will use only what is already loaded locally.
+
+Database migrations and the default admin user are created automatically on first start.
+
+---
+
+### Updating to a new version
+
+#### Server with internet access
+
+```bash
+docker compose pull          # pull the new app image
+docker compose up -d         # restart with the new image
+```
+
+#### Air-gapped server
+
+Repeat the save/transfer/load steps from above with the new image tag, then:
+
+```bash
+# Update the image tag in .env or docker-compose.yml if pinning a specific version
+docker compose up -d --pull never
+```
+
+Database migrations run automatically on startup. All data is stored in the `./data/` directory on the host and is not affected by image updates.
 
 ---
 

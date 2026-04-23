@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { MessageSquarePlus, Cpu, ChevronDown, ChevronUp } from "lucide-react"
-import { timeAgo } from "@/lib/utils"
+import { timeAgo, initials } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
 export interface LogEntry {
@@ -19,15 +19,6 @@ interface LogSectionProps {
   entries: LogEntry[]
   currentUser: { id: string; name: string }
   onRefresh?: () => void
-}
-
-function initials(name: string) {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase()
 }
 
 export function LogSection({

@@ -45,6 +45,10 @@ export function timeAgo(date: Date | string): string {
   return formatDistanceToNow(new Date(date), { addSuffix: true })
 }
 
+export function initials(name: string): string {
+  return name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
+}
+
 export const STATUS_SHORT_LABELS: Record<string, string> = {
   NEW: "New",
   RFQ_RECEIVED: "RFQ Rcvd",

@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { timeAgo } from "@/lib/utils"
+import { timeAgo, initials } from "@/lib/utils"
+import { Textarea } from "@/components/ui/textarea"
 
 interface Comment {
   id: string
@@ -17,14 +18,14 @@ interface CommentSectionProps {
   currentUser: { id: string; name: string }
 }
 
-export function CommentSection({ opportunityId, comments, currentUser }: CommentSectionProps) {
+export function CommentSection({ opportunityId, comments, currentUser: _currentUser }: CommentSectionProps) {
   const router = useRouter()
   const [content, setContent] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  async function handleSubmit(e?: React.FormEvent) {
+    e?.preventDefault()
     if (!content.trim()) return
 
     setSubmitting(true)
@@ -47,15 +48,6 @@ export function CommentSection({ opportunityId, comments, currentUser }: Comment
     router.refresh()
   }
 
-  function initials(name: string) {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase()
-  }
-
   return (
     <div className="mt-10">
       <h2 className="text-base font-semibold text-gray-900 mb-5">
@@ -63,7 +55,6 @@ export function CommentSection({ opportunityId, comments, currentUser }: Comment
         <span className="text-gray-400 font-normal">({comments.length})</span>
       </h2>
 
-      {/* Comment thread */}
       <div className="space-y-5 mb-6">
         {comments.length === 0 && (
           <p className="text-sm text-gray-400">No comments yet. Be the first to add one.</p>
@@ -86,7 +77,6 @@ export function CommentSection({ opportunityId, comments, currentUser }: Comment
         ))}
       </div>
 
-      {/* Add comment */}
       <form onSubmit={handleSubmit} className="border-t border-gray-200 pt-5">
         <Textarea
           value={content}
@@ -94,9 +84,7 @@ export function CommentSection({ opportunityId, comments, currentUser }: Comment
           placeholder="Write a comment…"
           rows={3}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-              handleSubmit(e as unknown as React.FormEvent)
-            }
+            if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleSubmit()
           }}
         />
         {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
@@ -112,31 +100,5 @@ export function CommentSection({ opportunityId, comments, currentUser }: Comment
         </div>
       </form>
     </div>
-  )
-}
-
-// Need to import Textarea here
-function Textarea({
-  value,
-  onChange,
-  placeholder,
-  rows,
-  onKeyDown,
-}: {
-  value: string
-  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
-  placeholder?: string
-  rows?: number
-  onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void
-}) {
-  return (
-    <textarea
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-      rows={rows ?? 3}
-      onKeyDown={onKeyDown}
-      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-900 placeholder-gray-400 resize-none focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
-    />
   )
 }
