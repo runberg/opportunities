@@ -13,10 +13,10 @@ import {
   Package,
   Users,
   Trash2,
+  ClipboardList,
+  Mail,
   LogOut,
   User,
-  Sun,
-  Monitor,
   Plus,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -24,15 +24,15 @@ import { useTheme } from "@/components/theme/theme-provider"
 import { NewOpportunityModal } from "@/components/opportunities/new-opportunity-modal"
 
 interface SidebarProps {
-  userName: string
+  userEmail: string
   userRole: string
 }
 
-export function Sidebar({ userName, userRole }: SidebarProps) {
+export function Sidebar({ userEmail, userRole }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const isAdmin = userRole === "ADMIN"
-  const { theme, setTheme } = useTheme()
+  const { theme } = useTheme()
   const isDark = theme === "dark"
   const [newModalOpen, setNewModalOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -55,6 +55,7 @@ export function Sidebar({ userName, userRole }: SidebarProps) {
 
   const sidebarBg = isDark ? "bg-[#0a1220]" : "bg-gray-900"
   const borderColor = isDark ? "border-[#1a2d40]" : "border-gray-800"
+  const sectionLabelCls = cn("text-xs font-semibold uppercase tracking-wider", isDark ? "text-[#3d5570]" : "text-gray-500")
 
   return (
     <>
@@ -85,12 +86,7 @@ export function Sidebar({ userName, userRole }: SidebarProps) {
           Dashboard
         </Link>
 
-        {/* Opportunities section */}
-        <div className="pt-4 pb-1 px-3">
-          <span className={cn("text-xs font-semibold uppercase tracking-wider", isDark ? "text-[#3d5570]" : "text-gray-500")}>
-            Opportunities
-          </span>
-        </div>
+        <div className="pt-4 pb-1 px-3"><span className={sectionLabelCls}>Opportunities</span></div>
         <Link href="/opportunities" className={linkCls("/opportunities")}>
           <FileText size={18} />
           Quotes
@@ -104,28 +100,26 @@ export function Sidebar({ userName, userRole }: SidebarProps) {
           Production
         </Link>
 
-        {/* Ad Hoc section */}
-        <div className="pt-4 pb-1 px-3">
-          <span className={cn("text-xs font-semibold uppercase tracking-wider", isDark ? "text-[#3d5570]" : "text-gray-500")}>
-            Ad Hoc
-          </span>
-        </div>
+        <div className="pt-4 pb-1 px-3"><span className={sectionLabelCls}>Ad Hoc</span></div>
         <Link href="/adhoc" className={linkCls("/adhoc")}>
           <Package size={18} />
           Ad Hoc Deliveries
         </Link>
 
-        {/* Admin section */}
         {isAdmin && (
           <>
-            <div className="pt-4 pb-1 px-3">
-              <span className={cn("text-xs font-semibold uppercase tracking-wider", isDark ? "text-[#3d5570]" : "text-gray-500")}>
-                Admin
-              </span>
-            </div>
+            <div className="pt-4 pb-1 px-3"><span className={sectionLabelCls}>Admin</span></div>
             <Link href="/admin/users" className={linkCls("/admin/users")}>
               <Users size={18} />
               Users
+            </Link>
+            <Link href="/admin/smtp" className={linkCls("/admin/smtp")}>
+              <Mail size={18} />
+              Email / SMTP
+            </Link>
+            <Link href="/admin/logs" className={linkCls("/admin/logs")}>
+              <ClipboardList size={18} />
+              System Log
             </Link>
             <Link href="/admin/opportunities" className={linkCls("/admin/opportunities")}>
               <Trash2 size={18} />
@@ -135,42 +129,12 @@ export function Sidebar({ userName, userRole }: SidebarProps) {
         )}
       </nav>
 
-      {/* Theme toggle */}
-      <div className={cn("px-3 py-3 border-t", borderColor)}>
-        <div className={cn("flex items-center gap-1 rounded-lg p-1", isDark ? "bg-[#111b28]" : "bg-gray-800")}>
-          <button
-            onClick={() => setTheme("light")}
-            className={cn(
-              "flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded text-xs font-medium transition-colors",
-              theme === "light"
-                ? "bg-white text-gray-900 shadow-sm"
-                : "text-gray-400 hover:text-gray-200"
-            )}
-          >
-            <Sun size={12} />
-            Light
-          </button>
-          <button
-            onClick={() => setTheme("dark")}
-            className={cn(
-              "flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded text-xs font-medium transition-colors",
-              theme === "dark"
-                ? "bg-blue-600 text-white shadow-sm"
-                : "text-gray-400 hover:text-gray-200"
-            )}
-          >
-            <Monitor size={12} />
-            Dark
-          </button>
-        </div>
-      </div>
-
       {/* User section */}
       <div className={cn("px-3 py-4 border-t space-y-1", borderColor)}>
         <Link href="/profile" className={linkCls("/profile")}>
           <User size={18} />
           <div className="min-w-0">
-            <div className="text-sm truncate text-white">{userName}</div>
+            <div className="text-xs truncate text-white">{userEmail}</div>
             <div className={cn("text-xs capitalize", isDark ? "text-[#3d5570]" : "text-gray-500")}>{userRole.toLowerCase()}</div>
           </div>
         </Link>

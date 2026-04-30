@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { z } from "zod"
 import { requireSession } from "@/lib/api"
+import { writeLog } from "@/lib/system-log"
 
 const createSchema = z.object({
   internalId: z.string().optional(),
@@ -142,6 +143,12 @@ export async function POST(req: NextRequest) {
         opportunityId: opportunity.id,
         authorId: session.user.id,
       },
+    })
+    await writeLog({
+      type: "OPPORTUNITY_CREATED",
+      message: `"${opportunity.title}" created`,
+      userId: session.user.id,
+      opportunityId: opportunity.id,
     })
     return NextResponse.json(opportunity, { status: 201 })
   } catch (err: unknown) {

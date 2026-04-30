@@ -32,12 +32,23 @@ Built for small teams on a private network. All data stays on your own server.
 - **Status + pending filters** — multi-select status filter and waiting-on filter on all list views
 - **CSV export** — export filtered results from any list view or drill-down modal
 
+### Dashboard
+- **Recent Activity** — the 10 most recently changed opportunities with a one-line description of the last change
+
 ### Administration
-- **User management** — admin can create/edit users and assign roles (Admin / User)
+- **User management** — admin can create/edit users; username is always the email address
+- **System log** — audit trail of login events, password changes, opportunity creates/updates, and user management actions; opportunity entries are clickable to open the full modal
+- **Email / SMTP** — configure outgoing SMTP, enable/disable notifications globally, edit the notification subject and body template with named placeholders
 - **Bulk delete** — admin can select and permanently delete opportunities
 
+### Email notifications
+- Users can opt in to email notifications from their profile page (only visible when an admin has configured and enabled SMTP)
+- Notifications fire on opportunity status changes with a 3-minute debounce — multiple rapid changes to the same opportunity produce a single email
+- Template is editable by admin with placeholders: `{{title}}`, `{{internalId}}`, `{{customer}}`, `{{status}}`, `{{link}}`
+
 ### UI
-- **Light / Dark theme** — UniFi-inspired UI with a persistent theme toggle in the sidebar
+- **Dark theme by default** — deep navy palette; first-time visitors see the dark login page without any flash
+- **Light / Dark toggle** — in the Profile page (previously in the sidebar)
 
 ## Tech stack
 
@@ -212,6 +223,8 @@ docker compose up -d --pull never
 ```
 
 Database migrations run automatically on startup. All data is stored in the `./data/` directory on the host and is not affected by image updates.
+
+> **Upgrading from an earlier version?** If your database was set up before v0.1.0, run the catch-up migrations in `app/prisma/migrations/20260424000001_catchup_schema/`, `20260430000001_add_system_log/`, and `20260430000002_email_smtp/` manually via `docker compose exec app npx prisma migrate deploy`.
 
 ---
 

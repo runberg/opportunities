@@ -8,18 +8,20 @@ datasource db {
 }
 
 model User {
-  id            String        @id @default(cuid())
-  name          String
-  email         String        @unique
-  password      String
-  role          Role          @default(USER)
-  active        Boolean       @default(true)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id                 String        @id @default(cuid())
+  name               String
+  email              String        @unique
+  password           String
+  role               Role          @default(USER)
+  active             Boolean       @default(true)
+  emailNotifications Boolean       @default(false)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 
   opportunities Opportunity[]
   comments      Comment[]
   documents     Document[]
+  systemLogs    SystemLog[]
 }
 
 enum Role {
@@ -59,6 +61,7 @@ model Opportunity {
 
   comments    Comment[]
   documents   Document[]
+  systemLogs  SystemLog[]
 }
 
 enum OpportunityStatus {
@@ -125,4 +128,41 @@ enum DocumentType {
 enum DocumentStatus {
   DRAFT
   FINAL
+}
+
+model SystemLog {
+  id            String        @id @default(cuid())
+  type          SystemLogType
+  message       String
+  createdAt     DateTime      @default(now())
+
+  userId        String?
+  user          User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  opportunityId String?
+  opportunity   Opportunity?  @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+}
+
+enum SystemLogType {
+  LOGIN
+  PASSWORD_CHANGED
+  OPPORTUNITY_CREATED
+  OPPORTUNITY_UPDATED
+  USER_CREATED
+  USER_UPDATED
+}
+
+model SmtpConfig {
+  id                  String   @id @default("default")
+  host                String
+  port                Int      @default(587)
+  secure              Boolean  @default(false)
+  username            String
+  password            String
+  fromAddress         String
+  fromName            String   @default("Opportunities")
+  enabled             Boolean  @default(false)
+  notificationSubject String   @default("")
+  notificationBody    String   @default("")
+  updatedAt           DateTime @updatedAt
 }

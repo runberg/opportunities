@@ -3,16 +3,16 @@ import { db } from "@/lib/db"
 import bcrypt from "bcryptjs"
 import { z } from "zod"
 import { requireAdmin } from "@/lib/api"
+import { writeLog } from "@/lib/system-log"
 
 const createSchema = z.object({
-  name: z.string().min(1),
   email: z.string().email(),
   password: z.string().min(8),
   role: z.enum(["ADMIN", "USER"]).optional(),
 })
 
 export async function POST(req: NextRequest) {
-  const { error } = await requireAdmin()
+  const { session, error } = await requireAdmin()
   if (error) return error
 
   const body = await req.json()
@@ -29,12 +29,18 @@ export async function POST(req: NextRequest) {
   const hashed = await bcrypt.hash(parsed.data.password, 12)
   const user = await db.user.create({
     data: {
-      name: parsed.data.name,
+      name: parsed.data.email, // username is always the email address
       email: parsed.data.email,
       password: hashed,
       role: parsed.data.role ?? "USER",
     },
-    select: { id: true, name: true, email: true, role: true, active: true, createdAt: true },
+    select: { id: true, email: true, role: true, active: true, createdAt: true },
+  })
+
+  await writeLog({
+    type: "USER_CREATED",
+    message: `User "${user.email}" created`,
+    userId: session.user.id,
   })
 
   return NextResponse.json(user, { status: 201 })

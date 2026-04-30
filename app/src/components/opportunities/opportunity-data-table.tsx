@@ -28,6 +28,8 @@ export interface OppTableRow {
   satApplicable?: boolean
   satPassedDate?: string | null
   deliveredDate?: string | null
+  updatedAt?: string | null
+  lastChange?: string | null
 }
 
 export interface DateColumn {
@@ -175,6 +177,9 @@ export function OpportunityDataTable({
                     {row.internalId && <span className="text-xs text-gray-400">{row.internalId}</span>}
                     {row.reference && <span className="text-xs text-gray-400">{row.reference}</span>}
                   </div>
+                  {row.lastChange && (
+                    <div className="text-xs text-gray-400 italic mt-0.5 truncate max-w-xs">{row.lastChange}</div>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-gray-600 hidden sm:table-cell">{row.customer}</td>
                 <td className={cn("px-4 py-3 text-gray-500 max-w-xs truncate hidden", showPhases ? "lg:table-cell" : "md:table-cell")}>

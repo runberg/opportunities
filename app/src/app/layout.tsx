@@ -7,11 +7,11 @@ export const metadata: Metadata = {
   description: "Sales opportunity tracker",
 }
 
-// Applied before CSS to prevent flash of unstyled content
+// Applied before CSS to prevent flash of unstyled content — defaults to dark
 const themeScript = `
   try {
     const t = localStorage.getItem('ui-theme');
-    if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+    if (t !== 'light') document.documentElement.setAttribute('data-theme', 'dark');
   } catch(e) {}
 `
 

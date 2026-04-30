@@ -167,7 +167,16 @@ export default async function DashboardPage({
     ]),
     Promise.all(PIPELINE_STATUSES.map((s) => db.opportunity.count({ where: { status: s } }))),
     db.opportunity.findMany({
-      select: { id: true, title: true, customer: true, internalId: true, status: true, updatedAt: true },
+      select: {
+        id: true, title: true, customer: true, internalId: true,
+        reference: true, product: true, status: true, updatedAt: true,
+        comments: {
+          where: { system: true },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: { content: true },
+        },
+      },
       orderBy: { updatedAt: "desc" },
       take: 10,
     }),
@@ -217,7 +226,12 @@ export default async function DashboardPage({
   const prodTrendData = buildProdTrend(buckets, countersignedDates, advanceDates, fatDates, deliveredDates)
 
   const statusCounts = Object.fromEntries(PIPELINE_STATUSES.map((s, i) => [s, pipelineCountRaw[i]]))
-  const recentItems = recentRaw.map((r) => ({ ...r, updatedAt: r.updatedAt.toISOString() }))
+  const recentItems = recentRaw.map((r) => ({
+    id: r.id, title: r.title, customer: r.customer, internalId: r.internalId,
+    reference: r.reference, product: r.product, status: r.status,
+    updatedAt: r.updatedAt.toISOString(),
+    lastChange: r.comments[0]?.content ?? null,
+  }))
 
   const periodLabel =
     period === "year"

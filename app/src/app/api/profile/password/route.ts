@@ -3,6 +3,7 @@ import { db } from "@/lib/db"
 import bcrypt from "bcryptjs"
 import { z } from "zod"
 import { requireSession } from "@/lib/api"
+import { writeLog } from "@/lib/system-log"
 
 const schema = z.object({
   currentPassword: z.string().min(1),
@@ -32,6 +33,8 @@ export async function POST(req: NextRequest) {
     where: { id: session.user.id },
     data: { password: hashed },
   })
+
+  await writeLog({ type: "PASSWORD_CHANGED", message: "Password changed", userId: session.user.id })
 
   return NextResponse.json({ ok: true })
 }

@@ -14,7 +14,7 @@ export default async function ProtectedLayout({
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar
-        userName={session.user.name ?? "User"}
+        userEmail={session.user.email ?? session.user.name ?? ""}
         userRole={session.user.role}
       />
       <main className="flex-1 ml-60 overflow-y-auto">

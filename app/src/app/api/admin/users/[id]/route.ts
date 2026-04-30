@@ -3,6 +3,7 @@ import { db } from "@/lib/db"
 import bcrypt from "bcryptjs"
 import { z } from "zod"
 import { requireAdmin } from "@/lib/api"
+import { writeLog } from "@/lib/system-log"
 
 const updateSchema = z.object({
   name: z.string().min(1).optional(),
@@ -16,7 +17,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { error } = await requireAdmin()
+  const { session, error } = await requireAdmin()
   if (error) return error
 
   const { id } = await params
@@ -39,14 +40,26 @@ export async function PATCH(
   }
 
   const data: Record<string, unknown> = { ...rest }
-  if (newPassword) {
-    data.password = await bcrypt.hash(newPassword, 12)
-  }
+  if (rest.email) data.name = rest.email // keep name in sync with email
+  if (newPassword) data.password = await bcrypt.hash(newPassword, 12)
 
   const user = await db.user.update({
     where: { id },
     data,
-    select: { id: true, name: true, email: true, role: true, active: true, createdAt: true },
+    select: { id: true, email: true, role: true, active: true, createdAt: true },
+  })
+
+  const changes: string[] = []
+  if (rest.name) changes.push(`name set to "${rest.name}"`)
+  if (rest.email) changes.push(`email set to "${rest.email}"`)
+  if (rest.role) changes.push(`role set to ${rest.role}`)
+  if (rest.active !== undefined) changes.push(rest.active ? "account activated" : "account deactivated")
+  if (newPassword) changes.push("password reset")
+
+  await writeLog({
+    type: "USER_UPDATED",
+    message: `User "${user.email}" updated${changes.length ? `: ${changes.join(", ")}` : ""}`,
+    userId: session.user.id,
   })
 
   return NextResponse.json(user)

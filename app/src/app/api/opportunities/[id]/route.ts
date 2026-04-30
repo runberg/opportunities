@@ -3,6 +3,8 @@ import { db } from "@/lib/db"
 import { z } from "zod"
 import { STATUS_LABELS, toDateString } from "@/lib/utils"
 import { requireSession, requireAdmin } from "@/lib/api"
+import { writeLog } from "@/lib/system-log"
+import { scheduleStatusNotification } from "@/lib/notify"
 
 export async function GET(
   _req: NextRequest,
@@ -170,6 +172,27 @@ export async function PATCH(
 
   for (const content of events) {
     await db.comment.create({ data: { content, system: true, opportunityId: id, authorId: session.user.id } })
+  }
+
+  if (events.length > 0) {
+    await writeLog({
+      type: "OPPORTUNITY_UPDATED",
+      message: `"${existing.title}": ${events.join("; ")}`,
+      userId: session.user.id,
+      opportunityId: id,
+    })
+  }
+
+  if (statusChanged) {
+    const actor = await db.user.findUnique({ where: { id: session.user.id }, select: { email: true } })
+    scheduleStatusNotification({
+      opportunityId: id,
+      title: existing.title,
+      internalId: existing.internalId,
+      customer: existing.customer,
+      newStatus: nextStatus,
+      actorEmail: actor?.email ?? session.user.id,
+    })
   }
 
   return NextResponse.json(updated)

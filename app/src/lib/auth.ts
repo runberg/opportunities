@@ -3,6 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials"
 import { db } from "./db"
 import bcrypt from "bcryptjs"
 import { checkRateLimit, recordFailure, clearAttempts } from "./rate-limit"
+import { writeLog } from "./system-log"
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -49,6 +50,11 @@ export const authOptions: NextAuthOptions = {
       },
     }),
   ],
+  events: {
+    async signIn({ user }) {
+      await writeLog({ type: "LOGIN", message: "Logged in", userId: user.id })
+    },
+  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {

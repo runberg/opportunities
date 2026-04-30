@@ -46,7 +46,12 @@ export function timeAgo(date: Date | string): string {
 }
 
 export function initials(name: string): string {
-  return name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
+  // Handle email addresses: use local part before @
+  const local = name.includes("@") ? name.split("@")[0] : name
+  // Split on dots, hyphens, underscores, or spaces
+  const parts = local.split(/[.\-_ ]+/).filter(Boolean)
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
+  return local.slice(0, 2).toUpperCase()
 }
 
 export const STATUS_SHORT_LABELS: Record<string, string> = {
