@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { z } from "zod"
+import { OpportunityStatus, WaitingOn } from "@prisma/client"
 import { requireSession } from "@/lib/api"
 import { writeLog } from "@/lib/system-log"
 
@@ -12,8 +13,8 @@ const createSchema = z.object({
   rfqDate: z.string().optional(),
   quoteSentDate: z.string().optional(),
   product: z.string().optional(),
-  status: z.string().optional(),
-  waitingOn: z.string().optional(),
+  status: z.nativeEnum(OpportunityStatus).optional(),
+  waitingOn: z.nativeEnum(WaitingOn).optional(),
   description: z.string().optional(),
 })
 
@@ -130,8 +131,8 @@ export async function POST(req: NextRequest) {
         rfqDate: rfqDate ? new Date(rfqDate) : null,
         quoteSentDate: quoteSentDate ? new Date(quoteSentDate) : null,
         product: product || null,
-        status: (status as never) ?? "RFQ_RECEIVED",
-        waitingOn: (waitingOn as never) ?? "INTERNAL",
+        status: status ?? "RFQ_RECEIVED",
+        waitingOn: waitingOn ?? "INTERNAL",
         description: description || null,
         createdById: session.user.id,
       },

@@ -2,6 +2,7 @@ import { db } from "@/lib/db"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { redirect } from "next/navigation"
+import { SystemLogType } from "@prisma/client"
 import { SystemLogClient } from "./client"
 
 const PAGE_SIZE = 100
@@ -17,7 +18,8 @@ export default async function SystemLogPage({
   const page = Math.max(1, parseInt(params.page ?? "1") || 1)
   const typeFilter = params.type ?? ""
 
-  const where = typeFilter ? { type: typeFilter as never } : {}
+  const validTypes = Object.values(SystemLogType) as string[]
+  const where = typeFilter && validTypes.includes(typeFilter) ? { type: typeFilter as SystemLogType } : {}
 
   const [logs, total] = await Promise.all([
     db.systemLog.findMany({
@@ -56,6 +58,7 @@ export default async function SystemLogPage({
         page={page}
         pageSize={PAGE_SIZE}
         typeFilter={typeFilter}
+        currentUserId={session!.user.id}
       />
     </div>
   )

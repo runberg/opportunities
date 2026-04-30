@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { z } from "zod"
+import { OpportunityStatus, WaitingOn } from "@prisma/client"
 import { STATUS_LABELS, toDateString } from "@/lib/utils"
 import { requireSession, requireAdmin } from "@/lib/api"
 import { writeLog } from "@/lib/system-log"
@@ -40,8 +41,8 @@ const updateSchema = z.object({
   reference: z.string().optional().nullable(),
   rfqDate: z.string().optional().nullable(),
   product: z.string().optional().nullable(),
-  status: z.string().optional(),
-  waitingOn: z.string().optional(),
+  status: z.nativeEnum(OpportunityStatus).optional(),
+  waitingOn: z.nativeEnum(WaitingOn).optional(),
   quoteSentDate: z.string().optional().nullable(),
   elRequestedDate: z.string().optional().nullable(),
   elDraftSharedDate: z.string().optional().nullable(),
@@ -66,7 +67,8 @@ export async function PATCH(
   if (error) return error
 
   const { id } = await params
-  const body = await req.json()
+  const body = await req.json().catch(() => null)
+  if (!body) return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
   const parsed = updateSchema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 })
@@ -138,8 +140,8 @@ export async function PATCH(
       satDate: dateOrNull(satDate),
       satPassedDate: dateOrNull(satPassedDate),
       deliveredDate: dateOrNull(deliveredDate),
-      status: autoStatus as never ?? rest.status as never,
-      waitingOn: rest.waitingOn as never,
+      status: autoStatus ?? rest.status,
+      waitingOn: rest.waitingOn,
     },
   })
 

@@ -86,7 +86,7 @@ export const STATUS_LABELS: Record<string, string> = {
 
 // Statuses available in each workflow stage
 export const QUOTE_STATUSES = ["RFQ_RECEIVED", "QUOTE_SENT"] as const
-export const EL_STATUSES = ["EL_REQUEST_RECEIVED", "EL_DRAFT_SHARED", "EL_SIGNED_SHARED"] as const
+export const EL_STATUSES = ["EL_REQUEST_RECEIVED", "EL_DRAFT_SHARED", "EL_SIGNED_SHARED", "EL_FULLY_SIGNED"] as const
 export const PRODUCTION_STATUSES = [
   "PENDING_ADVANCE_PAYMENT",
   "IN_PRODUCTION",
@@ -139,6 +139,40 @@ export const PIPELINE_STATUSES = [
   "EL_REQUEST_RECEIVED", "EL_DRAFT_SHARED", "EL_SIGNED_SHARED", "EL_FULLY_SIGNED",
   "PENDING_ADVANCE_PAYMENT", "IN_PRODUCTION", "DELIVERED",
 ] as const
+
+export function parseParam(val: string | undefined, fallback: number): number {
+  const n = val ? parseInt(val, 10) : NaN
+  return Number.isFinite(n) && n > 0 ? n : fallback
+}
+
+export function buildOpportunityWhere(
+  query: string,
+  selectedStatuses: string[],
+  defaultStatuses: readonly string[]
+) {
+  return {
+    AND: [
+      query
+        ? {
+            OR: [
+              { title: { contains: query, mode: "insensitive" as const } },
+              { customer: { contains: query, mode: "insensitive" as const } },
+              { reference: { contains: query, mode: "insensitive" as const } },
+              { internalId: { contains: query, mode: "insensitive" as const } },
+              { product: { contains: query, mode: "insensitive" as const } },
+            ],
+          }
+        : {},
+      {
+        status: {
+          in: (selectedStatuses.length > 0
+            ? selectedStatuses
+            : [...defaultStatuses]) as never[],
+        },
+      },
+    ],
+  }
+}
 
 export const ACTIVE_STATUSES = [
   "NEW",

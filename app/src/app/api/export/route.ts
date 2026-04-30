@@ -1,24 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { requireSession } from "@/lib/api"
-import { formatDate } from "@/lib/utils"
-
-const QUOTE_STATUSES = ["RFQ_RECEIVED", "QUOTE_SENT"]
-const EL_STATUSES = ["EL_REQUEST_RECEIVED", "EL_DRAFT_SHARED", "EL_SIGNED_SHARED", "EL_FULLY_SIGNED"]
-const PRODUCTION_STATUSES = ["PENDING_ADVANCE_PAYMENT", "IN_PRODUCTION", "PRODUCTION", "DELIVERED"]
-
-const STATUS_LABELS: Record<string, string> = {
-  RFQ_RECEIVED: "RFQ Received",
-  QUOTE_SENT: "Quote Sent",
-  EL_REQUEST_RECEIVED: "EL Requested",
-  EL_DRAFT_SHARED: "EL Draft Shared",
-  EL_SIGNED_SHARED: "EL Signed Shared",
-  EL_FULLY_SIGNED: "EL Fully Signed",
-  PENDING_ADVANCE_PAYMENT: "Pending Advance Payment",
-  IN_PRODUCTION: "In Production",
-  PRODUCTION: "In Production",
-  DELIVERED: "Delivered",
-}
+import { formatDate, buildOpportunityWhere, STATUS_LABELS, QUOTE_STATUSES, EL_STATUSES, PRODUCTION_STATUSES } from "@/lib/utils"
 
 function cell(v: string | number | null | undefined): string {
   const s = v == null ? "" : String(v)
@@ -30,26 +13,6 @@ function cell(v: string | number | null | undefined): string {
 
 function row(values: (string | number | null | undefined)[]): string {
   return values.map(cell).join(",")
-}
-
-function buildWhere(query: string, statuses: string[], pending: string[], defaultStatuses: string[]) {
-  return {
-    AND: [
-      query
-        ? {
-            OR: [
-              { title: { contains: query, mode: "insensitive" as const } },
-              { customer: { contains: query, mode: "insensitive" as const } },
-              { reference: { contains: query, mode: "insensitive" as const } },
-              { internalId: { contains: query, mode: "insensitive" as const } },
-              { product: { contains: query, mode: "insensitive" as const } },
-            ],
-          }
-        : {},
-      { status: { in: (statuses.length > 0 ? statuses : defaultStatuses) as never[] } },
-      pending.length > 0 ? { waitingOn: { in: pending as never[] } } : {},
-    ],
-  }
 }
 
 export async function GET(req: NextRequest) {
@@ -64,7 +27,7 @@ export async function GET(req: NextRequest) {
   let filename = "export.csv"
 
   if (type === "quotes") {
-    const where = buildWhere(query, selectedStatuses, [], QUOTE_STATUSES)
+    const where = buildOpportunityWhere(query, selectedStatuses, QUOTE_STATUSES)
     const records = await db.opportunity.findMany({ where, orderBy: { updatedAt: "desc" } })
     filename = "quotes.csv"
     const header = row(["ID", "Title", "Customer", "Reference", "Product", "Status", "RFQ Date", "Quote Sent Date", "Details"])
@@ -77,7 +40,7 @@ export async function GET(req: NextRequest) {
     )
     csv = [header, ...lines].join("\r\n")
   } else if (type === "els") {
-    const where = buildWhere(query, selectedStatuses, [], EL_STATUSES)
+    const where = buildOpportunityWhere(query, selectedStatuses, EL_STATUSES)
     const records = await db.opportunity.findMany({ where, orderBy: { updatedAt: "desc" } })
     filename = "engagement-letters.csv"
     const header = row(["ID", "Title", "Customer", "Reference", "Product", "Status", "EL Requested Date", "EL Draft Shared", "EL Signed Shared", "Details"])
@@ -91,7 +54,7 @@ export async function GET(req: NextRequest) {
     )
     csv = [header, ...lines].join("\r\n")
   } else if (type === "production") {
-    const where = buildWhere(query, selectedStatuses, [], PRODUCTION_STATUSES)
+    const where = buildOpportunityWhere(query, selectedStatuses, PRODUCTION_STATUSES)
     const records = await db.opportunity.findMany({ where, orderBy: { updatedAt: "desc" } })
     filename = "production.csv"
     const header = row(["ID", "Title", "Customer", "Reference", "Product", "Status", "Advance Payment Date", "FAT Date", "FAT Passed", "SAT Applicable", "SAT Date", "SAT Passed", "Delivered Date"])

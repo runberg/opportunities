@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { requireSession } from "@/lib/api"
 import { readFile, unlink } from "fs/promises"
-import { join, extname } from "path"
+import { join, basename } from "path"
 import { existsSync } from "fs"
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR ?? join(process.cwd(), "uploads")
@@ -19,7 +19,7 @@ export async function GET(
   const doc = await db.document.findUnique({ where: { id } })
   if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
-  const filePath = join(UPLOAD_DIR, doc.filename)
+  const filePath = join(UPLOAD_DIR, basename(doc.filename))
   if (!existsSync(filePath)) {
     return NextResponse.json({ error: "File not found on disk" }, { status: 404 })
   }
@@ -61,11 +61,11 @@ export async function DELETE(
     },
   })
 
-  const filePath = join(UPLOAD_DIR, doc.filename)
+  const filePath = join(UPLOAD_DIR, basename(doc.filename))
   try {
-    if (existsSync(filePath)) await unlink(filePath)
-  } catch {
-    // Continue even if file is missing from disk
+    await unlink(filePath)
+  } catch (err: unknown) {
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err
   }
 
   await db.document.delete({ where: { id } })

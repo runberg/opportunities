@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { requireSession } from "@/lib/api"
+import { DocumentType, DocumentStatus } from "@prisma/client"
 import { writeFile, mkdir } from "fs/promises"
 import { join } from "path"
 import { v4 as uuidv4 } from "uuid"
@@ -38,13 +39,21 @@ export async function POST(
   const formData = await req.formData()
   const file = formData.get("file") as File | null
   const displayName = formData.get("displayName") as string | null
-  const type = (formData.get("type") as string | null) ?? "OTHER"
-  const docStatus = (formData.get("docStatus") as string | null) ?? "DRAFT"
+  const typeRaw = (formData.get("type") as string | null) ?? "OTHER"
+  const docStatusRaw = (formData.get("docStatus") as string | null) ?? "DRAFT"
 
   if (!file) return NextResponse.json({ error: "No file provided" }, { status: 400 })
   if (!displayName?.trim()) {
     return NextResponse.json({ error: "Document name is required" }, { status: 400 })
   }
+  if (!Object.values(DocumentType).includes(typeRaw as DocumentType)) {
+    return NextResponse.json({ error: "Invalid document type" }, { status: 400 })
+  }
+  if (!Object.values(DocumentStatus).includes(docStatusRaw as DocumentStatus)) {
+    return NextResponse.json({ error: "Invalid document status" }, { status: 400 })
+  }
+  const type = typeRaw as DocumentType
+  const docStatus = docStatusRaw as DocumentStatus
   if (file.size > MAX_SIZE_BYTES) {
     return NextResponse.json({ error: "File exceeds 50 MB limit" }, { status: 400 })
   }
@@ -70,8 +79,8 @@ export async function POST(
       originalName: file.name,
       mimeType: file.type,
       size: file.size,
-      type: type as never,
-      docStatus: docStatus as never,
+      type,
+      docStatus,
       uploadedById: session.user.id,
       opportunityId,
     },

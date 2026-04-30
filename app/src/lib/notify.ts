@@ -46,6 +46,15 @@ export function scheduleStatusNotification(opts: {
   pending.set(opts.opportunityId, { ...opts, timer })
 }
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;")
+}
+
 function applyTemplate(template: string, vars: Record<string, string>): string {
   return template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? "")
 }
@@ -89,8 +98,8 @@ async function fireNotification(opts: {
     .split("\n")
     .map((line) => {
       if (line.trim() === "") return "<br>"
-      // Turn bare URLs into links
-      return `<p style="margin:0 0 4px">${line.replace(/(https?:\/\/\S+)/g, '<a href="$1" style="color:#006fff">$1</a>')}</p>`
+      const escaped = escapeHtml(line)
+      return `<p style="margin:0 0 4px">${escaped.replace(/(https?:\/\/[^\s<>"&]+)/g, '<a href="$1" style="color:#006fff">$1</a>')}</p>`
     })
     .join("\n")
 

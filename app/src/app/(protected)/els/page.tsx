@@ -2,17 +2,10 @@ import { Suspense } from "react"
 import { db } from "@/lib/db"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { formatDate, EL_STATUSES, STATUS_GROUPS } from "@/lib/utils"
+import { formatDate, parseParam, buildOpportunityWhere, EL_STATUSES, STATUS_GROUPS } from "@/lib/utils"
 import { ELTable } from "@/components/opportunities/el-table"
 import { FilterBar } from "@/components/opportunities/filter-bar"
 import { Pagination } from "@/components/opportunities/pagination"
-
-function parseParam(val: string | undefined, fallback: number) {
-  const n = val ? parseInt(val, 10) : NaN
-  return Number.isFinite(n) && n > 0 ? n : fallback
-}
-
-const ALL_EL_STATUSES = [...EL_STATUSES, "EL_FULLY_SIGNED"] as const
 
 interface SearchParams {
   q?: string
@@ -33,47 +26,16 @@ export default async function ELsPage({
   const perPage = parseParam(params.perPage, 50)
   const page = parseParam(params.page, 1)
 
+  const where = buildOpportunityWhere(query, selectedStatuses, EL_STATUSES)
   const [opportunities, total] = await Promise.all([
     db.opportunity.findMany({
-      where: {
-        AND: [
-          { status: { in: (selectedStatuses.length > 0 ? selectedStatuses : ALL_EL_STATUSES) as never[] } },
-          query
-            ? {
-                OR: [
-                  { title: { contains: query, mode: "insensitive" } },
-                  { customer: { contains: query, mode: "insensitive" } },
-                  { reference: { contains: query, mode: "insensitive" } },
-                  { internalId: { contains: query, mode: "insensitive" } },
-                  { product: { contains: query, mode: "insensitive" } },
-                ],
-              }
-            : {},
-        ],
-      },
+      where,
       include: { _count: { select: { comments: true, documents: true } } },
       orderBy: { updatedAt: "desc" },
       skip: (page - 1) * perPage,
       take: perPage,
     }),
-    db.opportunity.count({
-      where: {
-        AND: [
-          { status: { in: (selectedStatuses.length > 0 ? selectedStatuses : ALL_EL_STATUSES) as never[] } },
-          query
-            ? {
-                OR: [
-                  { title: { contains: query, mode: "insensitive" } },
-                  { customer: { contains: query, mode: "insensitive" } },
-                  { reference: { contains: query, mode: "insensitive" } },
-                  { internalId: { contains: query, mode: "insensitive" } },
-                  { product: { contains: query, mode: "insensitive" } },
-                ],
-              }
-            : {},
-        ],
-      },
-    }),
+    db.opportunity.count({ where }),
   ])
 
   const rows = opportunities.map((opp) => ({

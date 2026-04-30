@@ -2,15 +2,10 @@ import { Suspense } from "react"
 import { db } from "@/lib/db"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { formatDate, QUOTE_STATUSES, STATUS_GROUPS } from "@/lib/utils"
+import { formatDate, parseParam, buildOpportunityWhere, QUOTE_STATUSES, STATUS_GROUPS } from "@/lib/utils"
 import { FilterBar } from "@/components/opportunities/filter-bar"
 import { OpportunitiesTable } from "@/components/opportunities/table"
 import { Pagination } from "@/components/opportunities/pagination"
-
-function parseParam(val: string | undefined, fallback: number) {
-  const n = val ? parseInt(val, 10) : NaN
-  return Number.isFinite(n) && n > 0 ? n : fallback
-}
 
 interface SearchParams {
   q?: string
@@ -31,51 +26,16 @@ export default async function OpportunitiesPage({
   const perPage = parseParam(params.perPage, 50)
   const page = parseParam(params.page, 1)
 
+  const where = buildOpportunityWhere(query, selectedStatuses, QUOTE_STATUSES)
   const [opportunities, total] = await Promise.all([
     db.opportunity.findMany({
-      where: {
-        AND: [
-          query
-            ? {
-                OR: [
-                  { title: { contains: query, mode: "insensitive" } },
-                  { customer: { contains: query, mode: "insensitive" } },
-                  { reference: { contains: query, mode: "insensitive" } },
-                  { internalId: { contains: query, mode: "insensitive" } },
-                  { product: { contains: query, mode: "insensitive" } },
-                ],
-              }
-            : {},
-          selectedStatuses.length > 0
-            ? { status: { in: selectedStatuses as never[] } }
-            : { status: { in: QUOTE_STATUSES as unknown as never[] } },
-        ],
-      },
+      where,
       include: { _count: { select: { comments: true, documents: true } } },
       orderBy: { updatedAt: "desc" },
       skip: (page - 1) * perPage,
       take: perPage,
     }),
-    db.opportunity.count({
-      where: {
-        AND: [
-          query
-            ? {
-                OR: [
-                  { title: { contains: query, mode: "insensitive" } },
-                  { customer: { contains: query, mode: "insensitive" } },
-                  { reference: { contains: query, mode: "insensitive" } },
-                  { internalId: { contains: query, mode: "insensitive" } },
-                  { product: { contains: query, mode: "insensitive" } },
-                ],
-              }
-            : {},
-          selectedStatuses.length > 0
-            ? { status: { in: selectedStatuses as never[] } }
-            : { status: { in: QUOTE_STATUSES as unknown as never[] } },
-        ],
-      },
-    }),
+    db.opportunity.count({ where }),
   ])
 
   const rows = opportunities.map((opp) => ({

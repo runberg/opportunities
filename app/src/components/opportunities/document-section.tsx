@@ -72,7 +72,12 @@ export function DocumentSection({
 
   async function handleDelete(docId: string, docName: string) {
     if (!confirm(`Delete "${docName}"? This cannot be undone.`)) return
-    await fetch(`/api/files/${docId}`, { method: "DELETE" })
+    const res = await fetch(`/api/files/${docId}`, { method: "DELETE" })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      alert(data.error ?? "Failed to delete document.")
+      return
+    }
     onRefresh?.()
     router.refresh()
   }

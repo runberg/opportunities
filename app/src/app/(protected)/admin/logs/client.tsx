@@ -53,12 +53,14 @@ export function SystemLogClient({
   page,
   pageSize,
   typeFilter,
+  currentUserId,
 }: {
   logs: LogEntry[]
   total: number
   page: number
   pageSize: number
   typeFilter: string
+  currentUserId: string
 }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -182,7 +184,7 @@ export function SystemLogClient({
       <OpportunityModal
         opportunityId={openId}
         onClose={() => { setOpenId(null); router.refresh() }}
-        currentUserId=""
+        currentUserId={currentUserId}
         isAdmin={true}
       />
     </>
