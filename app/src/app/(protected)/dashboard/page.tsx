@@ -4,6 +4,7 @@ import { db } from "@/lib/db"
 import { PeriodSelector } from "@/components/dashboard/period-selector"
 import { PipelineFlow } from "@/components/dashboard/pipeline-flow"
 import { QuoteActivitySection, ElActivitySection, ProductionActivitySection } from "@/components/dashboard/activity-sections"
+import { RecentActivity } from "@/components/dashboard/recent-activity"
 import { PIPELINE_STATUSES } from "@/lib/utils"
 import type { RfqTrendBucket, ElTrendBucket, ProdTrendBucket } from "@/components/dashboard/charts"
 
@@ -141,7 +142,7 @@ export default async function DashboardPage({
   const periodToISO = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString()
   const periodFromISO = periodStart.toISOString()
 
-  const [periodData, pipelineCountRaw] = await Promise.all([
+  const [periodData, pipelineCountRaw, recentRaw] = await Promise.all([
     Promise.all([
       // Quote date arrays
       db.opportunity.findMany({ where: { rfqDate: { gte: periodStart, lte: now } }, select: { rfqDate: true } }),
@@ -165,6 +166,11 @@ export default async function DashboardPage({
       db.opportunity.findMany({ where: { deliveredDate: { gte: periodStart, lte: now } }, select: { deliveredDate: true } }),
     ]),
     Promise.all(PIPELINE_STATUSES.map((s) => db.opportunity.count({ where: { status: s } }))),
+    db.opportunity.findMany({
+      select: { id: true, title: true, customer: true, internalId: true, status: true, updatedAt: true },
+      orderBy: { updatedAt: "desc" },
+      take: 10,
+    }),
   ])
 
   const [
@@ -211,6 +217,7 @@ export default async function DashboardPage({
   const prodTrendData = buildProdTrend(buckets, countersignedDates, advanceDates, fatDates, deliveredDates)
 
   const statusCounts = Object.fromEntries(PIPELINE_STATUSES.map((s, i) => [s, pipelineCountRaw[i]]))
+  const recentItems = recentRaw.map((r) => ({ ...r, updatedAt: r.updatedAt.toISOString() }))
 
   const periodLabel =
     period === "year"
@@ -253,6 +260,8 @@ export default async function DashboardPage({
           kpiCountersigned={countersigned} kpiAdvance={advancePaid} kpiFat={fatPassed} kpiDelivered={delivered}
           trendData={prodTrendData} periodFromISO={periodFromISO} periodToISO={periodToISO}
           currentUserId={currentUserId} isAdmin={isAdmin} />
+
+        <RecentActivity items={recentItems} currentUserId={currentUserId} isAdmin={isAdmin} />
       </div>
     </div>
   )

@@ -10,6 +10,7 @@ import {
   FileText,
   ScrollText,
   Factory,
+  Package,
   Users,
   Trash2,
   LogOut,
@@ -101,6 +102,17 @@ export function Sidebar({ userName, userRole }: SidebarProps) {
         <Link href="/production" className={linkCls("/production")}>
           <Factory size={18} />
           Production
+        </Link>
+
+        {/* Ad Hoc section */}
+        <div className="pt-4 pb-1 px-3">
+          <span className={cn("text-xs font-semibold uppercase tracking-wider", isDark ? "text-[#3d5570]" : "text-gray-500")}>
+            Ad Hoc
+          </span>
+        </div>
+        <Link href="/adhoc" className={linkCls("/adhoc")}>
+          <Package size={18} />
+          Ad Hoc Deliveries
         </Link>
 
         {/* Admin section */}
