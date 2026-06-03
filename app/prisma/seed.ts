@@ -4,25 +4,23 @@ import bcrypt from "bcryptjs"
 const db = new PrismaClient()
 
 async function main() {
-  const adminExists = await db.user.findFirst({ where: { role: "ADMIN" } })
+  const email = process.env.ADMIN_EMAIL
+  const password = process.env.ADMIN_PASSWORD
 
-  if (!adminExists) {
-    const hashed = await bcrypt.hash("admin123", 12)
-    await db.user.create({
-      data: {
-        name: "Administrator",
-        email: "admin@opportunities.local",
-        password: hashed,
-        role: "ADMIN",
-      },
-    })
-    console.log("✓ Created default admin user")
-    console.log("  Email:    admin@opportunities.local")
-    console.log("  Password: admin123")
-    console.log("  ⚠ Change this password immediately after first login!")
-  } else {
-    console.log("✓ Admin user already exists — skipping seed")
+  if (!email || !password) {
+    console.error("✗ ADMIN_EMAIL and ADMIN_PASSWORD must be set in the environment")
+    process.exit(1)
   }
+
+  const hashed = await bcrypt.hash(password, 12)
+
+  await db.user.upsert({
+    where: { email },
+    update: { password: hashed, role: "ADMIN" },
+    create: { email, password: hashed, role: "ADMIN", name: "Administrator" },
+  })
+
+  console.log(`✓ Admin account synced: ${email}`)
 }
 
 main()

@@ -24,6 +24,8 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-opportunities}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-opportunities}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       UPLOAD_DIR: /app/uploads
       NODE_ENV: production
     volumes:
