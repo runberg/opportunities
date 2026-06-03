@@ -23,5 +23,5 @@ ENV NODE_ENV=production
 ENV HOSTNAME="0.0.0.0"
 ENV PORT=3000
 
-# Run migrations, then seed (idempotent), then start
-CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma db seed 2>/dev/null || true && npm start"]
+# Run migrations, sync admin account from env, then start
+CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma db seed && npm start"]
