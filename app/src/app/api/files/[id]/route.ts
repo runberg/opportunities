@@ -20,12 +20,8 @@ export async function GET(
   if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
   const filePath = join(UPLOAD_DIR, basename(doc.filename))
-  let buffer: Buffer
-  try {
-    buffer = await readFile(filePath)
-  } catch {
-    return NextResponse.json({ error: "File not found on disk" }, { status: 404 })
-  }
+  const buffer = await readFile(filePath).catch(() => null)
+  if (!buffer) return NextResponse.json({ error: "File not found on disk" }, { status: 404 })
 
   return new NextResponse(buffer, {
     headers: {
