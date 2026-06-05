@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { OpportunityModal } from "@/components/opportunities/opportunity-modal"
 
-type LogType = "LOGIN" | "PASSWORD_CHANGED" | "OPPORTUNITY_CREATED" | "OPPORTUNITY_UPDATED" | "USER_CREATED" | "USER_UPDATED"
+type LogType = "LOGIN" | "PASSWORD_CHANGED" | "OPPORTUNITY_CREATED" | "OPPORTUNITY_UPDATED" | "USER_CREATED" | "USER_UPDATED" | "SMTP_UPDATED"
 
 interface LogEntry {
   id: string
@@ -25,6 +25,7 @@ const TYPE_LABELS: Record<LogType, string> = {
   OPPORTUNITY_UPDATED: "Opp. Updated",
   USER_CREATED: "User Created",
   USER_UPDATED: "User Updated",
+  SMTP_UPDATED: "SMTP Config",
 }
 
 const TYPE_COLORS: Record<LogType, string> = {
@@ -34,9 +35,10 @@ const TYPE_COLORS: Record<LogType, string> = {
   OPPORTUNITY_UPDATED: "bg-gray-100 text-gray-700 border-gray-200",
   USER_CREATED: "bg-purple-50 text-purple-700 border-purple-200",
   USER_UPDATED: "bg-purple-50 text-purple-700 border-purple-200",
+  SMTP_UPDATED: "bg-teal-50 text-teal-700 border-teal-200",
 }
 
-const ALL_TYPES: LogType[] = ["LOGIN", "PASSWORD_CHANGED", "OPPORTUNITY_CREATED", "OPPORTUNITY_UPDATED", "USER_CREATED", "USER_UPDATED"]
+const ALL_TYPES: LogType[] = ["LOGIN", "PASSWORD_CHANGED", "OPPORTUNITY_CREATED", "OPPORTUNITY_UPDATED", "USER_CREATED", "USER_UPDATED", "SMTP_UPDATED"]
 
 function formatTimestamp(iso: string) {
   const d = new Date(iso)
