@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { z } from "zod"
 import { requireAdmin } from "@/lib/api"
+import { writeLog } from "@/lib/system-log"
 
 const schema = z.object({
   host: z.string().min(1),
@@ -28,7 +29,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const { error } = await requireAdmin()
+  const { session, error } = await requireAdmin()
   if (error) return error
 
   const body = await req.json()
@@ -44,6 +45,7 @@ export async function POST(req: NextRequest) {
     const data: Record<string, unknown> = { ...rest }
     if (password) data.password = password
     const config = await db.smtpConfig.update({ where: { id: "default" }, data })
+    await writeLog({ type: "SMTP_UPDATED", message: "SMTP configuration updated", userId: session.user.id })
     const { password: _, ...safe } = config
     return NextResponse.json({ ...safe, hasPassword: true })
   } else {
@@ -53,6 +55,7 @@ export async function POST(req: NextRequest) {
     const config = await db.smtpConfig.create({
       data: { id: "default", ...rest, password },
     })
+    await writeLog({ type: "SMTP_UPDATED", message: "SMTP configuration created", userId: session.user.id })
     const { password: __, ...safe } = config
     return NextResponse.json({ ...safe, hasPassword: true })
   }

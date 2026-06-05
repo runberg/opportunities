@@ -150,6 +150,7 @@ enum SystemLogType {
   OPPORTUNITY_UPDATED
   USER_CREATED
   USER_UPDATED
+  SMTP_UPDATED
 }
 
 model SmtpConfig {

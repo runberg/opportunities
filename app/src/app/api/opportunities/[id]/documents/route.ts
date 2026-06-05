@@ -5,6 +5,7 @@ import { DocumentType, DocumentStatus } from "@prisma/client"
 import { writeFile, mkdir } from "fs/promises"
 import { join } from "path"
 import { v4 as uuidv4 } from "uuid"
+import { DOC_TYPE_LABELS } from "@/lib/utils"
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR ?? join(process.cwd(), "uploads")
 const MAX_SIZE_BYTES = 50 * 1024 * 1024 // 50 MB
@@ -65,7 +66,8 @@ export async function POST(
   await mkdir(UPLOAD_DIR, { recursive: true })
 
   // Generate unique filename preserving extension
-  const ext = file.name.split(".").pop() ?? "bin"
+  const lastDot = file.name.lastIndexOf(".")
+  const ext = (lastDot > 0 ? file.name.slice(lastDot + 1) : "bin").toLowerCase()
   const filename = `${uuidv4()}.${ext}`
   const filePath = join(UPLOAD_DIR, filename)
 
@@ -89,7 +91,7 @@ export async function POST(
 
   await db.comment.create({
     data: {
-      content: `"${displayName.trim()}" uploaded (${type === "QUOTE" ? "Quote" : type === "EL" ? "EL" : "Document"})`,
+      content: `"${displayName.trim()}" uploaded (${DOC_TYPE_LABELS[type] ?? "Document"})`,
       system: true,
       opportunityId,
       authorId: session.user.id,

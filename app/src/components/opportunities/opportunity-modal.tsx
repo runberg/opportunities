@@ -14,8 +14,6 @@ import { ProductionSection } from "@/components/opportunities/production-section
 import { LogSection, type LogEntry } from "@/components/opportunities/log-section"
 import { Button } from "@/components/ui/button"
 
-const ALL_EL_STATUSES = [...EL_STATUSES, "EL_FULLY_SIGNED"]
-
 const STATUS_DATE_REQUIRED: Record<string, { field: string; label: string }> = {
   RFQ_RECEIVED:        { field: "rfqDate",           label: "RFQ Date" },
   EL_REQUEST_RECEIVED: { field: "elRequestedDate",    label: "EL Requested" },
@@ -106,7 +104,7 @@ export function OpportunityModal({
             <span className="text-xs text-gray-400 font-medium tracking-wide uppercase">
               {data && (PRODUCTION_STATUSES as readonly string[]).includes(data.status)
                 ? "Production"
-                : data && ALL_EL_STATUSES.includes(data.status)
+                : data && (EL_STATUSES as readonly string[]).includes(data.status)
                 ? "Engagement Letter"
                 : "Quote"}
             </span>
@@ -182,7 +180,7 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
   onRefresh: () => void
   onSilentRefresh: () => void
 }) {
-  const isEL = ALL_EL_STATUSES.includes(data.status)
+  const isEL = (EL_STATUSES as readonly string[]).includes(data.status)
   const isProduction = (PRODUCTION_STATUSES as readonly string[]).includes(data.status)
   const canAcceptQuote = data.status === "QUOTE_SENT"
 
@@ -279,7 +277,7 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
   // Counter-sign panel
   const [counterSigning, setCounterSigning] = useState(false)
   const [counterSignDate, setCounterSignDate] = useState(todayISO())
-  const [counterSigning2, setCounterSigning2] = useState(false)
+  const [counterSignSaving, setCounterSigning2] = useState(false)
   const [counterSignError, setCounterSignError] = useState("")
 
   async function handleAcceptQuote() {
@@ -417,9 +415,9 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
             </div>
           </div>
           <div className="flex gap-2">
-            <button type="button" onClick={handleCounterSigned} disabled={counterSigning2 || !counterSignDate}
+            <button type="button" onClick={handleCounterSigned} disabled={counterSignSaving || !counterSignDate}
               className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg disabled:opacity-50 transition-colors">
-              {counterSigning2 ? "Saving…" : "Confirm"}
+              {counterSignSaving ? "Saving…" : "Confirm"}
             </button>
             <button type="button" onClick={() => { setCounterSigning(false); setCounterSignError("") }}
               className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-800">
@@ -495,7 +493,7 @@ function DateSection({ data, form, setForm, onRefresh, onDirectPatch }: {
   onRefresh: () => void
   onDirectPatch: (payload: Record<string, unknown>) => Promise<string | null>
 }) {
-  const isEL = ALL_EL_STATUSES.includes(data.status)
+  const isEL = (EL_STATUSES as readonly string[]).includes(data.status)
   const isQuote = (QUOTE_STATUSES as readonly string[]).includes(data.status)
 
   function setDate(key: keyof OppForm, value: string) {

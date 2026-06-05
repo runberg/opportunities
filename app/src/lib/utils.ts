@@ -6,16 +6,17 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-/** Returns today as YYYY-MM-DD in local time (safe for date inputs). */
+/** Returns today as YYYY-MM-DD in local (browser/server) time, safe for date inputs. */
 export function todayISO(): string {
-  return new Date().toISOString().split("T")[0]
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
 }
 
-/** Returns a date N days ago as YYYY-MM-DD. */
+/** Returns a date N days ago as YYYY-MM-DD in local time. */
 export function daysAgoISO(days: number): string {
   const d = new Date()
   d.setDate(d.getDate() - days)
-  return d.toISOString().split("T")[0]
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
 }
 
 /** Extracts the YYYY-MM-DD portion from a Date, ISO string, or nullish value. */
@@ -118,12 +119,22 @@ export const STATUS_GROUPS = [
 export const PENDING_LABELS: Record<string, string> = {
   INTERNAL: "Internal",
   CUSTOMER: "Customer",
+  THIRD_PARTY: "Third party",
   NONE: "—",
+}
+
+export const WAITING_LABELS: Record<string, string> = {
+  INTERNAL: "Internal",
+  CUSTOMER: "Customer",
+  THIRD_PARTY: "Third party",
+  NONE: "None",
 }
 
 export const DOC_TYPE_LABELS: Record<string, string> = {
   QUOTE: "Quote",
   EL: "EL",
+  FAT: "FAT",
+  SAT: "SAT",
   OTHER: "Other",
 }
 

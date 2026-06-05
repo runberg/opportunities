@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef } from "react"
+import { useRef, useEffect } from "react"
 import { Check, Minus } from "lucide-react"
 import { cn, formatDate } from "@/lib/utils"
 import { StatusBadge } from "@/components/opportunities/status-badge"
@@ -92,7 +92,9 @@ export function OpportunityDataTable({
   variant?: "page" | "modal"
 }) {
   const checkboxRef = useRef<HTMLInputElement>(null)
-  if (checkboxRef.current) checkboxRef.current.indeterminate = someSelected && !allSelected
+  useEffect(() => {
+    if (checkboxRef.current) checkboxRef.current.indeterminate = someSelected && !allSelected
+  }, [someSelected, allSelected])
 
   const colCount =
     (selectable ? 1 : 0) + 3 /* title, customer, product */ +

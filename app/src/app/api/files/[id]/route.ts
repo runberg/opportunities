@@ -3,7 +3,7 @@ import { db } from "@/lib/db"
 import { requireSession } from "@/lib/api"
 import { readFile, unlink } from "fs/promises"
 import { join, basename } from "path"
-import { existsSync } from "fs"
+import { DOC_TYPE_LABELS } from "@/lib/utils"
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR ?? join(process.cwd(), "uploads")
 
@@ -20,11 +20,12 @@ export async function GET(
   if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
   const filePath = join(UPLOAD_DIR, basename(doc.filename))
-  if (!existsSync(filePath)) {
+  let buffer: Buffer
+  try {
+    buffer = await readFile(filePath)
+  } catch {
     return NextResponse.json({ error: "File not found on disk" }, { status: 404 })
   }
-
-  const buffer = await readFile(filePath)
 
   return new NextResponse(buffer, {
     headers: {
@@ -54,7 +55,7 @@ export async function DELETE(
 
   await db.comment.create({
     data: {
-      content: `"${doc.displayName}" deleted (${doc.type === "QUOTE" ? "Quote" : doc.type === "EL" ? "EL" : "Document"})`,
+      content: `"${doc.displayName}" deleted (${DOC_TYPE_LABELS[doc.type] ?? "Document"})`,
       system: true,
       opportunityId: doc.opportunityId,
       authorId: session.user.id,

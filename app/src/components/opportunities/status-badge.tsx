@@ -19,6 +19,7 @@ const STATUS_STYLES: Record<string, string> = {
 const PENDING_STYLES: Record<string, string> = {
   INTERNAL: "bg-amber-100 text-amber-700",
   CUSTOMER: "bg-green-100 text-green-700",
+  THIRD_PARTY: "bg-purple-100 text-purple-700",
   NONE: "",
 }
 

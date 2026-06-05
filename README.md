@@ -15,7 +15,7 @@ Built for small teams on a private network. All data stays on your own server.
 - **Modal-based editing** — create, view, and edit opportunities in a slide-over modal without leaving the list
 - **Always-editable fields** — click any field to edit it; an "Apply Changes" bar appears when there are unsaved changes
 - **One-click status transitions** — Quote Accepted promotes to EL flow; EL Countersigned promotes to Production
-- **Document management** — upload and download quote and EL documents per opportunity
+- **Document management** — upload and download quote, EL, FAT, and SAT documents per opportunity
 
 ### Dashboard
 - **Pipeline snapshot** — live counts per status across all three pipeline stages; click any number to drill into that cohort
@@ -24,6 +24,7 @@ Built for small teams on a private network. All data stays on your own server.
 - **Production Activity** — Countersigned, Advance Payments, FAT Passed, Delivered; trend chart
 - **Drill-down tables** — clicking any KPI or chart bar opens a filtered table showing the relevant date column
 - **Configurable period** — 7 days / 30 days / 90 days / year-to-date / custom date range
+- **Recent Activity** — the 10 most recently changed opportunities with a one-line description of the last change
 
 ### Data management
 - **Audit log** — every status change, field edit, document upload and deletion is captured as a system event with actor and timestamp; user comments sit alongside system events in the same timeline
@@ -32,12 +33,9 @@ Built for small teams on a private network. All data stays on your own server.
 - **Status + pending filters** — multi-select status filter and waiting-on filter on all list views
 - **CSV export** — export filtered results from any list view or drill-down modal
 
-### Dashboard
-- **Recent Activity** — the 10 most recently changed opportunities with a one-line description of the last change
-
 ### Administration
 - **User management** — admin can create/edit users; username is always the email address
-- **System log** — audit trail of login events, password changes, opportunity creates/updates, and user management actions; opportunity entries are clickable to open the full modal
+- **System log** — audit trail of login events, password changes, opportunity creates/updates, user management actions, and SMTP config changes; opportunity entries are clickable to open the full modal
 - **Email / SMTP** — configure outgoing SMTP, enable/disable notifications globally, edit the notification subject and body template with named placeholders
 - **Bulk delete** — admin can select and permanently delete opportunities
 
@@ -48,7 +46,7 @@ Built for small teams on a private network. All data stays on your own server.
 
 ### UI
 - **Dark theme by default** — deep navy palette; first-time visitors see the dark login page without any flash
-- **Light / Dark toggle** — in the Profile page (previously in the sidebar)
+- **Light / Dark toggle** — in the Profile page
 
 ## Tech stack
 
@@ -91,19 +89,21 @@ cd opportunities
 cp .env.example .env
 ```
 
-Open `.env` and fill in the values:
+Open `.env` and fill in all values:
 
 ```env
 # Database credentials — choose any strong password
 POSTGRES_USER=opportunities
-POSTGRES_PASSWORD=your_strong_password_here
-POSTGRES_DB=opportunities
+POSTGRES_PASSWORD=your_strong_db_password
 
-# Auth secret — generate a random value with the command below
+# Admin account — created/synced automatically on every startup
+ADMIN_EMAIL=admin@yourdomain.com
+ADMIN_PASSWORD=your_strong_admin_password
+
+# Auth secret — generate a random value (see command below)
 NEXTAUTH_SECRET=replace_with_random_secret
 
 # The URL users will use to reach the app
-# Use your server's IP or hostname for internal deployment
 NEXTAUTH_URL=http://192.168.1.100
 ```
 
@@ -115,13 +115,15 @@ openssl rand -base64 32
 
 > On Windows without OpenSSL: run this inside a Git Bash terminal, or use any password manager to generate a 32+ character random string.
 
+> **Admin password recovery:** if you ever need to reset the admin password, update `ADMIN_PASSWORD` in `.env` and restart the stack — the seed runs on every startup and will update the account.
+
 #### 3. Start
 
 ```bash
 docker compose up -d
 ```
 
-This pulls the pre-built app image from `ghcr.io`, starts PostgreSQL and Nginx, applies database migrations, and creates the default admin user. Check progress with:
+This pulls the pre-built app image from `ghcr.io`, starts PostgreSQL and Nginx, applies database migrations, and creates (or syncs) the admin account from the env vars you set. Check progress with:
 
 ```bash
 docker compose logs -f app
@@ -131,16 +133,7 @@ Wait until you see `✓ Ready` in the app logs.
 
 #### 4. Open the app
 
-Navigate to `http://<your-server-ip>` in a browser.
-
-**Default admin credentials:**
-
-| Field | Value |
-|---|---|
-| Email | `admin@opportunities.local` |
-| Password | `admin123` |
-
-> **Change this password immediately** after first login via the profile page (top-right menu → Profile).
+Navigate to `http://<your-server-ip>` in a browser and log in with the `ADMIN_EMAIL` and `ADMIN_PASSWORD` you set in `.env`.
 
 #### 5. Create user accounts
 
@@ -200,7 +193,7 @@ docker compose up -d --pull never
 
 The `--pull never` flag tells Docker Compose not to attempt pulling any images from the internet — it will use only what is already loaded locally.
 
-Database migrations and the default admin user are created automatically on first start.
+Database migrations and the admin account are created automatically on first start.
 
 ---
 
@@ -224,7 +217,7 @@ docker compose up -d --pull never
 
 Database migrations run automatically on startup. All data is stored in the `./data/` directory on the host and is not affected by image updates.
 
-> **Upgrading from an earlier version?** If your database was set up before v0.1.0, run the catch-up migrations in `app/prisma/migrations/20260424000001_catchup_schema/`, `20260430000001_add_system_log/`, and `20260430000002_email_smtp/` manually via `docker compose exec app npx prisma migrate deploy`.
+> **Upgrading from an earlier version?** If your database was set up before v0.1.0, run the catch-up migrations manually via `docker compose exec app npx prisma migrate deploy`.
 
 ---
 
@@ -284,6 +277,8 @@ DATABASE_URL=postgresql://opportunities:changeme@localhost:5432/opportunities
 NEXTAUTH_SECRET=any-random-string-for-dev
 NEXTAUTH_URL=http://localhost:3000
 UPLOAD_DIR=./uploads
+ADMIN_EMAIL=admin@dev.local
+ADMIN_PASSWORD=change_me
 ```
 
 ### 3. Install dependencies and set up the database
@@ -301,4 +296,4 @@ npx prisma db seed
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Use the same default admin credentials as above.
+Open [http://localhost:3000](http://localhost:3000) and log in with the `ADMIN_EMAIL` and `ADMIN_PASSWORD` you set above.

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { z } from "zod"
 import { OpportunityStatus, WaitingOn } from "@prisma/client"
-import { STATUS_LABELS, toDateString } from "@/lib/utils"
+import { STATUS_LABELS, toDateString, WAITING_LABELS } from "@/lib/utils"
 import { requireSession, requireAdmin } from "@/lib/api"
 import { writeLog } from "@/lib/system-log"
 import { scheduleStatusNotification } from "@/lib/notify"
@@ -101,7 +101,7 @@ export async function PATCH(
   const elRequestedNew = elRequestedDate && elRequestedDate !== toDateString(existing.elRequestedDate)
   const advancePaymentNew = advancePaymentDate && advancePaymentDate !== toDateString(existing.advancePaymentDate)
   const fatPassedNew = fatPassedDate && fatPassedDate !== toDateString(existing.fatPassedDate)
-  const elCountersignedNew = elCountersignedDate && elCountersignedDate !== toDateString((existing as Record<string, unknown>).elCountersignedDate as Date | null)
+  const elCountersignedNew = elCountersignedDate && elCountersignedDate !== toDateString(existing.elCountersignedDate)
   const satPassedNew = satPassedDate && satPassedDate !== toDateString(existing.satPassedDate)
   const deliveredNew = deliveredDate && deliveredDate !== toDateString(existing.deliveredDate)
 
@@ -146,9 +146,6 @@ export async function PATCH(
   })
 
   // System log events
-  const WAITING_LABELS: Record<string, string> = {
-    INTERNAL: "Internal", CUSTOMER: "Customer", THIRD_PARTY: "Third party", NONE: "None",
-  }
   const events: string[] = []
   if (statusChanged) events.push(`Status changed from "${STATUS_LABELS[prevStatus] ?? prevStatus}" to "${STATUS_LABELS[nextStatus] ?? nextStatus}"`)
   if (quoteSentNew) events.push(`Quote marked as sent (${quoteSentDate})`)

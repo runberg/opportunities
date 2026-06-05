@@ -68,6 +68,7 @@ export function ProductionSection({ data, currentUserId, isAdmin, onRefresh }: P
   const [editing, setEditing]     = useState(false)
   const [editForm, setEditForm]   = useState<ProdEditForm>(formFromData(data))
   const [editSaving, setEditSaving] = useState(false)
+  const [editError, setEditError] = useState("")
 
   // Revert
   const [revertTarget, setRevertTarget] = useState<{ field: string; status: string; label: string } | null>(null)
@@ -81,6 +82,7 @@ export function ProductionSection({ data, currentUserId, isAdmin, onRefresh }: P
 
   function cancelEdit() {
     setEditing(false)
+    setEditError("")
   }
 
   async function handleProductionRevert() {
@@ -110,20 +112,25 @@ export function ProductionSection({ data, currentUserId, isAdmin, onRefresh }: P
 
   async function saveEdit() {
     setEditSaving(true)
-    const res = await fetch(`/api/opportunities/${data.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...editForm,
-        status: inferStatus(editForm),
-        // Empty strings become null in the API (dateOrNull helper)
-      }),
-    })
-    setEditSaving(false)
-    if (res.ok) {
-      setEditing(false)
-      onRefresh()
-      router.refresh()
+    setEditError("")
+    try {
+      const res = await fetch(`/api/opportunities/${data.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...editForm, status: inferStatus(editForm) }),
+      })
+      if (res.ok) {
+        setEditing(false)
+        onRefresh()
+        router.refresh()
+      } else {
+        const d = await res.json().catch(() => ({}))
+        setEditError(d.error ?? "Failed to save.")
+      }
+    } catch {
+      setEditError("Network error. Please try again.")
+    } finally {
+      setEditSaving(false)
     }
   }
 
@@ -221,6 +228,7 @@ export function ProductionSection({ data, currentUserId, isAdmin, onRefresh }: P
           </EditDateCard>
         </div>
         <p className="mt-3 text-xs text-gray-400">Clear a date to undo that milestone. Status will be recalculated on save.</p>
+        {editError && <p className="mt-2 text-xs text-red-600">{editError}</p>}
       </div>
     )
   }
