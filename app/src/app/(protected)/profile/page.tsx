@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/shared/lib/auth"
 import { db } from "@/shared/lib/db"
-import { ProfileClient } from "./client"
+import { ProfileClient } from "@/shared/components/profile/client"
 
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions)

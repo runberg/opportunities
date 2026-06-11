@@ -2,7 +2,7 @@ import { db } from "@/shared/lib/db"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/shared/lib/auth"
 import { redirect } from "next/navigation"
-import { AdminUsersClient } from "./client"
+import { AdminUsersClient } from "@/modules/admin/components/users-client"
 
 export default async function AdminUsersPage() {
   const session = await getServerSession(authOptions)

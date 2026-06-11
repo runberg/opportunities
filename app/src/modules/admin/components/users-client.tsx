@@ -23,8 +23,8 @@ export function AdminUsersClient({
   users,
   currentUserId,
 }: {
-  users: User[]
-  currentUserId: string
+  readonly users: User[]
+  readonly currentUserId: string
 }) {
   const router = useRouter()
   const [showCreate, setShowCreate] = useState(false)
@@ -40,7 +40,7 @@ export function AdminUsersClient({
   const [newUser, setNewUser] = useState({ email: "", password: "", role: "USER" })
   const [editForm, setEditForm] = useState({ email: "", role: "USER", active: true, newPassword: "" })
 
-  async function handleCreate(e: React.FormEvent) {
+  async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError("")
     setSaving(true)
@@ -70,7 +70,7 @@ export function AdminUsersClient({
     setError("")
   }
 
-  async function handleEdit(e: React.FormEvent) {
+  async function handleEdit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (!editUser) return
     setError("")

@@ -3,14 +3,14 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/shared/lib/auth"
 import { redirect } from "next/navigation"
 import { SystemLogType } from "@prisma/client"
-import { SystemLogClient } from "./client"
+import { SystemLogClient } from "@/modules/admin/components/logs-client"
 
 const PAGE_SIZE = 100
 
 export default async function SystemLogPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; type?: string }>
+  readonly searchParams: Promise<{ page?: string; type?: string }>
 }) {
   const [session, params] = await Promise.all([getServerSession(authOptions), searchParams])
   if (session?.user.role !== "ADMIN") redirect("/dashboard")

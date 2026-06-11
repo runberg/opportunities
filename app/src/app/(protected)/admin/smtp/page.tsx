@@ -2,7 +2,7 @@ import { db } from "@/shared/lib/db"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/shared/lib/auth"
 import { redirect } from "next/navigation"
-import { SmtpClient } from "./client"
+import { SmtpClient } from "@/modules/admin/components/smtp-client"
 
 export default async function SmtpPage() {
   const session = await getServerSession(authOptions)

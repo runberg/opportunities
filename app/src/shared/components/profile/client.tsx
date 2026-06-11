@@ -13,9 +13,9 @@ export function ProfileClient({
   emailNotifications: initialNotifications,
   notificationsAvailable,
 }: {
-  userEmail: string
-  emailNotifications: boolean
-  notificationsAvailable: boolean
+  readonly userEmail: string
+  readonly emailNotifications: boolean
+  readonly notificationsAvailable: boolean
 }) {
   const { theme, setTheme } = useTheme()
 
