@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useContext, useEffect, useState, useMemo } from "react"
 
 export type Theme = "light" | "dark"
 
@@ -14,21 +14,23 @@ const ThemeContext = createContext<ThemeContextValue>({
   setTheme: () => {},
 })
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("dark")
+export function ThemeProvider({ children }: { readonly children: React.ReactNode }) {
+  const [theme, setTheme] = useState<Theme>("dark")
 
   useEffect(() => {
     const saved = localStorage.getItem("ui-theme") as Theme | null
-    if (saved === "light" || saved === "dark") setThemeState(saved)
+    if (saved === "light" || saved === "dark") setTheme(saved)
   }, [])
 
   useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme === "dark" ? "dark" : "")
+    document.documentElement.dataset.theme = theme === "dark" ? "dark" : ""
     localStorage.setItem("ui-theme", theme)
   }, [theme])
 
+  const contextValue = useMemo(() => ({ theme, setTheme }), [theme, setTheme])
+
   return (
-    <ThemeContext.Provider value={{ theme, setTheme: setThemeState }}>
+    <ThemeContext.Provider value={contextValue}>
       {children}
     </ThemeContext.Provider>
   )

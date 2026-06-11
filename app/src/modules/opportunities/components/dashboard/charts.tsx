@@ -33,6 +33,22 @@ function useTooltipStyle() {
   }
 }
 
+// ─── Bar click helper ────────────────────────────────────────────────────────
+
+type BucketRow = { label: string; fromISO: string; toISO: string }
+
+function makeBarClickProps(
+  onBarClick: ((t: DrillTarget) => void) | undefined,
+  title: string,
+  dateField: string,
+) {
+  if (!onBarClick) return {}
+  return {
+    style: { cursor: "pointer" },
+    onClick: (row: BucketRow) => onBarClick({ title: `${title} — ${row.label}`, dateField, fromISO: row.fromISO, toISO: row.toISO }),
+  }
+}
+
 // ─── RFQ Trend Chart ─────────────────────────────────────────────────────────
 
 export interface RfqTrendBucket {
@@ -44,7 +60,7 @@ export function RfqTrendChart({ data, onBarClick }: {
   readonly onBarClick?: (target: DrillTarget) => void
 }) {
   const tooltip = useTooltipStyle()
-  if (data.every((d) => d.rfq === 0 && d.quotes === 0)) {
+  if (data.every((d) => d.rfq + d.quotes === 0)) {
     return (
       <div className="h-[200px] flex items-center justify-center text-sm text-gray-400">
         No activity in this period
@@ -64,11 +80,9 @@ export function RfqTrendChart({ data, onBarClick }: {
           formatter={(value) => (value === "rfq" ? "RFQs received" : "Quotes shared")}
         />
         <Bar dataKey="rfq" fill="#006fff" radius={[3, 3, 0, 0]} maxBarSize={24}
-          style={onBarClick ? { cursor: "pointer" } : undefined}
-          onClick={onBarClick ? (row: RfqTrendBucket) => onBarClick({ title: `RFQs Received — ${row.label}`, dateField: "rfqDate", fromISO: row.fromISO, toISO: row.toISO }) : undefined} />
+          {...makeBarClickProps(onBarClick, "RFQs Received", "rfqDate")} />
         <Bar dataKey="quotes" fill="#10b981" radius={[3, 3, 0, 0]} maxBarSize={24}
-          style={onBarClick ? { cursor: "pointer" } : undefined}
-          onClick={onBarClick ? (row: RfqTrendBucket) => onBarClick({ title: `Quotes Shared — ${row.label}`, dateField: "quoteSentDate", fromISO: row.fromISO, toISO: row.toISO }) : undefined} />
+          {...makeBarClickProps(onBarClick, "Quotes Shared", "quoteSentDate")} />
       </BarChart>
     </ResponsiveContainer>
   )
@@ -91,7 +105,7 @@ export function ElTrendChart({ data, onBarClick }: {
   readonly onBarClick?: (target: DrillTarget) => void
 }) {
   const tooltip = useTooltipStyle()
-  if (data.every((d) => d.requested === 0 && d.drafted === 0 && d.signed === 0)) {
+  if (data.every((d) => d.requested + d.drafted + d.signed === 0)) {
     return (
       <div className="h-[200px] flex items-center justify-center text-sm text-gray-400">
         No activity in this period
@@ -111,14 +125,11 @@ export function ElTrendChart({ data, onBarClick }: {
           formatter={(value) => EL_LEGEND_LABELS[value] ?? value}
         />
         <Bar dataKey="requested" fill="#006fff" radius={[3, 3, 0, 0]} maxBarSize={20}
-          style={onBarClick ? { cursor: "pointer" } : undefined}
-          onClick={onBarClick ? (row: ElTrendBucket) => onBarClick({ title: `ELs Requested — ${row.label}`, dateField: "elRequestedDate", fromISO: row.fromISO, toISO: row.toISO }) : undefined} />
+          {...makeBarClickProps(onBarClick, "ELs Requested", "elRequestedDate")} />
         <Bar dataKey="drafted" fill="#f59e0b" radius={[3, 3, 0, 0]} maxBarSize={20}
-          style={onBarClick ? { cursor: "pointer" } : undefined}
-          onClick={onBarClick ? (row: ElTrendBucket) => onBarClick({ title: `EL Drafts Shared — ${row.label}`, dateField: "elDraftSharedDate", fromISO: row.fromISO, toISO: row.toISO }) : undefined} />
+          {...makeBarClickProps(onBarClick, "EL Drafts Shared", "elDraftSharedDate")} />
         <Bar dataKey="signed" fill="#10b981" radius={[3, 3, 0, 0]} maxBarSize={20}
-          style={onBarClick ? { cursor: "pointer" } : undefined}
-          onClick={onBarClick ? (row: ElTrendBucket) => onBarClick({ title: `EL Signed Shared — ${row.label}`, dateField: "elSignedSharedDate", fromISO: row.fromISO, toISO: row.toISO }) : undefined} />
+          {...makeBarClickProps(onBarClick, "EL Signed Shared", "elSignedSharedDate")} />
       </BarChart>
     </ResponsiveContainer>
   )
@@ -142,7 +153,7 @@ export function ProductionTrendChart({ data, onBarClick }: {
   readonly onBarClick?: (target: DrillTarget) => void
 }) {
   const tooltip = useTooltipStyle()
-  if (data.every((d) => d.countersigned === 0 && d.advancePaid === 0 && d.fatPassed === 0 && d.delivered === 0)) {
+  if (data.every((d) => d.countersigned + d.advancePaid + d.fatPassed + d.delivered === 0)) {
     return (
       <div className="h-[200px] flex items-center justify-center text-sm text-gray-400">
         No activity in this period
@@ -162,17 +173,13 @@ export function ProductionTrendChart({ data, onBarClick }: {
           formatter={(value) => PROD_LEGEND_LABELS[value] ?? value}
         />
         <Bar dataKey="countersigned" fill="#006fff" radius={[3, 3, 0, 0]} maxBarSize={18}
-          style={onBarClick ? { cursor: "pointer" } : undefined}
-          onClick={onBarClick ? (row: ProdTrendBucket) => onBarClick({ title: `Contract Countersigned — ${row.label}`, dateField: "elCountersignedDate", fromISO: row.fromISO, toISO: row.toISO }) : undefined} />
+          {...makeBarClickProps(onBarClick, "Contract Countersigned", "elCountersignedDate")} />
         <Bar dataKey="advancePaid" fill="#f59e0b" radius={[3, 3, 0, 0]} maxBarSize={18}
-          style={onBarClick ? { cursor: "pointer" } : undefined}
-          onClick={onBarClick ? (row: ProdTrendBucket) => onBarClick({ title: `Advance Payments — ${row.label}`, dateField: "advancePaymentDate", fromISO: row.fromISO, toISO: row.toISO }) : undefined} />
+          {...makeBarClickProps(onBarClick, "Advance Payments", "advancePaymentDate")} />
         <Bar dataKey="fatPassed" fill="#10b981" radius={[3, 3, 0, 0]} maxBarSize={18}
-          style={onBarClick ? { cursor: "pointer" } : undefined}
-          onClick={onBarClick ? (row: ProdTrendBucket) => onBarClick({ title: `FAT Passed — ${row.label}`, dateField: "fatPassedDate", fromISO: row.fromISO, toISO: row.toISO }) : undefined} />
+          {...makeBarClickProps(onBarClick, "FAT Passed", "fatPassedDate")} />
         <Bar dataKey="delivered" fill="#059669" radius={[3, 3, 0, 0]} maxBarSize={18}
-          style={onBarClick ? { cursor: "pointer" } : undefined}
-          onClick={onBarClick ? (row: ProdTrendBucket) => onBarClick({ title: `Delivered — ${row.label}`, dateField: "deliveredDate", fromISO: row.fromISO, toISO: row.toISO }) : undefined} />
+          {...makeBarClickProps(onBarClick, "Delivered", "deliveredDate")} />
       </BarChart>
     </ResponsiveContainer>
   )

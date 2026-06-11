@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { formatBytes, formatDate, DOC_TYPE_LABELS, DOC_STATUS_LABELS } from "@/shared/lib/utils"
+import { formatBytes, formatDate, DOC_TYPE_LABELS } from "@/shared/lib/utils"
 import { Download, Trash2, Upload } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
 
@@ -19,11 +19,11 @@ interface Document {
 }
 
 interface DocumentSectionProps {
-  opportunityId: string
-  documents: Document[]
-  currentUserId: string
-  isAdmin: boolean
-  onRefresh?: () => void
+  readonly opportunityId: string
+  readonly documents: Document[]
+  readonly currentUserId: string
+  readonly isAdmin: boolean
+  readonly onRefresh?: () => void
 }
 
 const TYPE_FILTERS = ["ALL", "QUOTE", "EL", "OTHER"] as const
@@ -137,10 +137,11 @@ export function DocumentSection({
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
+              <label htmlFor="doc-name" className="block text-xs font-medium text-gray-600 mb-1">
                 Document Name *
               </label>
               <input
+                id="doc-name"
                 name="displayName"
                 required
                 placeholder="e.g. Draft Quote v2"
@@ -149,8 +150,9 @@ export function DocumentSection({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">File *</label>
+              <label htmlFor="doc-file" className="block text-xs font-medium text-gray-600 mb-1">File *</label>
               <input
+                id="doc-file"
                 name="file"
                 type="file"
                 required
@@ -159,8 +161,9 @@ export function DocumentSection({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Type</label>
+              <label htmlFor="doc-type" className="block text-xs font-medium text-gray-600 mb-1">Type</label>
               <select
+                id="doc-type"
                 name="type"
                 defaultValue="QUOTE"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
@@ -172,8 +175,9 @@ export function DocumentSection({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
+              <label htmlFor="doc-status" className="block text-xs font-medium text-gray-600 mb-1">Status</label>
               <select
+                id="doc-status"
                 name="docStatus"
                 defaultValue="DRAFT"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"

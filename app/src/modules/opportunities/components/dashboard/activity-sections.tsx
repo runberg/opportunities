@@ -13,13 +13,22 @@ function KpiTile({
 }: {
   readonly label: string; readonly value: number | string; readonly unit?: string; readonly color?: string; readonly onClick?: () => void
 }) {
+  if (onClick) {
+    return (
+      <button type="button" className="group cursor-pointer text-left" onClick={onClick}>
+        <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">{label}</p>
+        <div className="flex items-baseline gap-1.5">
+          <span className={cn("text-3xl font-bold transition-opacity group-hover:opacity-70", color)}>{value}</span>
+          {unit && <span className="text-sm text-gray-400">{unit}</span>}
+        </div>
+      </button>
+    )
+  }
   return (
-    <div className={cn("group", onClick && "cursor-pointer")} onClick={onClick}>
+    <div className="group">
       <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">{label}</p>
       <div className="flex items-baseline gap-1.5">
-        <span className={cn("text-3xl font-bold transition-opacity", color, onClick && "group-hover:opacity-70")}>
-          {value}
-        </span>
+        <span className={cn("text-3xl font-bold", color)}>{value}</span>
         {unit && <span className="text-sm text-gray-400">{unit}</span>}
       </div>
     </div>

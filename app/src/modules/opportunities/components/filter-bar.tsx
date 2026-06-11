@@ -61,7 +61,8 @@ export function FilterBar({
     // Reset to page 1 whenever a filter (not page navigation) changes
     if (!("page" in updates)) params.delete("page")
     const qs = params.toString()
-    router.push(`${basePath}${qs ? `?${qs}` : ""}`)
+    const queryString = qs ? `?${qs}` : ""
+    router.push(`${basePath}${queryString}`)
   }
 
   function toggleStatus(s: string) {
@@ -71,12 +72,14 @@ export function FilterBar({
     updateParams({ status: next.length > 0 ? next.join(",") : null })
   }
 
-  const statusLabel =
-    selectedStatuses.length === 0
-      ? "All Statuses"
-      : selectedStatuses.length === 1
-      ? (STATUS_LABELS[selectedStatuses[0]] ?? selectedStatuses[0])
-      : `${selectedStatuses.length} statuses`
+  let statusLabel: string
+  if (selectedStatuses.length === 0) {
+    statusLabel = "All Statuses"
+  } else if (selectedStatuses.length === 1) {
+    statusLabel = STATUS_LABELS[selectedStatuses[0]] ?? selectedStatuses[0]
+  } else {
+    statusLabel = `${selectedStatuses.length} statuses`
+  }
 
   const hasFilters = query || statusParam
 

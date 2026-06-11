@@ -43,15 +43,13 @@ export function Sidebar({ userEmail, userRole }: SidebarProps) {
     return pathname === href || pathname.startsWith(href + "/")
   }
 
-  const linkCls = (href: string) =>
-    cn(
-      "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
-      isActive(href)
-        ? "bg-blue-600/20 text-blue-400"
-        : isDark
-        ? "text-gray-400 hover:bg-white/5 hover:text-blue-300"
-        : "text-gray-400 hover:bg-gray-800 hover:text-white"
-    )
+  const linkCls = (href: string) => {
+    let stateCls: string
+    if (isActive(href)) stateCls = "bg-blue-600/20 text-blue-400"
+    else if (isDark) stateCls = "text-gray-400 hover:bg-white/5 hover:text-blue-300"
+    else stateCls = "text-gray-400 hover:bg-gray-800 hover:text-white"
+    return cn("flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors", stateCls)
+  }
 
   const sidebarBg = isDark ? "bg-[#0a1220]" : "bg-gray-900"
   const borderColor = isDark ? "border-[#1a2d40]" : "border-gray-800"

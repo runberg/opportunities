@@ -37,15 +37,22 @@ export function SortableHeader({
   )
 }
 
+function compareValues(av: unknown, bv: unknown, dir: SortDir): number {
+  const order = dir === "asc" ? 1 : -1
+  if (av == null && bv == null) return 0
+  if (av == null) return order
+  if (bv == null) return -order
+  if (typeof av === "string" && typeof bv === "string") {
+    return dir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av)
+  }
+  if (dir === "asc") return av > bv ? 1 : -1
+  return av < bv ? 1 : -1
+}
+
 export function sortRows<T>(data: T[], key: string, dir: SortDir): T[] {
   return [...data].sort((a, b) => {
     const av = (a as Record<string, unknown>)[key]
     const bv = (b as Record<string, unknown>)[key]
-    if (av == null && bv == null) return 0
-    if (av == null) return dir === "asc" ? 1 : -1
-    if (bv == null) return dir === "asc" ? -1 : 1
-    if (typeof av === "string" && typeof bv === "string")
-      return dir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av)
-    return dir === "asc" ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1)
+    return compareValues(av, bv, dir)
   })
 }

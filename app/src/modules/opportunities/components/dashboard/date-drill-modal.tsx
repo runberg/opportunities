@@ -75,7 +75,7 @@ export function DateDrillModal({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-full items-start justify-center p-4 pt-[4vh]">
-        <div className="fixed inset-0 bg-black/40" onClick={() => { if (!openId) onClose() }} />
+        <button type="button" aria-label="Close" className="fixed inset-0 bg-black/40 cursor-default" onClick={() => { if (!openId) onClose() }} />
         <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl mb-8">
 
           {/* Header */}

@@ -15,7 +15,10 @@ type Period = "7d" | "30d" | "90d" | "year" | "custom"
 function getPeriodStart(period: Period, now: Date, customFrom?: string): Date {
   if (period === "custom" && customFrom) return new Date(customFrom)
   if (period === "year") return new Date(now.getFullYear(), 0, 1)
-  const days = period === "7d" ? 7 : period === "30d" ? 30 : 90
+  let days: number
+  if (period === "7d") days = 7
+  else if (period === "30d") days = 30
+  else days = 90
   const d = new Date(now)
   d.setDate(d.getDate() - days)
   d.setHours(0, 0, 0, 0)
@@ -233,12 +236,18 @@ export default async function DashboardPage({
     lastChange: r.comments[0]?.content ?? null,
   }))
 
-  const periodLabel =
-    period === "year"
-      ? "Jan 1 – today"
-      : period === "custom" && params.from && params.to
-      ? `${params.from} – ${params.to}`
-      : `Last ${period === "7d" ? "7" : period === "30d" ? "30" : "90"} days`
+  let periodLabel: string
+  if (period === "year") {
+    periodLabel = "Jan 1 – today"
+  } else if (period === "custom" && params.from && params.to) {
+    periodLabel = `${params.from} – ${params.to}`
+  } else {
+    let dayCount: string
+    if (period === "7d") dayCount = "7"
+    else if (period === "30d") dayCount = "30"
+    else dayCount = "90"
+    periodLabel = `Last ${dayCount} days`
+  }
 
   const currentUserId = session!.user.id
   const isAdmin = session?.user.role === "ADMIN"

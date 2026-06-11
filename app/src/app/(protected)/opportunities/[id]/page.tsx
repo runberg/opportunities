@@ -12,7 +12,7 @@ import { ChevronLeft, Pencil } from "lucide-react"
 export default async function OpportunityDetailPage({
   params,
 }: {
-  params: Promise<{ id: string }>
+  readonly params: Promise<{ id: string }>
 }) {
   const { id } = await params
   const session = await getServerSession(authOptions)
@@ -123,9 +123,9 @@ function InfoItem({
   value,
   className = "",
 }: {
-  label: string
-  value: string
-  className?: string
+  readonly label: string
+  readonly value: string
+  readonly className?: string
 }) {
   return (
     <div className={`bg-white border border-gray-200 rounded-xl p-4 ${className}`}>

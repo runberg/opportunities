@@ -2,15 +2,15 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/shared/lib/db"
 import { requireSession } from "@/shared/lib/api"
 import { DocumentType, DocumentStatus } from "@prisma/client"
-import { writeFile, mkdir } from "fs/promises"
-import { join } from "path"
+import { writeFile, mkdir } from "node:fs/promises"
+import { join } from "node:path"
 import { v4 as uuidv4 } from "uuid"
 import { DOC_TYPE_LABELS } from "@/shared/lib/utils"
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR ?? join(process.cwd(), "uploads")
 const MAX_SIZE_BYTES = 50 * 1024 * 1024 // 50 MB
 
-const ALLOWED_MIME_TYPES = [
+const ALLOWED_MIME_TYPES = new Set([
   "application/pdf",
   "application/vnd.ms-excel",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -23,7 +23,7 @@ const ALLOWED_MIME_TYPES = [
   "image/gif",
   "text/plain",
   "text/csv",
-]
+])
 
 export async function POST(
   req: NextRequest,
@@ -58,7 +58,7 @@ export async function POST(
   if (file.size > MAX_SIZE_BYTES) {
     return NextResponse.json({ error: "File exceeds 50 MB limit" }, { status: 400 })
   }
-  if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+  if (!ALLOWED_MIME_TYPES.has(file.type)) {
     return NextResponse.json({ error: "File type not allowed" }, { status: 400 })
   }
 

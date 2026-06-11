@@ -9,14 +9,8 @@ RUN npm ci --ignore-scripts
 # Copy source
 COPY . .
 
-# Generate Prisma client
-RUN npx prisma generate
-
-# Build Next.js
-RUN npm run build
-
-# Create uploads directory
-RUN mkdir -p /app/uploads
+# Generate Prisma client, build Next.js, create uploads directory
+RUN npx prisma generate && npm run build && mkdir -p /app/uploads
 
 EXPOSE 3000
 ENV NODE_ENV=production

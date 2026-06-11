@@ -11,7 +11,7 @@ import { ChevronLeft } from "lucide-react"
 export default async function EditOpportunityPage({
   params,
 }: {
-  params: Promise<{ id: string }>
+  readonly params: Promise<{ id: string }>
 }) {
   const { id } = await params
   const session = await getServerSession(authOptions)

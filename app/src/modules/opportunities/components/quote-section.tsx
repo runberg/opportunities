@@ -16,13 +16,20 @@ interface QuoteDoc {
   uploadedBy: { id: string; name: string }
 }
 
+const DOC_TYPE_LABELS = {
+  QUOTE: { section: "Quote Documents", empty: "No quote documents yet." },
+  EL:    { section: "EL Documents",    empty: "No EL documents yet." },
+  FAT:   { section: "FAT Documents",   empty: "No FAT documents yet." },
+  SAT:   { section: "SAT Documents",   empty: "No SAT documents yet." },
+} as const
+
 interface QuoteSectionProps {
-  opportunityId: string
-  documents: QuoteDoc[]
-  currentUserId: string
-  isAdmin: boolean
-  onRefresh?: () => void
-  docType?: "QUOTE" | "EL" | "FAT" | "SAT"
+  readonly opportunityId: string
+  readonly documents: QuoteDoc[]
+  readonly currentUserId: string
+  readonly isAdmin: boolean
+  readonly onRefresh?: () => void
+  readonly docType?: "QUOTE" | "EL" | "FAT" | "SAT"
 }
 
 export function QuoteSection({
@@ -106,17 +113,12 @@ export function QuoteSection({
     router.refresh()
   }
 
-  const sectionLabel =
-    docType === "EL" ? "EL Documents"
-    : docType === "FAT" ? "FAT Documents"
-    : docType === "SAT" ? "SAT Documents"
-    : "Quote Documents"
+  const { section: sectionLabel, empty: emptyLabel } = DOC_TYPE_LABELS[docType]
 
-  const emptyLabel =
-    docType === "EL" ? "No EL documents yet."
-    : docType === "FAT" ? "No FAT documents yet."
-    : docType === "SAT" ? "No SAT documents yet."
-    : "No quote documents yet."
+  let dropZoneBorderCls: string
+  if (dragging) dropZoneBorderCls = "border-[#006fff] bg-blue-50"
+  else if (file) dropZoneBorderCls = "border-green-400 bg-green-50"
+  else dropZoneBorderCls = "border-gray-300 hover:border-gray-400"
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-4">
@@ -142,10 +144,11 @@ export function QuoteSection({
               {/* Left: fields */}
               <div className="flex flex-col gap-3 sm:w-56 shrink-0">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                  <label htmlFor="qs-doc-name" className="block text-xs font-medium text-gray-600 mb-1">
                     Document Name *
                   </label>
                   <input
+                    id="qs-doc-name"
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     required
@@ -154,8 +157,9 @@ export function QuoteSection({
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Version</label>
+                  <label htmlFor="qs-doc-version" className="block text-xs font-medium text-gray-600 mb-1">Version</label>
                   <select
+                    id="qs-doc-version"
                     value={docStatus}
                     onChange={(e) => setDocStatus(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
@@ -180,18 +184,15 @@ export function QuoteSection({
               </div>
 
               {/* Right: drop zone */}
-              <div
+              <button
+                type="button"
                 onDragOver={onDragOver}
                 onDragLeave={onDragLeave}
                 onDrop={onDrop}
                 onClick={() => fileInputRef.current?.click()}
                 className={cn(
                   "flex-1 flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed cursor-pointer transition-colors min-h-[120px]",
-                  dragging
-                    ? "border-[#006fff] bg-blue-50"
-                    : file
-                    ? "border-green-400 bg-green-50"
-                    : "border-gray-300 hover:border-gray-400"
+                  dropZoneBorderCls
                 )}
               >
                 <input
@@ -214,7 +215,7 @@ export function QuoteSection({
                     </p>
                   </>
                 )}
-              </div>
+              </button>
             </div>
             {uploadError && <p className="text-xs text-red-600 mt-2">{uploadError}</p>}
           </form>

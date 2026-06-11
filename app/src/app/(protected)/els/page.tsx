@@ -18,7 +18,7 @@ interface SearchParams {
 export default async function ELsPage({
   searchParams,
 }: {
-  searchParams: Promise<SearchParams>
+  readonly searchParams: Promise<SearchParams>
 }) {
   const [params, session] = await Promise.all([searchParams, getServerSession(authOptions)])
   const query = params.q?.trim() ?? ""

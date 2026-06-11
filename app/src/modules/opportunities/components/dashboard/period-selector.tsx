@@ -17,9 +17,9 @@ export function PeriodSelector({
   currentFrom,
   currentTo,
 }: {
-  current: string
-  currentFrom?: string
-  currentTo?: string
+  readonly current: string
+  readonly currentFrom?: string
+  readonly currentTo?: string
 }) {
   const router = useRouter()
   const isCustom = current === "custom"

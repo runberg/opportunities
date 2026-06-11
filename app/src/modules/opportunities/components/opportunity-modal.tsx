@@ -98,18 +98,23 @@ export function OpportunityModal({
 
   if (!opportunityId) return null
 
+  let sectionLabel: string
+  if (data && (PRODUCTION_STATUSES as readonly string[]).includes(data.status)) {
+    sectionLabel = "Production"
+  } else if (data && (EL_STATUSES as readonly string[]).includes(data.status)) {
+    sectionLabel = "Engagement Letter"
+  } else {
+    sectionLabel = "Quote"
+  }
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-full items-start justify-center p-4 pt-[4vh]">
-        <div className="fixed inset-0 bg-black/40" onClick={onClose} />
+        <button type="button" aria-label="Close" className="fixed inset-0 bg-black/40 cursor-default" onClick={onClose} />
         <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl mb-8">
           <div className="flex items-center justify-between px-6 py-3 border-b border-gray-100">
             <span className="text-xs text-gray-400 font-medium tracking-wide uppercase">
-              {data && (PRODUCTION_STATUSES as readonly string[]).includes(data.status)
-                ? "Production"
-                : data && (EL_STATUSES as readonly string[]).includes(data.status)
-                ? "Engagement Letter"
-                : "Quote"}
+              {sectionLabel}
             </span>
             <button type="button" onClick={onClose}
               className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
@@ -234,39 +239,46 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
     }
   }
 
+  function validateStatusChange(): string | null {
+    if (form.status === data.status) return null
+    const req = STATUS_DATE_REQUIRED[form.status]
+    if (!req) return null
+    const existing = data[req.field as keyof OpportunityFull] as string | null
+    const formVal = form[req.field as keyof OppForm] as string
+    if (!existing && !formVal) {
+      return `"${STATUS_LABELS[form.status]}" requires the "${req.label}" date to be set first.`
+    }
+    return null
+  }
+
+  function buildPayload(): Record<string, unknown> {
+    const p: Record<string, unknown> = {}
+    if (form.title !== data.title) p.title = form.title
+    if (form.customer !== data.customer) p.customer = form.customer
+    if (form.product !== (data.product ?? "")) p.product = form.product
+    if (form.description !== (data.description ?? "")) p.description = form.description
+    if (form.internalId !== (data.internalId ?? "")) p.internalId = form.internalId
+    if (form.reference !== (data.reference ?? "")) p.reference = form.reference
+    if (form.status !== data.status) p.status = form.status
+    if (form.rfqDate !== toDateString(data.rfqDate)) p.rfqDate = form.rfqDate || null
+    if (form.quoteSentDate !== toDateString(data.quoteSentDate)) p.quoteSentDate = form.quoteSentDate || null
+    if (form.elRequestedDate !== toDateString(data.elRequestedDate)) p.elRequestedDate = form.elRequestedDate || null
+    if (form.elDraftSharedDate !== toDateString(data.elDraftSharedDate)) p.elDraftSharedDate = form.elDraftSharedDate || null
+    if (form.elSignedSharedDate !== toDateString(data.elSignedSharedDate)) p.elSignedSharedDate = form.elSignedSharedDate || null
+    if (form.elCountersignedDate !== toDateString(data.elCountersignedDate)) p.elCountersignedDate = form.elCountersignedDate || null
+    return p
+  }
+
   async function applyChanges() {
     if (!form.title.trim() || !form.customer.trim()) {
       setApplyError("Title and customer are required.")
       return
     }
-    if (form.status !== data.status) {
-      const req = STATUS_DATE_REQUIRED[form.status]
-      if (req) {
-        const existing = data[req.field as keyof OpportunityFull] as string | null
-        const formVal = form[req.field as keyof OppForm] as string
-        if (!existing && !formVal) {
-          setApplyError(`"${STATUS_LABELS[form.status]}" requires the "${req.label}" date to be set first.`)
-          return
-        }
-      }
-    }
+    const statusError = validateStatusChange()
+    if (statusError) { setApplyError(statusError); return }
     setSaving(true)
     setApplyError("")
-    const payload: Record<string, unknown> = {}
-    if (form.title !== data.title) payload.title = form.title
-    if (form.customer !== data.customer) payload.customer = form.customer
-    if (form.product !== (data.product ?? "")) payload.product = form.product
-    if (form.description !== (data.description ?? "")) payload.description = form.description
-    if (form.internalId !== (data.internalId ?? "")) payload.internalId = form.internalId
-    if (form.reference !== (data.reference ?? "")) payload.reference = form.reference
-    if (form.status !== data.status) payload.status = form.status
-    if (form.rfqDate !== toDateString(data.rfqDate)) payload.rfqDate = form.rfqDate || null
-    if (form.quoteSentDate !== toDateString(data.quoteSentDate)) payload.quoteSentDate = form.quoteSentDate || null
-    if (form.elRequestedDate !== toDateString(data.elRequestedDate)) payload.elRequestedDate = form.elRequestedDate || null
-    if (form.elDraftSharedDate !== toDateString(data.elDraftSharedDate)) payload.elDraftSharedDate = form.elDraftSharedDate || null
-    if (form.elSignedSharedDate !== toDateString(data.elSignedSharedDate)) payload.elSignedSharedDate = form.elSignedSharedDate || null
-    if (form.elCountersignedDate !== toDateString(data.elCountersignedDate)) payload.elCountersignedDate = form.elCountersignedDate || null
-    const err = await directPatch(payload)
+    const err = await directPatch(buildPayload())
     setSaving(false)
     if (err) setApplyError(err)
   }
@@ -280,7 +292,7 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
   // Counter-sign panel
   const [counterSigning, setCounterSigning] = useState(false)
   const [counterSignDate, setCounterSignDate] = useState(todayISO())
-  const [counterSignSaving, setCounterSigning2] = useState(false)
+  const [counterSignSaving, setCounterSignSaving] = useState(false)
   const [counterSignError, setCounterSignError] = useState("")
 
   async function handleAcceptQuote() {
@@ -307,7 +319,7 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
   }
 
   async function handleCounterSigned() {
-    setCounterSigning2(true)
+    setCounterSignSaving(true)
     setCounterSignError("")
     try {
       const res = await fetch(`/api/opportunities/${data.id}`, {
@@ -325,7 +337,7 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
     } catch {
       setCounterSignError("Network error. Please try again.")
     } finally {
-      setCounterSigning2(false)
+      setCounterSignSaving(false)
     }
   }
 
@@ -489,38 +501,39 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
 
 // ─── Date section ─────────────────────────────────────────────────────────────
 
-function DateSection({ data, form, setForm, onRefresh, onDirectPatch }: {
-  readonly data: OpportunityFull
-  readonly form: OppForm
-  readonly setForm: React.Dispatch<React.SetStateAction<OppForm>>
-  readonly onRefresh: () => void
-  readonly onDirectPatch: (payload: Record<string, unknown>) => Promise<string | null>
+type RevertTarget = { status: string; label: string; clearField: string }
+type SetDate = (key: keyof OppForm, value: string) => void
+
+function ShareActionCard({ label, date, onDateChange, docCount, docLabel, saving, onShare, error, buttonLabel }: {
+  readonly label: string; readonly date: string
+  readonly onDateChange: (v: string) => void
+  readonly docCount: number; readonly docLabel: string
+  readonly saving: boolean; readonly onShare: () => void
+  readonly error: string; readonly buttonLabel: string
 }) {
-  const isEL = (EL_STATUSES as readonly string[]).includes(data.status)
-  const isQuote = (QUOTE_STATUSES as readonly string[]).includes(data.status)
+  return (
+    <div className="border border-gray-200 bg-white rounded-xl p-4 flex flex-col gap-2">
+      <p className="text-xs font-medium text-gray-400">{label}</p>
+      <input type="date" value={date} onChange={(e) => onDateChange(e.target.value)} className={dateInputCls} />
+      {docCount === 0 && <p className="text-xs text-red-500">No {docLabel} attached</p>}
+      <button type="button" onClick={onShare} disabled={saving || !date}
+        className="mt-1 w-full px-3 py-1.5 bg-[#006fff] hover:bg-blue-700 text-white text-xs font-medium rounded-lg disabled:opacity-50 transition-colors">
+        {saving ? "Saving…" : buttonLabel}
+      </button>
+      {error && <p className="text-xs text-red-600">{error}</p>}
+    </div>
+  )
+}
 
-  function setDate(key: keyof OppForm, value: string) {
-    setForm(f => ({ ...f, [key]: value }))
-  }
-
+function QuoteDatePanel({ data, form, setDate, setRevertTarget, onDirectPatch, onRefresh }: {
+  readonly data: OpportunityFull; readonly form: OppForm
+  readonly setDate: SetDate; readonly setRevertTarget: (t: RevertTarget) => void
+  readonly onDirectPatch: (p: Record<string, unknown>) => Promise<string | null>; readonly onRefresh: () => void
+}) {
   const [shareDate, setShareDate] = useState(todayISO())
   const [sharing, setSharing] = useState(false)
   const [shareError, setShareError] = useState("")
-
-  const [elDraftDate, setElDraftDate] = useState(todayISO())
-  const [elDraftSharing, setElDraftSharing] = useState(false)
-  const [elDraftShareError, setElDraftShareError] = useState("")
-
-  const [elSignedDate, setElSignedDate] = useState(todayISO())
-  const [elSignedSharing, setElSignedSharing] = useState(false)
-  const [elSignedShareError, setElSignedShareError] = useState("")
-
-  const [revertTarget, setRevertTarget] = useState<{ status: string; label: string; clearField: string } | null>(null)
-  const [reverting, setReverting] = useState(false)
-  const [revertError, setRevertError] = useState("")
-
   const quoteDocCount = data.documents.filter((d) => d.type === "QUOTE").length
-  const elDocCount = data.documents.filter((d) => d.type === "EL").length
 
   async function handleShareQuote() {
     setSharing(true); setShareError("")
@@ -528,6 +541,35 @@ function DateSection({ data, form, setForm, onRefresh, onDirectPatch }: {
     setSharing(false)
     if (err) setShareError(err); else onRefresh()
   }
+
+  return (
+    <div className="grid gap-3 grid-cols-2">
+      <DateCard label="RFQ Date" formValue={form.rfqDate} onChange={(v) => setDate("rfqDate", v)} />
+      {data.quoteSentDate ? (
+        <DateCard label="Quote Shared" formValue={form.quoteSentDate}
+          onChange={(v) => setDate("quoteSentDate", v)}
+          onRevert={() => setRevertTarget({ status: "RFQ_RECEIVED", label: "RFQ Received", clearField: "quoteSentDate" })} />
+      ) : (
+        <ShareActionCard label="Quote Shared" date={shareDate} onDateChange={setShareDate}
+          docCount={quoteDocCount} docLabel="quote document"
+          saving={sharing} onShare={handleShareQuote} error={shareError} buttonLabel="Share Quote" />
+      )}
+    </div>
+  )
+}
+
+function ELDatePanel({ data, form, setDate, setRevertTarget, onDirectPatch, onRefresh }: {
+  readonly data: OpportunityFull; readonly form: OppForm
+  readonly setDate: SetDate; readonly setRevertTarget: (t: RevertTarget) => void
+  readonly onDirectPatch: (p: Record<string, unknown>) => Promise<string | null>; readonly onRefresh: () => void
+}) {
+  const [elDraftDate, setElDraftDate] = useState(todayISO())
+  const [elDraftSharing, setElDraftSharing] = useState(false)
+  const [elDraftShareError, setElDraftShareError] = useState("")
+  const [elSignedDate, setElSignedDate] = useState(todayISO())
+  const [elSignedSharing, setElSignedSharing] = useState(false)
+  const [elSignedShareError, setElSignedShareError] = useState("")
+  const elDocCount = data.documents.filter((d) => d.type === "EL").length
 
   async function handleShareELDraft() {
     setElDraftSharing(true); setElDraftShareError("")
@@ -543,6 +585,81 @@ function DateSection({ data, form, setForm, onRefresh, onDirectPatch }: {
     if (err) setElSignedShareError(err); else onRefresh()
   }
 
+  let elDraftCardNode: React.ReactNode
+  if (data.elDraftSharedDate) {
+    elDraftCardNode = (
+      <DateCard label="EL Draft Shared" formValue={form.elDraftSharedDate}
+        onChange={(v) => setDate("elDraftSharedDate", v)}
+        onRevert={() => setRevertTarget({ status: "EL_REQUEST_RECEIVED", label: "EL Requested", clearField: "elDraftSharedDate" })} />
+    )
+  } else if (data.status === "EL_REQUEST_RECEIVED") {
+    elDraftCardNode = (
+      <ShareActionCard label="EL Draft Shared" date={elDraftDate} onDateChange={setElDraftDate}
+        docCount={elDocCount} docLabel="EL document"
+        saving={elDraftSharing} onShare={handleShareELDraft} error={elDraftShareError} buttonLabel="Share EL Draft" />
+    )
+  } else {
+    elDraftCardNode = <LockedDateCard label="EL Draft Shared" />
+  }
+
+  let elSignedCardNode: React.ReactNode
+  if (data.elSignedSharedDate) {
+    elSignedCardNode = (
+      <DateCard label="EL Signed Shared" formValue={form.elSignedSharedDate}
+        onChange={(v) => setDate("elSignedSharedDate", v)}
+        onRevert={() => setRevertTarget({ status: "EL_DRAFT_SHARED", label: "EL Draft Shared", clearField: "elSignedSharedDate" })} />
+    )
+  } else if (data.status === "EL_DRAFT_SHARED") {
+    elSignedCardNode = (
+      <ShareActionCard label="EL Signed Shared" date={elSignedDate} onDateChange={setElSignedDate}
+        docCount={elDocCount} docLabel="EL document"
+        saving={elSignedSharing} onShare={handleShareSignedEL} error={elSignedShareError} buttonLabel="Share Signed EL" />
+    )
+  } else {
+    elSignedCardNode = <LockedDateCard label="EL Signed Shared" />
+  }
+
+  return (
+    <div className="grid gap-3 grid-cols-5">
+      <DateCard label="RFQ Date" formValue={form.rfqDate} onChange={(v) => setDate("rfqDate", v)} />
+      {data.quoteSentDate ? (
+        <DateCard label="Quote Shared" formValue={form.quoteSentDate}
+          onChange={(v) => setDate("quoteSentDate", v)}
+          onRevert={() => setRevertTarget({ status: "RFQ_RECEIVED", label: "RFQ Received", clearField: "quoteSentDate" })} />
+      ) : (
+        <LockedDateCard label="Quote Shared" />
+      )}
+      {data.elRequestedDate ? (
+        <DateCard label="EL Requested" formValue={form.elRequestedDate}
+          onChange={(v) => setDate("elRequestedDate", v)}
+          onRevert={() => setRevertTarget({ status: "QUOTE_SENT", label: "Quote Sent", clearField: "elRequestedDate" })} />
+      ) : (
+        <LockedDateCard label="EL Requested" />
+      )}
+      {elDraftCardNode}
+      {elSignedCardNode}
+    </div>
+  )
+}
+
+function DateSection({ data, form, setForm, onRefresh, onDirectPatch }: {
+  readonly data: OpportunityFull
+  readonly form: OppForm
+  readonly setForm: React.Dispatch<React.SetStateAction<OppForm>>
+  readonly onRefresh: () => void
+  readonly onDirectPatch: (payload: Record<string, unknown>) => Promise<string | null>
+}) {
+  const isEL = (EL_STATUSES as readonly string[]).includes(data.status)
+  const isQuote = (QUOTE_STATUSES as readonly string[]).includes(data.status)
+
+  function setDate(key: keyof OppForm, value: string) {
+    setForm(f => ({ ...f, [key]: value }))
+  }
+
+  const [revertTarget, setRevertTarget] = useState<RevertTarget | null>(null)
+  const [reverting, setReverting] = useState(false)
+  const [revertError, setRevertError] = useState("")
+
   async function handleRevert() {
     if (!revertTarget) return
     setReverting(true); setRevertError("")
@@ -557,87 +674,12 @@ function DateSection({ data, form, setForm, onRefresh, onDirectPatch }: {
     <div>
       <p className="text-xs font-medium text-gray-500 mb-2">Dates</p>
       {isQuote ? (
-        <div className="grid gap-3 grid-cols-2">
-          <DateCard label="RFQ Date" formValue={form.rfqDate} onChange={(v) => setDate("rfqDate", v)} />
-
-          {data.quoteSentDate ? (
-            <DateCard label="Quote Shared" formValue={form.quoteSentDate}
-              onChange={(v) => setDate("quoteSentDate", v)}
-              onRevert={() => setRevertTarget({ status: "RFQ_RECEIVED", label: "RFQ Received", clearField: "quoteSentDate" })} />
-          ) : (
-            <div className="border border-gray-200 bg-white rounded-xl p-4 flex flex-col gap-2">
-              <p className="text-xs font-medium text-gray-400">Quote Shared</p>
-              <input type="date" value={shareDate} onChange={(e) => setShareDate(e.target.value)} className={dateInputCls} />
-              {quoteDocCount === 0 && <p className="text-xs text-red-500">No quote document attached</p>}
-              <button type="button" onClick={handleShareQuote} disabled={sharing || !shareDate}
-                className="mt-1 w-full px-3 py-1.5 bg-[#006fff] hover:bg-blue-700 text-white text-xs font-medium rounded-lg disabled:opacity-50 transition-colors">
-                {sharing ? "Saving…" : "Share Quote"}
-              </button>
-              {shareError && <p className="text-xs text-red-600">{shareError}</p>}
-            </div>
-          )}
-        </div>
+        <QuoteDatePanel data={data} form={form} setDate={setDate} setRevertTarget={setRevertTarget}
+          onDirectPatch={onDirectPatch} onRefresh={onRefresh} />
       ) : (
-        <div className="grid gap-3 grid-cols-5">
-          <DateCard label="RFQ Date" formValue={form.rfqDate} onChange={(v) => setDate("rfqDate", v)} />
-
-          {data.quoteSentDate ? (
-            <DateCard label="Quote Shared" formValue={form.quoteSentDate}
-              onChange={(v) => setDate("quoteSentDate", v)}
-              onRevert={() => setRevertTarget({ status: "RFQ_RECEIVED", label: "RFQ Received", clearField: "quoteSentDate" })} />
-          ) : (
-            <LockedDateCard label="Quote Shared" />
-          )}
-
-          {data.elRequestedDate ? (
-            <DateCard label="EL Requested" formValue={form.elRequestedDate}
-              onChange={(v) => setDate("elRequestedDate", v)}
-              onRevert={() => setRevertTarget({ status: "QUOTE_SENT", label: "Quote Sent", clearField: "elRequestedDate" })} />
-          ) : (
-            <LockedDateCard label="EL Requested" />
-          )}
-
-          {data.elDraftSharedDate ? (
-            <DateCard label="EL Draft Shared" formValue={form.elDraftSharedDate}
-              onChange={(v) => setDate("elDraftSharedDate", v)}
-              onRevert={() => setRevertTarget({ status: "EL_REQUEST_RECEIVED", label: "EL Requested", clearField: "elDraftSharedDate" })} />
-          ) : data.status === "EL_REQUEST_RECEIVED" ? (
-            <div className="border border-gray-200 bg-white rounded-xl p-4 flex flex-col gap-2">
-              <p className="text-xs font-medium text-gray-400">EL Draft Shared</p>
-              <input type="date" value={elDraftDate} onChange={(e) => setElDraftDate(e.target.value)} className={dateInputCls} />
-              {elDocCount === 0 && <p className="text-xs text-red-500">No EL document attached</p>}
-              <button type="button" onClick={handleShareELDraft} disabled={elDraftSharing || !elDraftDate}
-                className="mt-1 w-full px-3 py-1.5 bg-[#006fff] hover:bg-blue-700 text-white text-xs font-medium rounded-lg disabled:opacity-50 transition-colors">
-                {elDraftSharing ? "Saving…" : "Share EL Draft"}
-              </button>
-              {elDraftShareError && <p className="text-xs text-red-600">{elDraftShareError}</p>}
-            </div>
-          ) : (
-            <LockedDateCard label="EL Draft Shared" />
-          )}
-
-          {data.elSignedSharedDate ? (
-            <DateCard label="EL Signed Shared" formValue={form.elSignedSharedDate}
-              onChange={(v) => setDate("elSignedSharedDate", v)}
-              onRevert={() => setRevertTarget({ status: "EL_DRAFT_SHARED", label: "EL Draft Shared", clearField: "elSignedSharedDate" })} />
-          ) : data.status === "EL_DRAFT_SHARED" ? (
-            <div className="border border-gray-200 bg-white rounded-xl p-4 flex flex-col gap-2">
-              <p className="text-xs font-medium text-gray-400">EL Signed Shared</p>
-              <input type="date" value={elSignedDate} onChange={(e) => setElSignedDate(e.target.value)} className={dateInputCls} />
-              {elDocCount === 0 && <p className="text-xs text-red-500">No EL document attached</p>}
-              <button type="button" onClick={handleShareSignedEL} disabled={elSignedSharing || !elSignedDate}
-                className="mt-1 w-full px-3 py-1.5 bg-[#006fff] hover:bg-blue-700 text-white text-xs font-medium rounded-lg disabled:opacity-50 transition-colors">
-                {elSignedSharing ? "Saving…" : "Share Signed EL"}
-              </button>
-              {elSignedShareError && <p className="text-xs text-red-600">{elSignedShareError}</p>}
-            </div>
-          ) : (
-            <LockedDateCard label="EL Signed Shared" />
-          )}
-
-        </div>
+        <ELDatePanel data={data} form={form} setDate={setDate} setRevertTarget={setRevertTarget}
+          onDirectPatch={onDirectPatch} onRefresh={onRefresh} />
       )}
-
       {revertTarget && (
         <div className="mt-3 p-4 bg-red-50 border border-red-200 rounded-xl">
           <p className="text-xs font-medium text-red-800 mb-3">

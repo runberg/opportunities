@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/shared/lib/db"
 import { requireSession } from "@/shared/lib/api"
-import { readFile, unlink } from "fs/promises"
+import { readFile, unlink } from "node:fs/promises"
 import { join, basename } from "node:path"
 import { DOC_TYPE_LABELS } from "@/shared/lib/utils"
 

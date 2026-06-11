@@ -10,18 +10,18 @@ import { Textarea } from "@/shared/components/ui/textarea"
 import { QUOTE_STATUSES, STATUS_LABELS, todayISO } from "@/shared/lib/utils"
 
 interface OpportunityFormProps {
-  mode: "create" | "edit"
-  initialData?: {
-    id?: string
-    internalId?: string
-    title?: string
-    customer?: string
-    reference?: string
-    rfqDate?: string
-    product?: string
-    status?: string
-    waitingOn?: string
-    description?: string
+  readonly mode: "create" | "edit"
+  readonly initialData?: {
+    readonly id?: string
+    readonly internalId?: string
+    readonly title?: string
+    readonly customer?: string
+    readonly reference?: string
+    readonly rfqDate?: string
+    readonly product?: string
+    readonly status?: string
+    readonly waitingOn?: string
+    readonly description?: string
   }
 }
 
@@ -46,7 +46,7 @@ export function OpportunityForm({ mode, initialData = {} }: OpportunityFormProps
     setForm((prev) => ({ ...prev, [field]: value }))
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError("")
     setSaving(true)
@@ -79,6 +79,11 @@ export function OpportunityForm({ mode, initialData = {} }: OpportunityFormProps
     }
     router.refresh()
   }
+
+  let submitLabel: string
+  if (saving) submitLabel = "Saving…"
+  else if (mode === "create") submitLabel = "Create Opportunity"
+  else submitLabel = "Save Changes"
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -199,7 +204,7 @@ export function OpportunityForm({ mode, initialData = {} }: OpportunityFormProps
 
       <div className="flex items-center gap-3 pt-1">
         <Button type="submit" disabled={saving}>
-          {saving ? "Saving…" : mode === "create" ? "Create Opportunity" : "Save Changes"}
+          {submitLabel}
         </Button>
         <Button type="button" variant="ghost" onClick={() => router.back()}>
           Cancel

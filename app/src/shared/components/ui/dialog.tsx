@@ -1,20 +1,18 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect } from "react"
 import { cn } from "@/shared/lib/utils"
 import { X } from "lucide-react"
 
 interface DialogProps {
-  open: boolean
-  onClose: () => void
-  title: string
-  children: React.ReactNode
-  className?: string
+  readonly open: boolean
+  readonly onClose: () => void
+  readonly title: string
+  readonly children: React.ReactNode
+  readonly className?: string
 }
 
 export function Dialog({ open, onClose, title, children, className }: DialogProps) {
-  const backdropRef = useRef<HTMLDivElement>(null)
-
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose()
@@ -27,9 +25,10 @@ export function Dialog({ open, onClose, title, children, className }: DialogProp
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div
-        ref={backdropRef}
-        className="absolute inset-0 bg-black/40"
+      <button
+        type="button"
+        aria-label="Close"
+        className="absolute inset-0 bg-black/40 cursor-default"
         onClick={onClose}
       />
       <div

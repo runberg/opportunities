@@ -64,13 +64,17 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
   }
 
   return (
-    <div className="fixed inset-0 z-[60] overflow-y-auto">
-      <div className="flex min-h-full items-start justify-center p-4 pt-[4vh]">
-        {/* Backdrop */}
-        <div className="fixed inset-0 bg-black/40" onClick={onClose} />
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <button
+        type="button"
+        aria-label="Close"
+        className="fixed inset-0 bg-black/40 cursor-default"
+        onClick={onClose}
+      />
 
-        {/* Modal panel */}
-        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl mb-8">
+      {/* Modal panel */}
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-y-auto max-h-[90vh]">
           {/* Top bar */}
           <div className="flex items-center justify-between px-6 py-3 border-b border-gray-100">
             <span className="text-xs text-gray-400 font-medium tracking-wide uppercase">
@@ -201,8 +205,8 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
           </div>
         </div>
       </div>
-    </div>
   )
+
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -218,9 +222,9 @@ function FormField({
   children,
   required = false,
 }: {
-  label: string
-  children: React.ReactNode
-  required?: boolean
+  readonly label: string
+  readonly children: React.ReactNode
+  readonly required?: boolean
 }) {
   return (
     <div className="flex flex-col gap-1.5">

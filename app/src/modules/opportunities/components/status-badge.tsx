@@ -1,5 +1,4 @@
-import { cn } from "@/shared/lib/utils"
-import { STATUS_LABELS, STATUS_SHORT_LABELS, PENDING_LABELS } from "@/shared/lib/utils"
+import { cn, STATUS_LABELS, STATUS_SHORT_LABELS, PENDING_LABELS } from "@/shared/lib/utils"
 
 const STATUS_STYLES: Record<string, string> = {
   NEW: "bg-gray-100 text-gray-600",
@@ -23,7 +22,7 @@ const PENDING_STYLES: Record<string, string> = {
   NONE: "",
 }
 
-export function StatusBadge({ status, short = false }: { status: string; short?: boolean }) {
+export function StatusBadge({ status, short = false }: { readonly status: string; readonly short?: boolean }) {
   const label = short
     ? (STATUS_SHORT_LABELS[status] ?? STATUS_LABELS[status] ?? status)
     : (STATUS_LABELS[status] ?? status)
@@ -39,7 +38,7 @@ export function StatusBadge({ status, short = false }: { status: string; short?:
   )
 }
 
-export function PendingBadge({ waitingOn }: { waitingOn: string }) {
+export function PendingBadge({ waitingOn }: { readonly waitingOn: string }) {
   if (waitingOn === "NONE") return null
   return (
     <span

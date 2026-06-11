@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { MessageSquarePlus, Cpu, ChevronDown, ChevronUp } from "lucide-react"
+import { MessageSquarePlus, Cpu } from "lucide-react"
 import { timeAgo, initials } from "@/shared/lib/utils"
 import { Button } from "@/shared/components/ui/button"
 
@@ -15,10 +15,10 @@ export interface LogEntry {
 }
 
 interface LogSectionProps {
-  opportunityId: string
-  entries: LogEntry[]
-  currentUser: { id: string; name: string }
-  onRefresh?: () => void
+  readonly opportunityId: string
+  readonly entries: LogEntry[]
+  readonly currentUser: { id: string; name: string }
+  readonly onRefresh?: () => void
 }
 
 export function LogSection({
@@ -139,7 +139,7 @@ export function LogSection({
   )
 }
 
-function UserEntry({ entry }: { entry: LogEntry }) {
+function UserEntry({ entry }: { readonly entry: LogEntry }) {
   return (
     <div className="flex gap-3">
       <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
@@ -160,7 +160,7 @@ function UserEntry({ entry }: { entry: LogEntry }) {
   )
 }
 
-function SystemEntry({ entry }: { entry: LogEntry }) {
+function SystemEntry({ entry }: { readonly entry: LogEntry }) {
   return (
     <div className="flex items-start gap-2 pl-1">
       <div className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center mt-0.5">
