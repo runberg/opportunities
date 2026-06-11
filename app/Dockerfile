@@ -6,7 +6,7 @@ WORKDIR /app
 RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
 
 # Install dependencies (skip postinstall — prisma generate runs explicitly below)
-COPY package.json package-lock.json* .npmrc* ./
+COPY package.json package-lock.json .npmrc ./
 RUN npm ci --ignore-scripts
 
 # Copy source
