@@ -117,7 +117,41 @@ openssl rand -base64 32
 
 > **Admin password recovery:** if you ever need to reset the admin password, update `ADMIN_PASSWORD` in `.env` and restart the stack — the seed runs on every startup and will update the account.
 
-#### 3. Start
+#### 3. Create a dedicated system user for Docker
+
+The app container runs as a non-root user. Create a matching OS user on the server so that host-mounted directories (uploads, database data) are owned by a dedicated account with no other privileges:
+
+```bash
+# Create user — choose any name and a free UID/GID (e.g. 1500)
+sudo useradd -r -u 1500 -g 1500 -m -s /sbin/nologin dockerapp
+# Or on systems where the group must be created first:
+sudo groupadd -g 1500 dockerapp && sudo useradd -r -u 1500 -g 1500 -M -s /sbin/nologin dockerapp
+```
+
+Find the UID and GID:
+
+```bash
+id -u dockerapp   # e.g. 1500
+id -g dockerapp   # e.g. 1500
+```
+
+Set these values in `.env`:
+
+```env
+APP_UID=1500
+APP_GID=1500
+```
+
+Create the uploads directory and assign ownership:
+
+```bash
+mkdir -p ./data/uploads
+sudo chown -R 1500:1500 ./data/uploads
+```
+
+> The `./data/postgres` directory is managed by the Postgres container which runs as its own internal user — no manual chown needed there.
+
+#### 4. Start
 
 ```bash
 docker compose up -d
@@ -131,11 +165,11 @@ docker compose logs -f app
 
 Wait until you see `✓ Ready` in the app logs.
 
-#### 4. Open the app
+#### 5. Open the app
 
 Navigate to `http://<your-server-ip>` in a browser and log in with the `ADMIN_EMAIL` and `ADMIN_PASSWORD` you set in `.env`.
 
-#### 5. Create user accounts
+#### 6. Create user accounts
 
 Go to **Admin → Users** to create accounts for your team. Users need an account to log in — there is no self-registration.
 
@@ -170,10 +204,12 @@ opportunities-app.tar
 opportunities-postgres.tar
 opportunities-nginx.tar
 docker-compose.yml
-.env                  ← create from .env.example and fill in values
+.env                  ← create from .env.example and fill in values (including APP_UID / APP_GID)
 nginx/nginx.conf
 nginx/certs/          ← required directory, can be empty unless using HTTPS
 ```
+
+Before starting the stack, follow step 3 from the standard deployment section above to create a dedicated OS user and set `APP_UID`/`APP_GID` in `.env`.
 
 You do **not** need Git or the full source repository on the server.
 
