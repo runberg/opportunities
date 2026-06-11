@@ -2,14 +2,14 @@
 
 import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { formatDate } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Dialog } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select } from "@/components/ui/select"
+import { formatDate } from "@/shared/lib/utils"
+import { Button } from "@/shared/components/ui/button"
+import { Dialog } from "@/shared/components/ui/dialog"
+import { Input } from "@/shared/components/ui/input"
+import { Label } from "@/shared/components/ui/label"
+import { Select } from "@/shared/components/ui/select"
 import { UserPlus, Pencil } from "lucide-react"
-import { SortableHeader, sortRows, type SortDir } from "@/components/ui/sortable-header"
+import { SortableHeader, sortRows, type SortDir } from "@/shared/components/ui/sortable-header"
 
 interface User {
   id: string

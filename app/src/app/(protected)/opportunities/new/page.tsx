@@ -1,4 +1,4 @@
-import { OpportunityForm } from "@/components/opportunities/opportunity-form"
+import { OpportunityForm } from "@/modules/opportunities/components/opportunity-form"
 import Link from "next/link"
 import { ChevronLeft } from "lucide-react"
 

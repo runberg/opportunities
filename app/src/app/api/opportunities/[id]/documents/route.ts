@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
-import { requireSession } from "@/lib/api"
+import { db } from "@/shared/lib/db"
+import { requireSession } from "@/shared/lib/api"
 import { DocumentType, DocumentStatus } from "@prisma/client"
 import { writeFile, mkdir } from "fs/promises"
 import { join } from "path"
 import { v4 as uuidv4 } from "uuid"
-import { DOC_TYPE_LABELS } from "@/lib/utils"
+import { DOC_TYPE_LABELS } from "@/shared/lib/utils"
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR ?? join(process.cwd(), "uploads")
 const MAX_SIZE_BYTES = 50 * 1024 * 1024 // 50 MB

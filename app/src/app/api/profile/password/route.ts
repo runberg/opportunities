@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
+import { db } from "@/shared/lib/db"
 import bcrypt from "bcryptjs"
 import { z } from "zod"
-import { requireSession } from "@/lib/api"
-import { writeLog } from "@/lib/system-log"
+import { requireSession } from "@/shared/lib/api"
+import { writeLog } from "@/shared/lib/system-log"
 
 const schema = z.object({
   currentPassword: z.string().min(1),

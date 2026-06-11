@@ -1,11 +1,11 @@
 import { Suspense } from "react"
-import { db } from "@/lib/db"
+import { db } from "@/shared/lib/db"
 import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
-import { formatDate, parseParam, buildOpportunityWhere, PRODUCTION_STATUSES, STATUS_GROUPS } from "@/lib/utils"
-import { FilterBar } from "@/components/opportunities/filter-bar"
-import { ProductionTable } from "@/components/opportunities/production-table"
-import { Pagination } from "@/components/opportunities/pagination"
+import { authOptions } from "@/shared/lib/auth"
+import { formatDate, parseParam, buildOpportunityWhere, PRODUCTION_STATUSES, STATUS_GROUPS } from "@/shared/lib/utils"
+import { FilterBar } from "@/modules/opportunities/components/filter-bar"
+import { ProductionTable } from "@/modules/opportunities/components/production-table"
+import { Pagination } from "@/modules/opportunities/components/pagination"
 
 interface SearchParams {
   readonly q?: string

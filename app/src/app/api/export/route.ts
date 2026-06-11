@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
-import { requireSession } from "@/lib/api"
-import { formatDate, buildOpportunityWhere, STATUS_LABELS, QUOTE_STATUSES, EL_STATUSES, PRODUCTION_STATUSES } from "@/lib/utils"
+import { db } from "@/shared/lib/db"
+import { requireSession } from "@/shared/lib/api"
+import { formatDate, buildOpportunityWhere, STATUS_LABELS, QUOTE_STATUSES, EL_STATUSES, PRODUCTION_STATUSES } from "@/shared/lib/utils"
 
 function cell(v: string | number | null | undefined): string {
   const s = v == null ? "" : String(v)

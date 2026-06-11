@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
+import { db } from "@/shared/lib/db"
 import { z } from "zod"
-import { requireSession } from "@/lib/api"
+import { requireSession } from "@/shared/lib/api"
 
 const commentSchema = z.object({
   content: z.string().min(1).max(5000),

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
+import { db } from "@/shared/lib/db"
 import { z } from "zod"
 import { type Opportunity, OpportunityStatus, WaitingOn } from "@prisma/client"
-import { STATUS_LABELS, toDateString, WAITING_LABELS } from "@/lib/utils"
-import { requireSession, requireAdmin } from "@/lib/api"
-import { writeLog } from "@/lib/system-log"
-import { scheduleStatusNotification } from "@/lib/notify"
+import { STATUS_LABELS, toDateString, WAITING_LABELS } from "@/shared/lib/utils"
+import { requireSession, requireAdmin } from "@/shared/lib/api"
+import { writeLog } from "@/shared/lib/system-log"
+import { scheduleStatusNotification } from "@/shared/lib/notify"
 
 export async function GET(
   _req: NextRequest,

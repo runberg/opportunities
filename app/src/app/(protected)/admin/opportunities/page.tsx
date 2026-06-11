@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import { authOptions } from "@/shared/lib/auth"
 import { redirect } from "next/navigation"
-import { DeleteOpportunitiesClient } from "@/components/admin/delete-opportunities"
+import { DeleteOpportunitiesClient } from "@/modules/opportunities/components/delete-opportunities"
 
 export default async function AdminOpportunitiesPage() {
   const session = await getServerSession(authOptions)

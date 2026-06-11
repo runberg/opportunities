@@ -1,12 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Button } from "@/shared/components/ui/button"
+import { Input } from "@/shared/components/ui/input"
+import { Label } from "@/shared/components/ui/label"
 import { Sun, Monitor } from "lucide-react"
-import { useTheme } from "@/components/theme/theme-provider"
-import { cn } from "@/lib/utils"
+import { useTheme } from "@/shared/components/theme/theme-provider"
+import { cn } from "@/shared/lib/utils"
 
 export function ProfileClient({
   userEmail,

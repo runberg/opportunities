@@ -1,6 +1,6 @@
-import { db } from "@/lib/db"
+import { db } from "@/shared/lib/db"
 import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import { authOptions } from "@/shared/lib/auth"
 import { redirect } from "next/navigation"
 import { SmtpClient } from "./client"
 

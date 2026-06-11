@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
+import { db } from "@/shared/lib/db"
 import { z } from "zod"
 import { OpportunityStatus, WaitingOn } from "@prisma/client"
-import { requireSession } from "@/lib/api"
-import { writeLog } from "@/lib/system-log"
+import { requireSession } from "@/shared/lib/api"
+import { writeLog } from "@/shared/lib/system-log"
 
 const createSchema = z.object({
   internalId: z.string().optional(),

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
-import { requireAdmin } from "@/lib/api"
-import { sendMail } from "@/lib/mailer"
+import { requireAdmin } from "@/shared/lib/api"
+import { sendMail } from "@/shared/lib/mailer"
 
 const schema = z.object({
   to: z.string().email(),

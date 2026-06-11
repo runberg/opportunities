@@ -2,8 +2,8 @@
 
 import { useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
-import { OpportunityModal } from "@/components/opportunities/opportunity-modal"
+import { cn } from "@/shared/lib/utils"
+import { OpportunityModal } from "@/modules/opportunities/components/opportunity-modal"
 
 type LogType = "LOGIN" | "PASSWORD_CHANGED" | "OPPORTUNITY_CREATED" | "OPPORTUNITY_UPDATED" | "USER_CREATED" | "USER_UPDATED" | "SMTP_UPDATED"
 

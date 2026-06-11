@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
-import { db } from "@/lib/db"
+import { authOptions } from "@/shared/lib/auth"
+import { db } from "@/shared/lib/db"
 import { ProfileClient } from "./client"
 
 export default async function ProfilePage() {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
+import { db } from "@/shared/lib/db"
 import { z } from "zod"
-import { requireSession } from "@/lib/api"
+import { requireSession } from "@/shared/lib/api"
 
 const schema = z.object({
   emailNotifications: z.boolean(),

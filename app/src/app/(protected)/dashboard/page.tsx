@@ -1,12 +1,12 @@
 import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
-import { db } from "@/lib/db"
-import { PeriodSelector } from "@/components/dashboard/period-selector"
-import { PipelineFlow } from "@/components/dashboard/pipeline-flow"
-import { QuoteActivitySection, ElActivitySection, ProductionActivitySection } from "@/components/dashboard/activity-sections"
-import { RecentActivity } from "@/components/dashboard/recent-activity"
-import { PIPELINE_STATUSES } from "@/lib/utils"
-import type { RfqTrendBucket, ElTrendBucket, ProdTrendBucket } from "@/components/dashboard/charts"
+import { authOptions } from "@/shared/lib/auth"
+import { db } from "@/shared/lib/db"
+import { PeriodSelector } from "@/modules/opportunities/components/dashboard/period-selector"
+import { PipelineFlow } from "@/modules/opportunities/components/dashboard/pipeline-flow"
+import { QuoteActivitySection, ElActivitySection, ProductionActivitySection } from "@/modules/opportunities/components/dashboard/activity-sections"
+import { RecentActivity } from "@/modules/opportunities/components/dashboard/recent-activity"
+import { PIPELINE_STATUSES } from "@/shared/lib/utils"
+import type { RfqTrendBucket, ElTrendBucket, ProdTrendBucket } from "@/modules/opportunities/components/dashboard/charts"
 
 // ─── Period helpers ───────────────────────────────────────────────────────────
 

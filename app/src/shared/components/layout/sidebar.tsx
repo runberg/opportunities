@@ -1,0 +1,167 @@
+"use client"
+
+import Link from "next/link"
+import { usePathname, useRouter } from "next/navigation"
+import { signOut } from "next-auth/react"
+import { useState, useEffect } from "react"
+import { createPortal } from "react-dom"
+import {
+  LayoutDashboard,
+  FileText,
+  ScrollText,
+  Factory,
+  Package,
+  Users,
+  Trash2,
+  ClipboardList,
+  Mail,
+  LogOut,
+  User,
+  Plus,
+} from "lucide-react"
+import { cn } from "@/shared/lib/utils"
+import { useTheme } from "@/shared/components/theme/theme-provider"
+import { NewOpportunityModal } from "@/modules/opportunities/components/new-opportunity-modal"
+
+interface SidebarProps {
+  readonly userEmail: string
+  readonly userRole: string
+}
+
+export function Sidebar({ userEmail, userRole }: SidebarProps) {
+  const pathname = usePathname()
+  const router = useRouter()
+  const isAdmin = userRole === "ADMIN"
+  const { theme } = useTheme()
+  const isDark = theme === "dark"
+  const [newModalOpen, setNewModalOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
+
+  function isActive(href: string) {
+    if (href === "/dashboard") return pathname === "/dashboard"
+    return pathname === href || pathname.startsWith(href + "/")
+  }
+
+  const linkCls = (href: string) =>
+    cn(
+      "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
+      isActive(href)
+        ? "bg-blue-600/20 text-blue-400"
+        : isDark
+        ? "text-gray-400 hover:bg-white/5 hover:text-blue-300"
+        : "text-gray-400 hover:bg-gray-800 hover:text-white"
+    )
+
+  const sidebarBg = isDark ? "bg-[#0a1220]" : "bg-gray-900"
+  const borderColor = isDark ? "border-[#1a2d40]" : "border-gray-800"
+  const sectionLabelCls = cn("text-xs font-semibold uppercase tracking-wider", isDark ? "text-[#3d5570]" : "text-gray-500")
+
+  return (
+    <>
+    <aside className={cn("w-60 text-white flex flex-col h-full fixed top-0 left-0 bottom-0", sidebarBg)}>
+      {/* Logo */}
+      <div className={cn("px-5 py-5 border-b", borderColor)}>
+        <span className="text-lg font-semibold tracking-tight text-blue-400">
+          Opportunities<sup className="text-[10px] font-bold text-white ml-0.5 tracking-normal">AI</sup>
+        </span>
+      </div>
+
+      {/* New Opportunity */}
+      <div className={cn("px-3 py-3 border-b", borderColor)}>
+        <button
+          type="button"
+          onClick={() => setNewModalOpen(true)}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#006fff] hover:bg-blue-600 text-white text-sm font-medium rounded-lg transition-colors"
+        >
+          <Plus size={16} />
+          New Opportunity
+        </button>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        <Link href="/dashboard" className={linkCls("/dashboard")}>
+          <LayoutDashboard size={18} />
+          Dashboard
+        </Link>
+
+        <div className="pt-4 pb-1 px-3"><span className={sectionLabelCls}>Opportunities</span></div>
+        <Link href="/opportunities" className={linkCls("/opportunities")}>
+          <FileText size={18} />
+          Quotes
+        </Link>
+        <Link href="/els" className={linkCls("/els")}>
+          <ScrollText size={18} />
+          ELs
+        </Link>
+        <Link href="/production" className={linkCls("/production")}>
+          <Factory size={18} />
+          Production
+        </Link>
+
+        <div className="pt-4 pb-1 px-3"><span className={sectionLabelCls}>Ad Hoc</span></div>
+        <Link href="/adhoc" className={linkCls("/adhoc")}>
+          <Package size={18} />
+          Ad Hoc Deliveries
+        </Link>
+
+        {isAdmin && (
+          <>
+            <div className="pt-4 pb-1 px-3"><span className={sectionLabelCls}>Admin</span></div>
+            <Link href="/admin/users" className={linkCls("/admin/users")}>
+              <Users size={18} />
+              Users
+            </Link>
+            <Link href="/admin/smtp" className={linkCls("/admin/smtp")}>
+              <Mail size={18} />
+              Email / SMTP
+            </Link>
+            <Link href="/admin/logs" className={linkCls("/admin/logs")}>
+              <ClipboardList size={18} />
+              System Log
+            </Link>
+            <Link href="/admin/opportunities" className={linkCls("/admin/opportunities")}>
+              <Trash2 size={18} />
+              Delete
+            </Link>
+          </>
+        )}
+      </nav>
+
+      {/* User section */}
+      <div className={cn("px-3 py-4 border-t space-y-1", borderColor)}>
+        <Link href="/profile" className={linkCls("/profile")}>
+          <User size={18} />
+          <div className="min-w-0">
+            <div className="text-xs truncate text-white">{userEmail}</div>
+            <div className={cn("text-xs capitalize", isDark ? "text-[#3d5570]" : "text-gray-500")}>{userRole.toLowerCase()}</div>
+          </div>
+        </Link>
+        <button
+          onClick={() => signOut({ callbackUrl: "/login" })}
+          className={cn(
+            "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 transition-colors",
+            isDark ? "hover:bg-white/5 hover:text-blue-300" : "hover:bg-gray-800 hover:text-white"
+          )}
+        >
+          <LogOut size={18} />
+          Sign out
+        </button>
+      </div>
+    </aside>
+
+    {mounted && newModalOpen && createPortal(
+      <NewOpportunityModal
+        onClose={() => setNewModalOpen(false)}
+        onCreated={() => {
+          setNewModalOpen(false)
+          router.push("/opportunities")
+          router.refresh()
+        }}
+      />,
+      document.body
+    )}
+  </>
+  )
+}
