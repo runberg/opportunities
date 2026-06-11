@@ -49,10 +49,10 @@ interface OpportunityFull {
 export function OpportunityModal({
   opportunityId, onClose, currentUserId, isAdmin,
 }: {
-  opportunityId: string | null
-  onClose: () => void
-  currentUserId: string
-  isAdmin: boolean
+  readonly opportunityId: string | null
+  readonly onClose: () => void
+  readonly currentUserId: string
+  readonly isAdmin: boolean
 }) {
   const router = useRouter()
   const [data, setData] = useState<OpportunityFull | null>(null)
@@ -162,7 +162,7 @@ function makeForm(data: OpportunityFull) {
 type OppForm = ReturnType<typeof makeForm>
 
 function FormField({ label, children, required = false }: {
-  label: string; children: React.ReactNode; required?: boolean
+  readonly label: string; readonly children: React.ReactNode; readonly required?: boolean
 }) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -177,11 +177,11 @@ function FormField({ label, children, required = false }: {
 // ─── View mode ────────────────────────────────────────────────────────────────
 
 function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: {
-  data: OpportunityFull
-  currentUserId: string
-  isAdmin: boolean
-  onRefresh: () => void
-  onSilentRefresh: () => void
+  readonly data: OpportunityFull
+  readonly currentUserId: string
+  readonly isAdmin: boolean
+  readonly onRefresh: () => void
+  readonly onSilentRefresh: () => void
 }) {
   const isEL = (EL_STATUSES as readonly string[]).includes(data.status)
   const isProduction = (PRODUCTION_STATUSES as readonly string[]).includes(data.status)
@@ -292,12 +292,12 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "EL_REQUEST_RECEIVED", elRequestedDate: elDate }),
       })
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}))
-        setAcceptError(d.error ?? "Failed to save. Please try again.")
-      } else {
+      if (res.ok) {
         setAcceptingQuote(false)
         onRefresh()
+      } else {
+        const d = await res.json().catch(() => ({}))
+        setAcceptError(d.error ?? "Failed to save. Please try again.")
       }
     } catch {
       setAcceptError("Network error. Please try again.")
@@ -315,12 +315,12 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "PENDING_ADVANCE_PAYMENT", elCountersignedDate: counterSignDate }),
       })
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}))
-        setCounterSignError(d.error ?? "Failed to save. Please try again.")
-      } else {
+      if (res.ok) {
         setCounterSigning(false)
         onRefresh()
+      } else {
+        const d = await res.json().catch(() => ({}))
+        setCounterSignError(d.error ?? "Failed to save. Please try again.")
       }
     } catch {
       setCounterSignError("Network error. Please try again.")
@@ -490,11 +490,11 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
 // ─── Date section ─────────────────────────────────────────────────────────────
 
 function DateSection({ data, form, setForm, onRefresh, onDirectPatch }: {
-  data: OpportunityFull
-  form: OppForm
-  setForm: React.Dispatch<React.SetStateAction<OppForm>>
-  onRefresh: () => void
-  onDirectPatch: (payload: Record<string, unknown>) => Promise<string | null>
+  readonly data: OpportunityFull
+  readonly form: OppForm
+  readonly setForm: React.Dispatch<React.SetStateAction<OppForm>>
+  readonly onRefresh: () => void
+  readonly onDirectPatch: (payload: Record<string, unknown>) => Promise<string | null>
 }) {
   const isEL = (EL_STATUSES as readonly string[]).includes(data.status)
   const isQuote = (QUOTE_STATUSES as readonly string[]).includes(data.status)
@@ -663,10 +663,10 @@ function DateSection({ data, form, setForm, onRefresh, onDirectPatch }: {
 // ─── Date card helpers ────────────────────────────────────────────────────────
 
 function DateCard({ label, formValue, onChange, onRevert }: {
-  label: string
-  formValue: string
-  onChange: (v: string) => void
-  onRevert?: () => void
+  readonly label: string
+  readonly formValue: string
+  readonly onChange: (v: string) => void
+  readonly onRevert?: () => void
 }) {
   return (
     <div className={cn("border border-green-200 bg-green-50 rounded-xl p-4 flex flex-col gap-2", onRevert && "group/card")}>
@@ -683,7 +683,7 @@ function DateCard({ label, formValue, onChange, onRevert }: {
   )
 }
 
-function LockedDateCard({ label }: { label: string }) {
+function LockedDateCard({ label }: { readonly label: string }) {
   return (
     <div className="border border-gray-100 bg-gray-50 rounded-xl p-4">
       <p className="text-xs font-medium text-gray-300">{label}</p>

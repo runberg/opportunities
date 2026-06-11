@@ -11,9 +11,9 @@ export interface RecentRow extends OppTableRow {
 }
 
 export function RecentActivity({ items, currentUserId, isAdmin }: {
-  items: RecentRow[]
-  currentUserId: string
-  isAdmin: boolean
+  readonly items: RecentRow[]
+  readonly currentUserId: string
+  readonly isAdmin: boolean
 }) {
   const router = useRouter()
   const [openId, setOpenId] = useState<string | null>(null)

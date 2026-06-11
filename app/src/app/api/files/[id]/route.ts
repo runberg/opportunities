@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { requireSession } from "@/lib/api"
 import { readFile, unlink } from "fs/promises"
-import { join, basename } from "path"
+import { join, basename } from "node:path"
 import { DOC_TYPE_LABELS } from "@/lib/utils"
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR ?? join(process.cwd(), "uploads")

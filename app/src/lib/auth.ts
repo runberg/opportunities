@@ -24,7 +24,7 @@ export const authOptions: NextAuthOptions = {
         const { allowed, retryAfterSeconds } = checkRateLimit(key)
         if (!allowed) {
           const minutes = Math.ceil((retryAfterSeconds ?? 900) / 60)
-          throw new Error(`Too many failed attempts. Try again in ${minutes} minute${minutes !== 1 ? "s" : ""}.`)
+          throw new Error(`Too many failed attempts. Try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`)
         }
 
         const user = await db.user.findUnique({ where: { email: credentials.email } })

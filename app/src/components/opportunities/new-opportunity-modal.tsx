@@ -6,8 +6,8 @@ import { QUOTE_STATUSES, STATUS_LABELS, todayISO } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
 interface NewOpportunityModalProps {
-  onClose: () => void
-  onCreated: (newId: string) => void
+  readonly onClose: () => void
+  readonly onCreated: (newId: string) => void
 }
 
 interface NewForm {

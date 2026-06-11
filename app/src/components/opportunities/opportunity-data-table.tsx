@@ -40,7 +40,7 @@ export interface DateColumn {
 
 // ─── Phase cell ───────────────────────────────────────────────────────────────
 
-function PhaseCell({ done, na = false }: { done: boolean; na?: boolean }) {
+function PhaseCell({ done, na = false }: { readonly done: boolean; readonly na?: boolean }) {
   if (na) return <Minus size={13} className="text-gray-300" />
   if (done) return <Check size={13} className="text-green-500" />
   return <span className="w-3 h-3 rounded-full border-2 border-gray-300 inline-block" />
@@ -73,23 +73,23 @@ export function OpportunityDataTable({
   // Outer wrapper style: "page" adds bg/border/rounded, "modal" is bare
   variant = "page",
 }: {
-  rows: OppTableRow[]
-  emptyMessage?: string
-  loading?: boolean
-  sortKey: string
-  sortDir: SortDir
-  onSort: (key: string, dir: SortDir) => void
-  dateColumn?: DateColumn
-  showPhases?: boolean
-  onRowClick?: (id: string) => void
-  selectable?: boolean
-  selected?: Set<string>
-  onToggleRow?: (id: string) => void
-  onToggleAll?: () => void
-  allSelected?: boolean
-  someSelected?: boolean
-  renderAction?: (row: OppTableRow) => React.ReactNode
-  variant?: "page" | "modal"
+  readonly rows: OppTableRow[]
+  readonly emptyMessage?: string
+  readonly loading?: boolean
+  readonly sortKey: string
+  readonly sortDir: SortDir
+  readonly onSort: (key: string, dir: SortDir) => void
+  readonly dateColumn?: DateColumn
+  readonly showPhases?: boolean
+  readonly onRowClick?: (id: string) => void
+  readonly selectable?: boolean
+  readonly selected?: Set<string>
+  readonly onToggleRow?: (id: string) => void
+  readonly onToggleAll?: () => void
+  readonly allSelected?: boolean
+  readonly someSelected?: boolean
+  readonly renderAction?: (row: OppTableRow) => React.ReactNode
+  readonly variant?: "page" | "modal"
 }) {
   const checkboxRef = useRef<HTMLInputElement>(null)
   useEffect(() => {

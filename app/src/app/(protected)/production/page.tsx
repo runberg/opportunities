@@ -8,17 +8,17 @@ import { ProductionTable } from "@/components/opportunities/production-table"
 import { Pagination } from "@/components/opportunities/pagination"
 
 interface SearchParams {
-  q?: string
-  status?: string
-  waitingOn?: string
-  page?: string
-  perPage?: string
+  readonly q?: string
+  readonly status?: string
+  readonly waitingOn?: string
+  readonly page?: string
+  readonly perPage?: string
 }
 
 export default async function ProductionPage({
   searchParams,
 }: {
-  searchParams: Promise<SearchParams>
+  readonly searchParams: Promise<SearchParams>
 }) {
   const [params, session] = await Promise.all([searchParams, getServerSession(authOptions)])
   const query = params.q?.trim() ?? ""

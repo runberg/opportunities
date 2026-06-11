@@ -6,7 +6,7 @@ import { formatDate, buildOpportunityWhere, STATUS_LABELS, QUOTE_STATUSES, EL_ST
 function cell(v: string | number | null | undefined): string {
   const s = v == null ? "" : String(v)
   if (s.includes(",") || s.includes('"') || s.includes("\n")) {
-    return `"${s.replace(/"/g, '""')}"`
+    return `"${s.replaceAll('"', '""')}"`
   }
   return s
 }

@@ -25,8 +25,8 @@ export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams
   const status = sp.get("status") ?? ""
   const q = sp.get("q")?.trim() ?? ""
-  const page = Math.max(1, parseInt(sp.get("page") ?? "1") || 1)
-  const perPage = Math.min(200, Math.max(10, parseInt(sp.get("perPage") ?? "50") || 50))
+  const page = Math.max(1, Number.parseInt(sp.get("page") ?? "1", 10) || 1)
+  const perPage = Math.min(200, Math.max(10, Number.parseInt(sp.get("perPage") ?? "50", 10) || 50))
 
   // Date-range filter for chart drill-downs (queries by a specific date field in a range)
   const DATE_FIELDS = ["rfqDate","quoteSentDate","elRequestedDate","elDraftSharedDate",

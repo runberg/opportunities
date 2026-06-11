@@ -12,10 +12,10 @@ export function Pagination({
   perPage,
   basePath = "/opportunities",
 }: {
-  total: number
-  page: number
-  perPage: number
-  basePath?: string
+  readonly total: number
+  readonly page: number
+  readonly perPage: number
+  readonly basePath?: string
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()

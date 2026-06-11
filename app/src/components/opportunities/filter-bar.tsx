@@ -12,9 +12,9 @@ export function FilterBar({
   statusGroups = STATUS_GROUPS,
   exportType,
 }: {
-  basePath?: string
-  statusGroups?: StatusGroup[]
-  exportType?: "quotes" | "els" | "production"
+  readonly basePath?: string
+  readonly statusGroups?: StatusGroup[]
+  readonly exportType?: "quotes" | "els" | "production"
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()

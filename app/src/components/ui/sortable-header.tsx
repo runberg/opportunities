@@ -6,13 +6,13 @@ export type SortDir = "asc" | "desc"
 export function SortableHeader({
   label, sortKey, currentSort, currentDir, onSort, className, align = "left",
 }: {
-  label: string
-  sortKey: string
-  currentSort: string
-  currentDir: SortDir
-  onSort: (key: string, dir: SortDir) => void
-  className?: string
-  align?: "left" | "center"
+  readonly label: string
+  readonly sortKey: string
+  readonly currentSort: string
+  readonly currentDir: SortDir
+  readonly onSort: (key: string, dir: SortDir) => void
+  readonly className?: string
+  readonly align?: "left" | "center"
 }) {
   const active = currentSort === sortKey
   const nextDir = active && currentDir === "asc" ? "desc" : "asc"

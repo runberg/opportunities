@@ -11,7 +11,7 @@ import type { DrillTarget, RfqTrendBucket, ElTrendBucket, ProdTrendBucket } from
 function KpiTile({
   label, value, unit = "", color = "text-gray-900", onClick,
 }: {
-  label: string; value: number | string; unit?: string; color?: string; onClick?: () => void
+  readonly label: string; readonly value: number | string; readonly unit?: string; readonly color?: string; readonly onClick?: () => void
 }) {
   return (
     <div className={cn("group", onClick && "cursor-pointer")} onClick={onClick}>
@@ -33,10 +33,10 @@ export function QuoteActivitySection({
   trendData, periodFromISO, periodToISO,
   currentUserId, isAdmin,
 }: {
-  kpiRfq: number; kpiQuotes: number; kpiAvgDays: number | null
-  trendData: RfqTrendBucket[]
-  periodFromISO: string; periodToISO: string
-  currentUserId: string; isAdmin: boolean
+  readonly kpiRfq: number; readonly kpiQuotes: number; readonly kpiAvgDays: number | null
+  readonly trendData: RfqTrendBucket[]
+  readonly periodFromISO: string; readonly periodToISO: string
+  readonly currentUserId: string; readonly isAdmin: boolean
 }) {
   const [drill, setDrill] = useState<DrillTarget | null>(null)
 
@@ -49,7 +49,7 @@ export function QuoteActivitySection({
           onClick={() => setDrill({ title: "RFQs Received", dateField: "rfqDate", fromISO: periodFromISO, toISO: periodToISO })} />
         <KpiTile label="Quotes Shared" value={kpiQuotes} color="text-emerald-500"
           onClick={() => setDrill({ title: "Quotes Shared", dateField: "quoteSentDate", fromISO: periodFromISO, toISO: periodToISO })} />
-        <KpiTile label="Avg Days to Quote" value={kpiAvgDays ?? "—"} unit={kpiAvgDays !== null ? "days" : ""} color="text-gray-400" />
+        <KpiTile label="Avg Days to Quote" value={kpiAvgDays ?? "—"} unit={kpiAvgDays === null ? "" : "days"} color="text-gray-400" />
       </div>
 
       <RfqTrendChart data={trendData} onBarClick={setDrill} />
@@ -68,10 +68,10 @@ export function ElActivitySection({
   trendData, periodFromISO, periodToISO,
   currentUserId, isAdmin,
 }: {
-  kpiRequested: number; kpiDrafted: number; kpiSigned: number; kpiAvgDays: number | null
-  trendData: ElTrendBucket[]
-  periodFromISO: string; periodToISO: string
-  currentUserId: string; isAdmin: boolean
+  readonly kpiRequested: number; readonly kpiDrafted: number; readonly kpiSigned: number; readonly kpiAvgDays: number | null
+  readonly trendData: ElTrendBucket[]
+  readonly periodFromISO: string; readonly periodToISO: string
+  readonly currentUserId: string; readonly isAdmin: boolean
 }) {
   const [drill, setDrill] = useState<DrillTarget | null>(null)
 
@@ -86,7 +86,7 @@ export function ElActivitySection({
           onClick={() => setDrill({ title: "EL Drafts Shared", dateField: "elDraftSharedDate", fromISO: periodFromISO, toISO: periodToISO })} />
         <KpiTile label="EL Signed Shared" value={kpiSigned} color="text-emerald-500"
           onClick={() => setDrill({ title: "EL Signed Shared", dateField: "elSignedSharedDate", fromISO: periodFromISO, toISO: periodToISO })} />
-        <KpiTile label="Avg Days to Signed" value={kpiAvgDays ?? "—"} unit={kpiAvgDays !== null ? "days" : ""} color="text-gray-400" />
+        <KpiTile label="Avg Days to Signed" value={kpiAvgDays ?? "—"} unit={kpiAvgDays === null ? "" : "days"} color="text-gray-400" />
       </div>
 
       <ElTrendChart data={trendData} onBarClick={setDrill} />
@@ -105,10 +105,10 @@ export function ProductionActivitySection({
   trendData, periodFromISO, periodToISO,
   currentUserId, isAdmin,
 }: {
-  kpiCountersigned: number; kpiAdvance: number; kpiFat: number; kpiDelivered: number
-  trendData: ProdTrendBucket[]
-  periodFromISO: string; periodToISO: string
-  currentUserId: string; isAdmin: boolean
+  readonly kpiCountersigned: number; readonly kpiAdvance: number; readonly kpiFat: number; readonly kpiDelivered: number
+  readonly trendData: ProdTrendBucket[]
+  readonly periodFromISO: string; readonly periodToISO: string
+  readonly currentUserId: string; readonly isAdmin: boolean
 }) {
   const [drill, setDrill] = useState<DrillTarget | null>(null)
 

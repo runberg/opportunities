@@ -20,10 +20,10 @@ interface ProductionData {
 }
 
 interface ProductionSectionProps {
-  data: ProductionData
-  currentUserId: string
-  isAdmin: boolean
-  onRefresh: () => void
+  readonly data: ProductionData
+  readonly currentUserId: string
+  readonly isAdmin: boolean
+  readonly onRefresh: () => void
 }
 
 interface ProdEditForm {
@@ -95,13 +95,13 @@ export function ProductionSection({ data, currentUserId, isAdmin, onRefresh }: P
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ [revertTarget.field]: null, status: revertTarget.status }),
       })
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}))
-        setRevertError(d.error ?? "Failed to revert.")
-      } else {
+      if (res.ok) {
         setRevertTarget(null)
         onRefresh()
         router.refresh()
+      } else {
+        const d = await res.json().catch(() => ({}))
+        setRevertError(d.error ?? "Failed to revert.")
       }
     } catch {
       setRevertError("Network error. Please try again.")
@@ -338,10 +338,10 @@ function DateCard({
   label, done, doneValue, locked = false, na = false,
   naToggle, naToggleSaving = false, deliverButton, onRevert, children,
 }: {
-  label: string; done: boolean; doneValue: string | null
-  locked?: boolean; na?: boolean
-  naToggle?: () => void; naToggleSaving?: boolean
-  deliverButton?: React.ReactNode; onRevert?: () => void; children?: React.ReactNode
+  readonly label: string; readonly done: boolean; readonly doneValue: string | null
+  readonly locked?: boolean; readonly na?: boolean
+  readonly naToggle?: () => void; readonly naToggleSaving?: boolean
+  readonly deliverButton?: React.ReactNode; readonly onRevert?: () => void; readonly children?: React.ReactNode
 }) {
   return (
     <div className={cn(
@@ -383,7 +383,7 @@ function DateCard({
   )
 }
 
-function EditDateCard({ label, children }: { label: string; children: React.ReactNode }) {
+function EditDateCard({ label, children }: { readonly label: string; readonly children: React.ReactNode }) {
   return (
     <div className="border border-gray-200 rounded-xl p-4 bg-white flex flex-col gap-1">
       <p className="text-xs font-medium text-gray-400 mb-2">{label}</p>
@@ -392,13 +392,13 @@ function EditDateCard({ label, children }: { label: string; children: React.Reac
   )
 }
 
-function DateLabel({ text, className }: { text: string; className?: string }) {
+function DateLabel({ text, className }: { readonly text: string; readonly className?: string }) {
   return <p className={cn("text-xs text-gray-500", className)}>{text}</p>
 }
 
 function ActionButton({ label, savingKey, saving, onClick, disabled = false, green = false }: {
-  label: string; savingKey: string; saving: string | null
-  onClick: () => void; disabled?: boolean; green?: boolean
+  readonly label: string; readonly savingKey: string; readonly saving: string | null
+  readonly onClick: () => void; readonly disabled?: boolean; readonly green?: boolean
 }) {
   const isSaving = saving === savingKey
   return (

@@ -16,9 +16,9 @@ export interface OpportunityRow extends OppTableRow {
 export function OpportunitiesTable({
   opportunities, currentUserId, isAdmin,
 }: {
-  opportunities: OpportunityRow[]
-  currentUserId: string
-  isAdmin: boolean
+  readonly opportunities: OpportunityRow[]
+  readonly currentUserId: string
+  readonly isAdmin: boolean
 }) {
   const router = useRouter()
   const [openModalId, setOpenModalId] = useState<string | null>(null)

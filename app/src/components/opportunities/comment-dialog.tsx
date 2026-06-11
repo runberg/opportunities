@@ -7,14 +7,14 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 
 interface CommentTarget {
-  id: string
-  title: string
-  internalId?: string | null
+  readonly id: string
+  readonly title: string
+  readonly internalId?: string | null
 }
 
 interface CommentDialogProps {
-  target: CommentTarget | null
-  onClose: () => void
+  readonly target: CommentTarget | null
+  readonly onClose: () => void
 }
 
 export function CommentDialog({ target, onClose }: CommentDialogProps) {

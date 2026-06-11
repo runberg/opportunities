@@ -8,14 +8,14 @@ import { OpportunityModal } from "@/components/opportunities/opportunity-modal"
 type LogType = "LOGIN" | "PASSWORD_CHANGED" | "OPPORTUNITY_CREATED" | "OPPORTUNITY_UPDATED" | "USER_CREATED" | "USER_UPDATED" | "SMTP_UPDATED"
 
 interface LogEntry {
-  id: string
-  type: LogType
-  message: string
-  createdAt: string
-  userId: string | null
-  opportunityId: string | null
-  user: { name: string } | null
-  opportunity: { title: string } | null
+  readonly id: string
+  readonly type: LogType
+  readonly message: string
+  readonly createdAt: string
+  readonly userId: string | null
+  readonly opportunityId: string | null
+  readonly user: { readonly name: string } | null
+  readonly opportunity: { readonly title: string } | null
 }
 
 const TYPE_LABELS: Record<LogType, string> = {
@@ -57,12 +57,12 @@ export function SystemLogClient({
   typeFilter,
   currentUserId,
 }: {
-  logs: LogEntry[]
-  total: number
-  page: number
-  pageSize: number
-  typeFilter: string
-  currentUserId: string
+  readonly logs: LogEntry[]
+  readonly total: number
+  readonly page: number
+  readonly pageSize: number
+  readonly typeFilter: string
+  readonly currentUserId: string
 }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -72,7 +72,7 @@ export function SystemLogClient({
 
   function navigate(newPage: number, newType?: string) {
     const p = new URLSearchParams()
-    const t = newType !== undefined ? newType : typeFilter
+    const t = newType ?? typeFilter
     if (newPage > 1) p.set("page", String(newPage))
     if (t) p.set("type", t)
     const qs = p.toString()
@@ -87,7 +87,7 @@ export function SystemLogClient({
           onClick={() => navigate(1, "")}
           className={cn(
             "px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors",
-            !typeFilter ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+            typeFilter ? "bg-white text-gray-600 border-gray-200 hover:border-gray-400" : "bg-gray-900 text-white border-gray-900"
           )}
         >
           All

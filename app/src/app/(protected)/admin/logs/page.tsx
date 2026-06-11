@@ -15,7 +15,7 @@ export default async function SystemLogPage({
   const [session, params] = await Promise.all([getServerSession(authOptions), searchParams])
   if (session?.user.role !== "ADMIN") redirect("/dashboard")
 
-  const page = Math.max(1, parseInt(params.page ?? "1") || 1)
+  const page = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1)
   const typeFilter = params.type ?? ""
 
   const validTypes = Object.values(SystemLogType) as string[]
@@ -58,7 +58,7 @@ export default async function SystemLogPage({
         page={page}
         pageSize={PAGE_SIZE}
         typeFilter={typeFilter}
-        currentUserId={session!.user.id}
+        currentUserId={session?.user.id ?? ""}
       />
     </div>
   )

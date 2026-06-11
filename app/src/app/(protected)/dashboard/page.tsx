@@ -127,7 +127,7 @@ function buildProdTrend(buckets: { label: string; fromISO: string; toISO: string
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string; from?: string; to?: string }>
+  readonly searchParams: Promise<{ readonly period?: string; readonly from?: string; readonly to?: string }>
 }) {
   const [session, params] = await Promise.all([getServerSession(authOptions), searchParams])
 

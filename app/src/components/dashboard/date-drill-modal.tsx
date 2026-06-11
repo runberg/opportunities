@@ -23,13 +23,13 @@ export function DateDrillModal({
   title, dateField, fromISO, toISO,
   currentUserId, isAdmin, onClose,
 }: {
-  title: string
-  dateField: string
-  fromISO: string
-  toISO: string
-  currentUserId: string
-  isAdmin: boolean
-  onClose: () => void
+  readonly title: string
+  readonly dateField: string
+  readonly fromISO: string
+  readonly toISO: string
+  readonly currentUserId: string
+  readonly isAdmin: boolean
+  readonly onClose: () => void
 }) {
   const [query, setQuery] = useState("")
   const [debouncedQuery, setDebouncedQuery] = useState("")

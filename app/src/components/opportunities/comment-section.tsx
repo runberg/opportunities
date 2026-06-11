@@ -6,16 +6,16 @@ import { timeAgo, initials } from "@/lib/utils"
 import { Textarea } from "@/components/ui/textarea"
 
 interface Comment {
-  id: string
-  content: string
-  createdAt: Date | string
-  author: { id: string; name: string }
+  readonly id: string
+  readonly content: string
+  readonly createdAt: Date | string
+  readonly author: { readonly id: string; readonly name: string }
 }
 
 interface CommentSectionProps {
-  opportunityId: string
-  comments: Comment[]
-  currentUser: { id: string; name: string }
+  readonly opportunityId: string
+  readonly comments: Comment[]
+  readonly currentUser: { readonly id: string; readonly name: string }
 }
 
 export function CommentSection({ opportunityId, comments, currentUser: _currentUser }: CommentSectionProps) {

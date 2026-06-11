@@ -15,9 +15,9 @@ export interface ELRow extends OppTableRow {
 export function ELTable({
   opportunities, currentUserId, isAdmin,
 }: {
-  opportunities: ELRow[]
-  currentUserId: string
-  isAdmin: boolean
+  readonly opportunities: ELRow[]
+  readonly currentUserId: string
+  readonly isAdmin: boolean
 }) {
   const router = useRouter()
   const [openModalId, setOpenModalId] = useState<string | null>(null)

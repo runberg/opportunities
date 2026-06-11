@@ -24,8 +24,8 @@ import { useTheme } from "@/components/theme/theme-provider"
 import { NewOpportunityModal } from "@/components/opportunities/new-opportunity-modal"
 
 interface SidebarProps {
-  userEmail: string
-  userRole: string
+  readonly userEmail: string
+  readonly userRole: string
 }
 
 export function Sidebar({ userEmail, userRole }: SidebarProps) {

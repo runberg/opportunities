@@ -103,16 +103,16 @@ export function DeleteOpportunitiesClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids }),
       })
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}))
-        setDeleteError(d.error ?? "Failed to delete.")
-      } else {
+      if (res.ok) {
         const d = await res.json()
         setSelected(new Set())
         setConfirmOpen(false)
         setDeleteSuccess(`${d.deleted} ${d.deleted === 1 ? "opportunity" : "opportunities"} deleted.`)
         setTimeout(() => setDeleteSuccess(""), 4000)
         fetchData()
+      } else {
+        const d = await res.json().catch(() => ({}))
+        setDeleteError(d.error ?? "Failed to delete.")
       }
     } catch {
       setDeleteError("Network error. Please try again.")

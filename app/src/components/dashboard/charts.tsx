@@ -40,8 +40,8 @@ export interface RfqTrendBucket {
 }
 
 export function RfqTrendChart({ data, onBarClick }: {
-  data: RfqTrendBucket[]
-  onBarClick?: (target: DrillTarget) => void
+  readonly data: RfqTrendBucket[]
+  readonly onBarClick?: (target: DrillTarget) => void
 }) {
   const tooltip = useTooltipStyle()
   if (data.every((d) => d.rfq === 0 && d.quotes === 0)) {
@@ -87,8 +87,8 @@ export interface ElTrendBucket {
 }
 
 export function ElTrendChart({ data, onBarClick }: {
-  data: ElTrendBucket[]
-  onBarClick?: (target: DrillTarget) => void
+  readonly data: ElTrendBucket[]
+  readonly onBarClick?: (target: DrillTarget) => void
 }) {
   const tooltip = useTooltipStyle()
   if (data.every((d) => d.requested === 0 && d.drafted === 0 && d.signed === 0)) {
@@ -138,8 +138,8 @@ export interface ProdTrendBucket {
 }
 
 export function ProductionTrendChart({ data, onBarClick }: {
-  data: ProdTrendBucket[]
-  onBarClick?: (target: DrillTarget) => void
+  readonly data: ProdTrendBucket[]
+  readonly onBarClick?: (target: DrillTarget) => void
 }) {
   const tooltip = useTooltipStyle()
   if (data.every((d) => d.countersigned === 0 && d.advancePaid === 0 && d.fatPassed === 0 && d.delivered === 0)) {

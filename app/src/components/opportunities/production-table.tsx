@@ -14,9 +14,9 @@ export interface ProductionRow extends OppTableRow {
 export function ProductionTable({
   opportunities, currentUserId, isAdmin,
 }: {
-  opportunities: ProductionRow[]
-  currentUserId: string
-  isAdmin: boolean
+  readonly opportunities: ProductionRow[]
+  readonly currentUserId: string
+  readonly isAdmin: boolean
 }) {
   const router = useRouter()
   const [openModalId, setOpenModalId] = useState<string | null>(null)

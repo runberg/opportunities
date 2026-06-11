@@ -65,9 +65,9 @@ export function PipelineFlow({
   currentUserId,
   isAdmin,
 }: {
-  counts: Record<string, number>
-  currentUserId: string
-  isAdmin: boolean
+  readonly counts: Record<string, number>
+  readonly currentUserId: string
+  readonly isAdmin: boolean
 }) {
   const [activeStatus, setActiveStatus] = useState<string | null>(null)
   const [activeLabel, setActiveLabel] = useState("")
@@ -140,11 +140,11 @@ export function PipelineFlow({
 function StatusDrillModal({
   status, label, currentUserId, isAdmin, onClose,
 }: {
-  status: string
-  label: string
-  currentUserId: string
-  isAdmin: boolean
-  onClose: () => void
+  readonly status: string
+  readonly label: string
+  readonly currentUserId: string
+  readonly isAdmin: boolean
+  readonly onClose: () => void
 }) {
   const [query, setQuery] = useState("")
   const [debouncedQuery, setDebouncedQuery] = useState("")

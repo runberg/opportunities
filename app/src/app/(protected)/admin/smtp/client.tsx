@@ -39,19 +39,19 @@ interface SmtpForm {
 }
 
 interface InitialConfig {
-  host: string
-  port: number
-  secure: boolean
-  username: string
-  fromAddress: string
-  fromName: string
-  hasPassword: boolean
-  enabled: boolean
-  notificationSubject: string
-  notificationBody: string
+  readonly host: string
+  readonly port: number
+  readonly secure: boolean
+  readonly username: string
+  readonly fromAddress: string
+  readonly fromName: string
+  readonly hasPassword: boolean
+  readonly enabled: boolean
+  readonly notificationSubject: string
+  readonly notificationBody: string
 }
 
-export function SmtpClient({ initial }: { initial: InitialConfig | null }) {
+export function SmtpClient({ initial }: { readonly initial: InitialConfig | null }) {
   const router = useRouter()
 
   const [form, setForm] = useState<SmtpForm>({
@@ -162,7 +162,7 @@ export function SmtpClient({ initial }: { initial: InitialConfig | null }) {
             </div>
             <div>
               <Label htmlFor="smtp-port">Port *</Label>
-              <Input id="smtp-port" type="number" value={form.port} onChange={(e) => set("port", parseInt(e.target.value) || 587)} min={1} max={65535} required />
+              <Input id="smtp-port" type="number" value={form.port} onChange={(e) => set("port", Number.parseInt(e.target.value, 10) || 587)} min={1} max={65535} required />
             </div>
           </div>
 

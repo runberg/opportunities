@@ -31,7 +31,7 @@ export function formatBytes(bytes: number): string {
   const k = 1024
   const sizes = ["B", "KB", "MB", "GB"]
   const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`
+  return `${Number.parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`
 }
 
 export function formatDate(date: Date | string): string {
@@ -143,7 +143,7 @@ export const DOC_STATUS_LABELS: Record<string, string> = {
   FINAL: "Final",
 }
 
-export const ALL_STATUSES = Object.keys(STATUS_LABELS) as (keyof typeof STATUS_LABELS)[]
+export const ALL_STATUSES = Object.keys(STATUS_LABELS)
 
 export const PIPELINE_STATUSES = [
   "RFQ_RECEIVED", "QUOTE_SENT",
@@ -152,7 +152,7 @@ export const PIPELINE_STATUSES = [
 ] as const
 
 export function parseParam(val: string | undefined, fallback: number): number {
-  const n = val ? parseInt(val, 10) : NaN
+  const n = val ? Number.parseInt(val, 10) : Number.NaN
   return Number.isFinite(n) && n > 0 ? n : fallback
 }
 
