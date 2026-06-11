@@ -6,8 +6,6 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-opportunities}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
       POSTGRES_DB: ${POSTGRES_DB:-opportunities}
-    ports:
-      - "5432:5432"           # Exposed so local npm run dev can connect
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
     restart: unless-stopped
