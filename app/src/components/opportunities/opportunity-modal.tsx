@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { X } from "lucide-react"
 import {
-  cn, formatDate,
+  cn,
   QUOTE_STATUSES, EL_STATUSES, PRODUCTION_STATUSES, STATUS_LABELS,
   todayISO, toDateString,
 } from "@/lib/utils"

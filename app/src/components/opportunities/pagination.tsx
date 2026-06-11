@@ -31,7 +31,7 @@ export function Pagination({
       else params.set(key, value)
     }
     const qs = params.toString()
-    router.push(`${basePath}${qs ? `?${qs}` : ""}`)
+    router.push(qs ? `${basePath}?${qs}` : basePath)
   }
 
   if (total === 0) return null

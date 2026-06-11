@@ -16,6 +16,10 @@ export function SortableHeader({
 }) {
   const active = currentSort === sortKey
   const nextDir = active && currentDir === "asc" ? "desc" : "asc"
+  const dirIcon = currentDir === "asc"
+    ? <ChevronUp size={11} className="flex-shrink-0" />
+    : <ChevronDown size={11} className="flex-shrink-0" />
+  const sortIcon = active ? dirIcon : <ChevronsUpDown size={11} className="opacity-25 flex-shrink-0" />
   return (
     <th
       onClick={() => onSort(sortKey, nextDir)}
@@ -27,13 +31,7 @@ export function SortableHeader({
     >
       <span className={cn("inline-flex items-center gap-1", align === "center" && "justify-center w-full")}>
         {label}
-        {active ? (
-          currentDir === "asc"
-            ? <ChevronUp size={11} className="flex-shrink-0" />
-            : <ChevronDown size={11} className="flex-shrink-0" />
-        ) : (
-          <ChevronsUpDown size={11} className="opacity-25 flex-shrink-0" />
-        )}
+        {sortIcon}
       </span>
     </th>
   )

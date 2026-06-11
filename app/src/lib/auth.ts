@@ -29,7 +29,7 @@ export const authOptions: NextAuthOptions = {
 
         const user = await db.user.findUnique({ where: { email: credentials.email } })
 
-        if (!user || !user.active) {
+        if (!user?.active) {
           recordFailure(key)
           return null
         }

@@ -122,6 +122,7 @@ export function DeleteOpportunitiesClient() {
   }
 
   const selectedCount = selected.size
+  const noun = selectedCount === 1 ? "opportunity" : "opportunities"
 
   return (
     <div className="space-y-4">
@@ -216,7 +217,7 @@ export function DeleteOpportunitiesClient() {
         <div className="space-y-4">
           <p className="text-sm text-gray-700">
             You are about to permanently delete{" "}
-            <span className="font-semibold text-red-700">{selectedCount} {selectedCount === 1 ? "opportunity" : "opportunities"}</span>.
+            <span className="font-semibold text-red-700">{selectedCount} {noun}</span>.
             This cannot be undone — all associated comments and documents will also be deleted.
           </p>
           {deleteError && (
@@ -229,7 +230,7 @@ export function DeleteOpportunitiesClient() {
               disabled={deleting}
               className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-colors"
             >
-              {deleting ? "Deleting…" : `Delete ${selectedCount} ${selectedCount === 1 ? "opportunity" : "opportunities"}`}
+              {deleting ? "Deleting…" : `Delete ${selectedCount} ${noun}`}
             </button>
             <button
               type="button"

@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
   const query = sp.get("q")?.trim() ?? ""
   const selectedStatuses = sp.get("status")?.split(",").filter(Boolean) ?? []
   let csv = ""
-  let filename = "export.csv"
+  let filename: string
 
   if (type === "quotes") {
     const where = buildOpportunityWhere(query, selectedStatuses, QUOTE_STATUSES)

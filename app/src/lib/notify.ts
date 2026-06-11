@@ -68,7 +68,7 @@ async function fireNotification(opts: {
   actorEmail: string
 }) {
   const config = await db.smtpConfig.findUnique({ where: { id: "default" } })
-  if (!config || !config.enabled) return
+  if (!config?.enabled) return
 
   const recipients = await db.user.findMany({
     where: { active: true, emailNotifications: true },

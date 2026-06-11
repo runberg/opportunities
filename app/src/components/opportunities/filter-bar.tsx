@@ -171,7 +171,7 @@ export function FilterBar({
 
       {exportType && (
         <a
-          href={`/api/export?type=${exportType}${query ? `&q=${encodeURIComponent(query)}` : ""}${statusParam ? `&status=${encodeURIComponent(statusParam)}` : ""}`}
+          href={`/api/export?type=${exportType}` + (query ? `&q=${encodeURIComponent(query)}` : "") + (statusParam ? `&status=${encodeURIComponent(statusParam)}` : "")}
           download
           className="flex items-center gap-1.5 px-3 py-2 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 rounded-lg text-sm transition-colors ml-auto"
         >

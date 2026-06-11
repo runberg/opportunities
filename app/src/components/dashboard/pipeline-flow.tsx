@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { ChevronRight, X, Search, Download } from "lucide-react"
-import { cn, PIPELINE_STATUSES } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 import { OpportunityModal } from "@/components/opportunities/opportunity-modal"
 import { OpportunityDataTable, type OppTableRow, type DateColumn } from "@/components/opportunities/opportunity-data-table"
 import { type SortDir } from "@/components/ui/sortable-header"
@@ -185,7 +185,8 @@ function StatusDrillModal({
   const items = result?.items ?? []
   const total = result?.total ?? 0
   const totalPages = Math.max(1, Math.ceil(total / perPage))
-  const exportHref = `/api/export?type=${exportTypeForStatus(status)}&status=${status}${debouncedQuery ? `&q=${encodeURIComponent(debouncedQuery)}` : ""}`
+  const queryPart = debouncedQuery ? `&q=${encodeURIComponent(debouncedQuery)}` : ""
+  const exportHref = `/api/export?type=${exportTypeForStatus(status)}&status=${status}${queryPart}`
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">

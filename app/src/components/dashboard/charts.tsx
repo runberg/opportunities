@@ -76,6 +76,12 @@ export function RfqTrendChart({ data, onBarClick }: {
 
 // ─── EL Trend Chart ──────────────────────────────────────────────────────────
 
+const EL_LEGEND_LABELS: Record<string, string> = {
+  requested: "EL requested",
+  drafted: "EL draft shared",
+  signed: "EL signed shared",
+}
+
 export interface ElTrendBucket {
   label: string; requested: number; drafted: number; signed: number; fromISO: string; toISO: string
 }
@@ -102,9 +108,7 @@ export function ElTrendChart({ data, onBarClick }: {
         <Legend
           iconType="circle" iconSize={8}
           wrapperStyle={{ fontSize: 11, color: "#6b7280", paddingTop: 8 }}
-          formatter={(value) =>
-            value === "requested" ? "EL requested" : value === "drafted" ? "EL draft shared" : "EL signed shared"
-          }
+          formatter={(value) => EL_LEGEND_LABELS[value] ?? value}
         />
         <Bar dataKey="requested" fill="#006fff" radius={[3, 3, 0, 0]} maxBarSize={20}
           style={onBarClick ? { cursor: "pointer" } : undefined}
@@ -121,6 +125,13 @@ export function ElTrendChart({ data, onBarClick }: {
 }
 
 // ─── Production Trend Chart ───────────────────────────────────────────────────
+
+const PROD_LEGEND_LABELS: Record<string, string> = {
+  countersigned: "Contract countersigned",
+  advancePaid: "Advance payment",
+  fatPassed: "FAT passed",
+  delivered: "Delivered",
+}
 
 export interface ProdTrendBucket {
   label: string; countersigned: number; advancePaid: number; fatPassed: number; delivered: number; fromISO: string; toISO: string
@@ -148,11 +159,7 @@ export function ProductionTrendChart({ data, onBarClick }: {
         <Legend
           iconType="circle" iconSize={8}
           wrapperStyle={{ fontSize: 11, color: "#6b7280", paddingTop: 8 }}
-          formatter={(value) =>
-            value === "countersigned" ? "Contract countersigned" :
-            value === "advancePaid" ? "Advance payment" :
-            value === "fatPassed" ? "FAT passed" : "Delivered"
-          }
+          formatter={(value) => PROD_LEGEND_LABELS[value] ?? value}
         />
         <Bar dataKey="countersigned" fill="#006fff" radius={[3, 3, 0, 0]} maxBarSize={18}
           style={onBarClick ? { cursor: "pointer" } : undefined}

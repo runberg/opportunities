@@ -58,7 +58,7 @@ export async function PATCH(
 
   await writeLog({
     type: "USER_UPDATED",
-    message: `User "${user.email}" updated${changes.length ? `: ${changes.join(", ")}` : ""}`,
+    message: `User "${user.email}" updated` + (changes.length ? `: ${changes.join(", ")}` : ""),
     userId: session.user.id,
   })
 
