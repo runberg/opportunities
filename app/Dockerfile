@@ -12,11 +12,8 @@ RUN npm ci --ignore-scripts
 # Copy source
 COPY . .
 
-# Generate Prisma client, build Next.js, create uploads directory
-RUN npx prisma generate && npm run build && mkdir -p /app/uploads
-
-# Transfer ownership to non-root user before dropping privileges
-RUN chown -R nextjs:nodejs /app
+# Generate Prisma client, build Next.js, create uploads directory, transfer ownership
+RUN npx prisma generate && npm run build && mkdir -p /app/uploads && chown -R nextjs:nodejs /app
 
 EXPOSE 3000
 ENV NODE_ENV=production
