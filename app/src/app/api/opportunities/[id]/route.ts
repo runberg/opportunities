@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { z } from "zod"
-import { OpportunityStatus, WaitingOn } from "@prisma/client"
+import { type Opportunity, OpportunityStatus, WaitingOn } from "@prisma/client"
 import { STATUS_LABELS, toDateString, WAITING_LABELS } from "@/lib/utils"
 import { requireSession, requireAdmin } from "@/lib/api"
 import { writeLog } from "@/lib/system-log"
@@ -59,6 +59,126 @@ const updateSchema = z.object({
   description: z.string().optional().nullable(),
 })
 
+type ParsedUpdate = z.infer<typeof updateSchema>
+type DateFieldKey =
+  | "rfqDate" | "quoteSentDate" | "elRequestedDate" | "elDraftSharedDate" | "elSignedSharedDate"
+  | "elCountersignedDate" | "advancePaymentDate" | "fatDate" | "fatPassedDate" | "satDate"
+  | "satPassedDate" | "deliveredDate"
+type DateFields = Pick<ParsedUpdate, DateFieldKey>
+type RestFields = Omit<ParsedUpdate, DateFieldKey>
+
+function dateOrNull(s: string | null | undefined): Date | null | undefined {
+  if (s === undefined) return undefined
+  return s ? new Date(s) : null
+}
+
+function changed(next: string | null | undefined, prev: string | null): boolean {
+  return (next ?? null) !== prev
+}
+
+function inferAutoStatus(
+  existing: Pick<Opportunity, "status" | "advancePaymentDate" | "deliveredDate">,
+  dates: Pick<DateFields, "advancePaymentDate" | "deliveredDate">,
+  requestedStatus: OpportunityStatus | undefined
+): OpportunityStatus | undefined {
+  let status = requestedStatus
+  if (
+    dates.advancePaymentDate &&
+    dates.advancePaymentDate !== toDateString(existing.advancePaymentDate) &&
+    existing.status === "PENDING_ADVANCE_PAYMENT"
+  ) {
+    status = "IN_PRODUCTION"
+  }
+  if (dates.deliveredDate && dates.deliveredDate !== toDateString(existing.deliveredDate)) {
+    status = "DELIVERED"
+  }
+  return status
+}
+
+function buildMilestoneEvents(existing: Opportunity, dates: DateFields): string[] {
+  const events: string[] = []
+  if (dates.quoteSentDate && dates.quoteSentDate !== toDateString(existing.quoteSentDate))
+    events.push(`Quote marked as sent (${dates.quoteSentDate})`)
+  if (dates.elRequestedDate && dates.elRequestedDate !== toDateString(existing.elRequestedDate))
+    events.push(`Quote accepted — EL requested (${dates.elRequestedDate})`)
+  if (dates.elCountersignedDate && dates.elCountersignedDate !== toDateString(existing.elCountersignedDate))
+    events.push(`EL countersigned (${dates.elCountersignedDate})`)
+  if (dates.advancePaymentDate && dates.advancePaymentDate !== toDateString(existing.advancePaymentDate))
+    events.push(`Advance payment confirmed (${dates.advancePaymentDate})`)
+  if (dates.fatPassedDate && dates.fatPassedDate !== toDateString(existing.fatPassedDate))
+    events.push(`FAT passed (${dates.fatPassedDate})`)
+  if (dates.satPassedDate && dates.satPassedDate !== toDateString(existing.satPassedDate))
+    events.push(`SAT passed (${dates.satPassedDate})`)
+  if (dates.deliveredDate && dates.deliveredDate !== toDateString(existing.deliveredDate))
+    events.push(`Marked as delivered (${dates.deliveredDate})`)
+  return events
+}
+
+function buildSimpleFieldEvents(existing: Opportunity, rest: RestFields): string[] {
+  const satMsg = rest.satApplicable ? `SAT marked as applicable` : `SAT marked as not applicable`
+  const events: string[] = []
+  if (rest.title !== undefined && rest.title !== existing.title)
+    events.push(`Title changed to "${rest.title}"`)
+  if (rest.customer !== undefined && rest.customer !== existing.customer)
+    events.push(`Customer changed to "${rest.customer}"`)
+  if (rest.waitingOn !== undefined && rest.waitingOn !== existing.waitingOn)
+    events.push(`Waiting on set to "${WAITING_LABELS[rest.waitingOn] ?? rest.waitingOn}"`)
+  if (rest.satApplicable !== undefined && rest.satApplicable !== existing.satApplicable)
+    events.push(satMsg)
+  return events
+}
+
+function buildNullableFieldEvents(existing: Opportunity, rest: RestFields): string[] {
+  const msgs = {
+    product: rest.product ? `Product set to "${rest.product}"` : `Product cleared`,
+    internalId: rest.internalId ? `Internal ID set to "${rest.internalId}"` : `Internal ID cleared`,
+    reference: rest.reference ? `Reference set to "${rest.reference}"` : `Reference cleared`,
+    description: rest.description ? `Details updated` : `Details cleared`,
+  }
+  const events: string[] = []
+  if (rest.product !== undefined && changed(rest.product, existing.product)) events.push(msgs.product)
+  if (rest.internalId !== undefined && changed(rest.internalId, existing.internalId)) events.push(msgs.internalId)
+  if (rest.reference !== undefined && changed(rest.reference, existing.reference)) events.push(msgs.reference)
+  if (rest.description !== undefined && changed(rest.description, existing.description)) events.push(msgs.description)
+  return events
+}
+
+function buildScheduledDateEvents(existing: Opportunity, dates: DateFields): string[] {
+  const msgs = {
+    rfq: dates.rfqDate ? `RFQ date set to ${dates.rfqDate}` : `RFQ date cleared`,
+    elDraft: dates.elDraftSharedDate ? `EL draft shared date set to ${dates.elDraftSharedDate}` : `EL draft shared date cleared`,
+    elSigned: dates.elSignedSharedDate ? `EL signed shared date set to ${dates.elSignedSharedDate}` : `EL signed shared date cleared`,
+    fat: dates.fatDate ? `FAT scheduled for ${dates.fatDate}` : `FAT scheduled date cleared`,
+    sat: dates.satDate ? `SAT scheduled for ${dates.satDate}` : `SAT scheduled date cleared`,
+  }
+  const events: string[] = []
+  if (dates.rfqDate !== undefined && dates.rfqDate !== toDateString(existing.rfqDate)) events.push(msgs.rfq)
+  if (dates.elDraftSharedDate !== undefined && dates.elDraftSharedDate !== toDateString(existing.elDraftSharedDate)) events.push(msgs.elDraft)
+  if (dates.elSignedSharedDate !== undefined && dates.elSignedSharedDate !== toDateString(existing.elSignedSharedDate)) events.push(msgs.elSigned)
+  if (dates.fatDate !== undefined && dates.fatDate !== toDateString(existing.fatDate)) events.push(msgs.fat)
+  if (dates.satDate !== undefined && dates.satDate !== toDateString(existing.satDate)) events.push(msgs.sat)
+  return events
+}
+
+function buildChangeEvents(
+  existing: Opportunity,
+  dates: DateFields,
+  rest: RestFields,
+  prevStatus: OpportunityStatus,
+  nextStatus: OpportunityStatus
+): string[] {
+  const events: string[] = []
+  if (nextStatus !== prevStatus)
+    events.push(`Status changed from "${STATUS_LABELS[prevStatus] ?? prevStatus}" to "${STATUS_LABELS[nextStatus] ?? nextStatus}"`)
+  events.push(
+    ...buildMilestoneEvents(existing, dates),
+    ...buildSimpleFieldEvents(existing, rest),
+    ...buildNullableFieldEvents(existing, rest),
+    ...buildScheduledDateEvents(existing, dates),
+  )
+  return events
+}
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -70,9 +190,7 @@ export async function PATCH(
   const body = await req.json().catch(() => null)
   if (!body) return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
   const parsed = updateSchema.safeParse(body)
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input" }, { status: 400 })
-  }
+  if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 })
 
   const existing = await db.opportunity.findUnique({ where: { id } })
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 })
@@ -83,46 +201,14 @@ export async function PATCH(
     ...rest
   } = parsed.data
 
-  // Auto-advance status based on newly set dates
-  let autoStatus = rest.status
-  if (advancePaymentDate && advancePaymentDate !== toDateString(existing.advancePaymentDate)
-      && existing.status === "PENDING_ADVANCE_PAYMENT") {
-    autoStatus = "IN_PRODUCTION"
-  }
-  if (deliveredDate && deliveredDate !== toDateString(existing.deliveredDate)) {
-    autoStatus = "DELIVERED"
+  const dates: DateFields = {
+    rfqDate, quoteSentDate, elRequestedDate, elDraftSharedDate, elSignedSharedDate, elCountersignedDate,
+    advancePaymentDate, fatDate, fatPassedDate, satDate, satPassedDate, deliveredDate,
   }
 
-  // Capture system events before updating
   const prevStatus = existing.status
+  const autoStatus = inferAutoStatus(existing, dates, rest.status)
   const nextStatus = autoStatus ?? existing.status
-  const statusChanged = nextStatus !== prevStatus
-  const quoteSentNew = quoteSentDate && quoteSentDate !== toDateString(existing.quoteSentDate)
-  const elRequestedNew = elRequestedDate && elRequestedDate !== toDateString(existing.elRequestedDate)
-  const advancePaymentNew = advancePaymentDate && advancePaymentDate !== toDateString(existing.advancePaymentDate)
-  const fatPassedNew = fatPassedDate && fatPassedDate !== toDateString(existing.fatPassedDate)
-  const elCountersignedNew = elCountersignedDate && elCountersignedDate !== toDateString(existing.elCountersignedDate)
-  const satPassedNew = satPassedDate && satPassedDate !== toDateString(existing.satPassedDate)
-  const deliveredNew = deliveredDate && deliveredDate !== toDateString(existing.deliveredDate)
-
-  // Field edit events
-  const titleChanged = rest.title !== undefined && rest.title !== existing.title
-  const customerChanged = rest.customer !== undefined && rest.customer !== existing.customer
-  const productChanged = rest.product !== undefined && (rest.product ?? null) !== (existing.product ?? null)
-  const internalIdChanged = rest.internalId !== undefined && (rest.internalId ?? null) !== (existing.internalId ?? null)
-  const referenceChanged = rest.reference !== undefined && (rest.reference ?? null) !== (existing.reference ?? null)
-  const descriptionChanged = rest.description !== undefined && (rest.description ?? null) !== (existing.description ?? null)
-  const waitingOnChanged = rest.waitingOn !== undefined && rest.waitingOn !== existing.waitingOn
-  const satApplicableChanged = rest.satApplicable !== undefined && rest.satApplicable !== existing.satApplicable
-  const rfqDateChanged = rfqDate !== undefined && rfqDate !== toDateString(existing.rfqDate)
-  const elDraftDateChanged = elDraftSharedDate !== undefined && elDraftSharedDate !== toDateString(existing.elDraftSharedDate)
-  const elSignedDateChanged = elSignedSharedDate !== undefined && elSignedSharedDate !== toDateString(existing.elSignedSharedDate)
-  const fatDateChanged = fatDate !== undefined && fatDate !== toDateString(existing.fatDate)
-  const satDateChanged = satDate !== undefined && satDate !== toDateString(existing.satDate)
-
-  function dateOrNull(s: string | null | undefined) {
-    return s !== undefined ? (s ? new Date(s) : null) : undefined
-  }
 
   const updated = await db.opportunity.update({
     where: { id },
@@ -145,29 +231,7 @@ export async function PATCH(
     },
   })
 
-  // System log events
-  const events: string[] = []
-  if (statusChanged) events.push(`Status changed from "${STATUS_LABELS[prevStatus] ?? prevStatus}" to "${STATUS_LABELS[nextStatus] ?? nextStatus}"`)
-  if (quoteSentNew) events.push(`Quote marked as sent (${quoteSentDate})`)
-  if (elRequestedNew) events.push(`Quote accepted — EL requested (${elRequestedDate})`)
-  if (elCountersignedNew) events.push(`EL countersigned (${elCountersignedDate})`)
-  if (advancePaymentNew) events.push(`Advance payment confirmed (${advancePaymentDate})`)
-  if (fatPassedNew) events.push(`FAT passed (${fatPassedDate})`)
-  if (satPassedNew) events.push(`SAT passed (${satPassedDate})`)
-  if (deliveredNew) events.push(`Marked as delivered (${deliveredDate})`)
-  if (titleChanged) events.push(`Title changed to "${rest.title}"`)
-  if (customerChanged) events.push(`Customer changed to "${rest.customer}"`)
-  if (productChanged) events.push(rest.product ? `Product set to "${rest.product}"` : `Product cleared`)
-  if (internalIdChanged) events.push(rest.internalId ? `Internal ID set to "${rest.internalId}"` : `Internal ID cleared`)
-  if (referenceChanged) events.push(rest.reference ? `Reference set to "${rest.reference}"` : `Reference cleared`)
-  if (descriptionChanged) events.push(rest.description ? `Details updated` : `Details cleared`)
-  if (waitingOnChanged) events.push(`Waiting on set to "${WAITING_LABELS[rest.waitingOn!] ?? rest.waitingOn}"`)
-  if (satApplicableChanged) events.push(rest.satApplicable ? `SAT marked as applicable` : `SAT marked as not applicable`)
-  if (rfqDateChanged) events.push(rfqDate ? `RFQ date set to ${rfqDate}` : `RFQ date cleared`)
-  if (elDraftDateChanged) events.push(elDraftSharedDate ? `EL draft shared date set to ${elDraftSharedDate}` : `EL draft shared date cleared`)
-  if (elSignedDateChanged) events.push(elSignedSharedDate ? `EL signed shared date set to ${elSignedSharedDate}` : `EL signed shared date cleared`)
-  if (fatDateChanged) events.push(fatDate ? `FAT scheduled for ${fatDate}` : `FAT scheduled date cleared`)
-  if (satDateChanged) events.push(satDate ? `SAT scheduled for ${satDate}` : `SAT scheduled date cleared`)
+  const events = buildChangeEvents(existing, dates, rest, prevStatus, nextStatus)
 
   for (const content of events) {
     await db.comment.create({ data: { content, system: true, opportunityId: id, authorId: session.user.id } })
@@ -182,7 +246,7 @@ export async function PATCH(
     })
   }
 
-  if (statusChanged) {
+  if (nextStatus !== prevStatus) {
     const actor = await db.user.findUnique({ where: { id: session.user.id }, select: { email: true } })
     scheduleStatusNotification({
       opportunityId: id,

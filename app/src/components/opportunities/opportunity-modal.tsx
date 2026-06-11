@@ -77,7 +77,10 @@ export function OpportunityModal({
     setLoading(true)
     setFetchError("")
     fetch(`/api/opportunities/${opportunityId}`)
-      .then((r) => { if (!r.ok) throw new Error(); return r.json() })
+      .then((r) => {
+        if (!r.ok) { throw new Error("Failed to load opportunity") }
+        return r.json()
+      })
       .then((d) => { setData(d); setLoading(false) })
       .catch(() => { setFetchError("Failed to load opportunity."); setLoading(false) })
   }, [opportunityId, refreshKey])
