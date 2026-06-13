@@ -159,3 +159,9 @@
 [data-theme="dark"] .text-blue-900   { color: #93c5fd; }
 [data-theme="dark"] .bg-gray-200     { background-color: #253d55; }
 [data-theme="dark"] .text-gray-800   { color: #c0d4e8; }
+
+/* ── Ad Hoc module status badges ─── */
+[data-theme="dark"] .bg-amber-50     { background-color: rgba(245, 158, 11, 0.10); }
+[data-theme="dark"] .text-amber-300  { color: #fcd34d; }
+[data-theme="dark"] .text-blue-300   { color: #93c5fd; }
+[data-theme="dark"] .text-green-300  { color: #86efac; }

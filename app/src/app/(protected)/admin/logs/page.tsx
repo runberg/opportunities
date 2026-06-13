@@ -7,6 +7,27 @@ import { SystemLogClient } from "@/modules/admin/components/logs-client"
 
 const PAGE_SIZE = 100
 
+const GROUP_TYPES: Record<string, SystemLogType[]> = {
+  OPPORTUNITIES: ["OPPORTUNITY_CREATED", "OPPORTUNITY_UPDATED"],
+  ADHOC: [
+    "ADHOC_AGREEMENT_CREATED", "ADHOC_AGREEMENT_UPDATED", "ADHOC_AGREEMENT_SIGNED",
+    "ADHOC_AGREEMENT_DOCUMENT_UPLOADED", "ADHOC_AGREEMENT_DOCUMENT_DELETED",
+    "ADHOC_DELIVERABLE_CREATED", "ADHOC_DELIVERABLE_UPDATED",
+    "ADHOC_LINE_ITEM_ADDED", "ADHOC_LINE_ITEM_UPDATED", "ADHOC_LINE_ITEM_DELETED",
+    "ADHOC_DOCUMENT_UPLOADED", "ADHOC_DOCUMENT_DELETED",
+  ],
+  USERS: ["USER_CREATED", "USER_UPDATED", "PASSWORD_CHANGED"],
+  LOGIN: ["LOGIN"],
+  CONFIG: ["SMTP_UPDATED"],
+}
+
+function buildWhere(typeFilter: string) {
+  if (!typeFilter) return {}
+  const group = GROUP_TYPES[typeFilter]
+  if (group) return { type: { in: group } }
+  return {}
+}
+
 export default async function SystemLogPage({
   searchParams,
 }: {
@@ -17,9 +38,7 @@ export default async function SystemLogPage({
 
   const page = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1)
   const typeFilter = params.type ?? ""
-
-  const validTypes = Object.values(SystemLogType) as string[]
-  const where = typeFilter && validTypes.includes(typeFilter) ? { type: typeFilter as SystemLogType } : {}
+  const where = buildWhere(typeFilter)
 
   const [logs, total] = await Promise.all([
     db.systemLog.findMany({
@@ -34,6 +53,7 @@ export default async function SystemLogPage({
         createdAt: true,
         userId: true,
         opportunityId: true,
+        adhocDeliverableId: true,
         user: { select: { name: true } },
         opportunity: { select: { title: true } },
       },

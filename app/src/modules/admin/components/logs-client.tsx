@@ -5,7 +5,26 @@ import { useRouter, usePathname } from "next/navigation"
 import { cn } from "@/shared/lib/utils"
 import { OpportunityModal } from "@/modules/opportunities/components/opportunity-modal"
 
-type LogType = "LOGIN" | "PASSWORD_CHANGED" | "OPPORTUNITY_CREATED" | "OPPORTUNITY_UPDATED" | "USER_CREATED" | "USER_UPDATED" | "SMTP_UPDATED"
+type LogType =
+  | "LOGIN"
+  | "PASSWORD_CHANGED"
+  | "OPPORTUNITY_CREATED"
+  | "OPPORTUNITY_UPDATED"
+  | "USER_CREATED"
+  | "USER_UPDATED"
+  | "SMTP_UPDATED"
+  | "ADHOC_AGREEMENT_CREATED"
+  | "ADHOC_AGREEMENT_UPDATED"
+  | "ADHOC_AGREEMENT_SIGNED"
+  | "ADHOC_AGREEMENT_DOCUMENT_UPLOADED"
+  | "ADHOC_AGREEMENT_DOCUMENT_DELETED"
+  | "ADHOC_DELIVERABLE_CREATED"
+  | "ADHOC_DELIVERABLE_UPDATED"
+  | "ADHOC_LINE_ITEM_ADDED"
+  | "ADHOC_LINE_ITEM_UPDATED"
+  | "ADHOC_LINE_ITEM_DELETED"
+  | "ADHOC_DOCUMENT_UPLOADED"
+  | "ADHOC_DOCUMENT_DELETED"
 
 interface LogEntry {
   readonly id: string
@@ -14,6 +33,7 @@ interface LogEntry {
   readonly createdAt: string
   readonly userId: string | null
   readonly opportunityId: string | null
+  readonly adhocDeliverableId: string | null
   readonly user: { readonly name: string } | null
   readonly opportunity: { readonly title: string } | null
 }
@@ -26,7 +46,21 @@ const TYPE_LABELS: Record<LogType, string> = {
   USER_CREATED: "User Created",
   USER_UPDATED: "User Updated",
   SMTP_UPDATED: "SMTP Config",
+  ADHOC_AGREEMENT_CREATED: "Agreement",
+  ADHOC_AGREEMENT_UPDATED: "Agreement",
+  ADHOC_AGREEMENT_SIGNED: "Agreement",
+  ADHOC_AGREEMENT_DOCUMENT_UPLOADED: "Agr. Doc",
+  ADHOC_AGREEMENT_DOCUMENT_DELETED: "Agr. Doc",
+  ADHOC_DELIVERABLE_CREATED: "Ad Hoc",
+  ADHOC_DELIVERABLE_UPDATED: "Ad Hoc",
+  ADHOC_LINE_ITEM_ADDED: "Ad Hoc",
+  ADHOC_LINE_ITEM_UPDATED: "Ad Hoc",
+  ADHOC_LINE_ITEM_DELETED: "Ad Hoc",
+  ADHOC_DOCUMENT_UPLOADED: "Ad Hoc Doc",
+  ADHOC_DOCUMENT_DELETED: "Ad Hoc Doc",
 }
+
+const ADHOC_COLOR = "bg-orange-50 text-orange-700 border-orange-200"
 
 const TYPE_COLORS: Record<LogType, string> = {
   LOGIN: "bg-blue-50 text-blue-700 border-blue-200",
@@ -36,9 +70,37 @@ const TYPE_COLORS: Record<LogType, string> = {
   USER_CREATED: "bg-purple-50 text-purple-700 border-purple-200",
   USER_UPDATED: "bg-purple-50 text-purple-700 border-purple-200",
   SMTP_UPDATED: "bg-teal-50 text-teal-700 border-teal-200",
+  ADHOC_AGREEMENT_CREATED: ADHOC_COLOR,
+  ADHOC_AGREEMENT_UPDATED: ADHOC_COLOR,
+  ADHOC_AGREEMENT_SIGNED: ADHOC_COLOR,
+  ADHOC_AGREEMENT_DOCUMENT_UPLOADED: ADHOC_COLOR,
+  ADHOC_AGREEMENT_DOCUMENT_DELETED: ADHOC_COLOR,
+  ADHOC_DELIVERABLE_CREATED: ADHOC_COLOR,
+  ADHOC_DELIVERABLE_UPDATED: ADHOC_COLOR,
+  ADHOC_LINE_ITEM_ADDED: ADHOC_COLOR,
+  ADHOC_LINE_ITEM_UPDATED: ADHOC_COLOR,
+  ADHOC_LINE_ITEM_DELETED: ADHOC_COLOR,
+  ADHOC_DOCUMENT_UPLOADED: ADHOC_COLOR,
+  ADHOC_DOCUMENT_DELETED: ADHOC_COLOR,
 }
 
-const ALL_TYPES: LogType[] = ["LOGIN", "PASSWORD_CHANGED", "OPPORTUNITY_CREATED", "OPPORTUNITY_UPDATED", "USER_CREATED", "USER_UPDATED", "SMTP_UPDATED"]
+// Filter groups shown in the UI
+const FILTER_GROUPS = [
+  { label: "Opportunities", types: ["OPPORTUNITY_CREATED", "OPPORTUNITY_UPDATED"] as LogType[] },
+  { label: "Ad Hoc", types: ["ADHOC_AGREEMENT_CREATED", "ADHOC_AGREEMENT_UPDATED", "ADHOC_AGREEMENT_SIGNED", "ADHOC_AGREEMENT_DOCUMENT_UPLOADED", "ADHOC_AGREEMENT_DOCUMENT_DELETED", "ADHOC_DELIVERABLE_CREATED", "ADHOC_DELIVERABLE_UPDATED", "ADHOC_LINE_ITEM_ADDED", "ADHOC_LINE_ITEM_UPDATED", "ADHOC_LINE_ITEM_DELETED", "ADHOC_DOCUMENT_UPLOADED", "ADHOC_DOCUMENT_DELETED"] as LogType[] },
+  { label: "Users", types: ["USER_CREATED", "USER_UPDATED", "PASSWORD_CHANGED"] as LogType[] },
+  { label: "Login", types: ["LOGIN"] as LogType[] },
+  { label: "Config", types: ["SMTP_UPDATED"] as LogType[] },
+]
+
+// URL filter values for group filters
+const GROUP_FILTER_VALUES: Record<string, string> = {
+  Opportunities: "OPPORTUNITIES",
+  "Ad Hoc": "ADHOC",
+  Users: "USERS",
+  Login: "LOGIN",
+  Config: "CONFIG",
+}
 
 function formatTimestamp(iso: string) {
   const d = new Date(iso)
@@ -79,6 +141,11 @@ export function SystemLogClient({
     router.push(qs ? `${pathname}?${qs}` : pathname)
   }
 
+  // Determine active group label for highlighting
+  const activeGroup = FILTER_GROUPS.find(
+    (g) => GROUP_FILTER_VALUES[g.label] === typeFilter
+  )?.label ?? null
+
   return (
     <>
       {/* Type filter */}
@@ -87,23 +154,25 @@ export function SystemLogClient({
           onClick={() => navigate(1, "")}
           className={cn(
             "px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors",
-            typeFilter ? "bg-white text-gray-600 border-gray-200 hover:border-gray-400" : "bg-gray-900 text-white border-gray-900"
+            typeFilter
+              ? "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+              : "bg-gray-900 text-white border-gray-900"
           )}
         >
           All
         </button>
-        {ALL_TYPES.map((t) => (
+        {FILTER_GROUPS.map((g) => (
           <button
-            key={t}
-            onClick={() => navigate(1, t)}
+            key={g.label}
+            onClick={() => navigate(1, GROUP_FILTER_VALUES[g.label])}
             className={cn(
               "px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors",
-              typeFilter === t
-                ? cn(TYPE_COLORS[t], "font-semibold")
+              activeGroup === g.label
+                ? cn(TYPE_COLORS[g.types[0]], "font-semibold")
                 : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
             )}
           >
-            {TYPE_LABELS[t]}
+            {g.label}
           </button>
         ))}
       </div>

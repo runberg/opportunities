@@ -33,11 +33,18 @@ Built for small teams on a private network. All data stays on your own server.
 - **Status + pending filters** — multi-select status filter and waiting-on filter on all list views
 - **CSV export** — export filtered results from any list view or drill-down modal
 
-### Administration
-- **User management** — admin can create/edit users; username is always the email address
-- **System log** — audit trail of login events, password changes, opportunity creates/updates, user management actions, and SMTP config changes; opportunity entries are clickable to open the full modal
-- **Email / SMTP** — configure outgoing SMTP, enable/disable notifications globally, edit the notification subject and body template with named placeholders
-- **Bulk delete** — admin can select and permanently delete opportunities
+### Ad Hoc Agreements ⚠️ Beta
+
+> **This module is in active development.** Functionality and data model may change between releases.
+
+Manage agreements that fall outside the main sales pipeline — retainers, one-off work orders, or any engagement that needs its own budget and deliverable tracking.
+
+- **Agreement lifecycle** — DRAFT → SIGNED → CLOSED; the signed state is the active state (no separate activation step)
+- **Budget tracking** — set a total agreement amount; committed and remaining amounts update live as work packages are approved
+- **Work packages** — add deliverables once an agreement is signed; each work package has an approval amount and its own line items and documents
+- **Agreement documents** — upload draft agreements on DRAFT agreements; upload counter-signed copies when marking as signed or at any time afterwards
+- **Signed date** — required when marking an agreement as signed; defaults to today
+- **Audit log** — all agreement and document events appear in the system log under the Ad Hoc filter
 
 ### Email notifications
 - Users can opt in to email notifications from their profile page (only visible when an admin has configured and enabled SMTP)

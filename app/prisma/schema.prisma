@@ -18,10 +18,14 @@ model User {
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
-  opportunities Opportunity[]
-  comments      Comment[]
-  documents     Document[]
-  systemLogs    SystemLog[]
+  opportunities           Opportunity[]
+  comments                Comment[]
+  documents               Document[]
+  systemLogs              SystemLog[]
+  adhocAgreements         AdhocAgreement[]
+  adhocDeliverables       AdhocDeliverable[]
+  adhocDocuments          AdhocDocument[]
+  adhocAgreementDocuments AdhocAgreementDocument[]
 }
 
 enum Role {
@@ -137,10 +141,13 @@ model SystemLog {
   createdAt     DateTime      @default(now())
 
   userId        String?
-  user          User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user          User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   opportunityId String?
-  opportunity   Opportunity?  @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  opportunity   Opportunity?     @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+
+  adhocDeliverableId String?
+  adhocDeliverable   AdhocDeliverable? @relation(fields: [adhocDeliverableId], references: [id], onDelete: SetNull)
 }
 
 enum SystemLogType {
@@ -151,7 +158,131 @@ enum SystemLogType {
   USER_CREATED
   USER_UPDATED
   SMTP_UPDATED
+  ADHOC_AGREEMENT_CREATED
+  ADHOC_AGREEMENT_UPDATED
+  ADHOC_AGREEMENT_SIGNED
+  ADHOC_AGREEMENT_DOCUMENT_UPLOADED
+  ADHOC_AGREEMENT_DOCUMENT_DELETED
+  ADHOC_DELIVERABLE_CREATED
+  ADHOC_DELIVERABLE_UPDATED
+  ADHOC_LINE_ITEM_ADDED
+  ADHOC_LINE_ITEM_UPDATED
+  ADHOC_LINE_ITEM_DELETED
+  ADHOC_DOCUMENT_UPLOADED
+  ADHOC_DOCUMENT_DELETED
 }
+
+// ─── Ad Hoc ──────────────────────────────────────────────────────────────────
+
+model AdhocAgreement {
+  id          String               @id @default(cuid())
+  title       String
+  version     Int
+  status      AdhocAgreementStatus @default(DRAFT)
+  totalAmount Decimal              @db.Decimal(10, 2)
+  signedDate  DateTime?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  createdById  String
+  createdBy    User               @relation(fields: [createdById], references: [id])
+
+  deliverables AdhocDeliverable[]
+  documents    AdhocAgreementDocument[]
+}
+
+enum AdhocAgreementStatus {
+  DRAFT
+  SIGNED
+  ACTIVE
+  CLOSED
+}
+
+model AdhocDeliverable {
+  id             String                 @id @default(cuid())
+  title          String
+  description    String?
+  approvedAmount Decimal                @default(0) @db.Decimal(10, 2)
+  status         AdhocDeliverableStatus @default(NOT_APPROVED)
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  agreementId  String
+  agreement    AdhocAgreement @relation(fields: [agreementId], references: [id])
+
+  createdById  String
+  createdBy    User           @relation(fields: [createdById], references: [id])
+
+  lineItems    AdhocLineItem[]
+  documents    AdhocDocument[]
+  systemLogs   SystemLog[]
+}
+
+enum AdhocDeliverableStatus {
+  NOT_APPROVED
+  PARTIALLY_APPROVED
+  APPROVED
+  DELIVERED
+}
+
+model AdhocLineItem {
+  id            String           @id @default(cuid())
+  description   String
+  amount        Decimal          @db.Decimal(10, 2)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  deliverableId String
+  deliverable   AdhocDeliverable @relation(fields: [deliverableId], references: [id], onDelete: Cascade)
+}
+
+model AdhocDocument {
+  id           String            @id @default(cuid())
+  displayName  String
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int
+  type         AdhocDocumentType
+  notes        String?
+  uploadedAt   DateTime          @default(now())
+
+  uploadedById  String
+  uploadedBy    User             @relation(fields: [uploadedById], references: [id])
+
+  deliverableId String
+  deliverable   AdhocDeliverable @relation(fields: [deliverableId], references: [id], onDelete: Cascade)
+}
+
+enum AdhocDocumentType {
+  BUDGET
+  APPROVAL
+}
+
+model AdhocAgreementDocument {
+  id           String                     @id @default(cuid())
+  displayName  String
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int
+  type         AdhocAgreementDocumentType
+  notes        String?
+  uploadedAt   DateTime                   @default(now())
+
+  uploadedById String
+  uploadedBy   User            @relation(fields: [uploadedById], references: [id])
+
+  agreementId String
+  agreement   AdhocAgreement  @relation(fields: [agreementId], references: [id], onDelete: Cascade)
+}
+
+enum AdhocAgreementDocumentType {
+  DRAFT
+  COUNTERSIGNED
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 model SmtpConfig {
   id                  String   @id @default("default")

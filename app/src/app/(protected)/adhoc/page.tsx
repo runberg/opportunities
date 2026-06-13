@@ -1,15 +1,54 @@
-import { Package } from "lucide-react"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/shared/lib/auth"
+import { db } from "@/shared/lib/db"
+import { AdhocClient } from "@/modules/adhoc/components/adhoc-client"
 
-export default function AdHocPage() {
+export default async function AdHocPage() {
+  const session = await getServerSession(authOptions)
+
+  const agreements = await db.adhocAgreement.findMany({
+    orderBy: { createdAt: "asc" },
+    include: {
+      createdBy: { select: { id: true, name: true } },
+      deliverables: {
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          approvedAmount: true,
+          lineItems: { select: { amount: true } },
+          documents: { select: { id: true } },
+        },
+      },
+      documents: {
+        orderBy: { uploadedAt: "asc" },
+        include: { uploadedBy: { select: { id: true, name: true } } },
+      },
+    },
+  })
+
+  const serialized = agreements.map((a) => ({
+    ...a,
+    totalAmount: a.totalAmount.toString(),
+    signedDate: a.signedDate ? a.signedDate.toISOString() : null,
+    createdAt: a.createdAt.toISOString(),
+    updatedAt: a.updatedAt.toISOString(),
+    deliverables: a.deliverables.map((d) => ({
+      ...d,
+      approvedAmount: d.approvedAmount.toString(),
+      lineItems: d.lineItems.map((li) => ({ amount: li.amount.toString() })),
+    })),
+    documents: a.documents.map((doc) => ({
+      ...doc,
+      uploadedAt: doc.uploadedAt.toISOString(),
+    })),
+  }))
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-      <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mb-5">
-        <Package size={28} className="text-gray-400" />
-      </div>
-      <h1 className="text-xl font-semibold text-gray-900 mb-2">Ad Hoc Deliveries</h1>
-      <p className="text-sm text-gray-400 max-w-sm">
-        This section is coming soon. Ad hoc delivery tracking will be available in a future release.
-      </p>
-    </div>
+    <AdhocClient
+      initialAgreements={serialized}
+      currentUserId={session!.user.id}
+      isAdmin={session!.user.role === "ADMIN"}
+    />
   )
 }
