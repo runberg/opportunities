@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
 
   if (!title || typeof title !== "string" || title.trim() === "")
     return NextResponse.json({ error: "Title is required" }, { status: 400 })
-  if (totalAmount == null || isNaN(Number(totalAmount)) || Number(totalAmount) <= 0)
+  if (totalAmount == null || Number.isNaN(Number(totalAmount)) || Number(totalAmount) <= 0)
     return NextResponse.json({ error: "Total amount must be positive" }, { status: 400 })
 
   const agreement = await db.adhocAgreement.create({

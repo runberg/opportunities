@@ -36,7 +36,6 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
   const [newTitle, setNewTitle] = useState("")
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
   const canAdd = agreement.status === "SIGNED" || agreement.status === "ACTIVE"
 
   async function handleAdd() {
@@ -69,7 +68,7 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
           Work Packages ({agreement.deliverables.length})
         </h3>
         {canAdd && !adding && (
-          <Button variant="secondary" size="sm" onClick={() => setAdding(true)}>
+          <Button variant="primary" size="sm" onClick={() => setAdding(true)}>
             + Add Work Package
           </Button>
         )}
@@ -136,7 +135,7 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
                 return (
                   <tr
                     key={d.id}
-                    className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors"
+                    className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
                     onClick={() => setOpenDeliverableId(d.id)}
                   >
                     <td className="px-4 py-3 text-gray-900 dark:text-gray-100 font-medium">

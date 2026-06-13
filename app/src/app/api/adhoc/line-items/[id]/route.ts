@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/shared/lib/db"
 import { requireSession } from "@/shared/lib/api"
 import { writeLog } from "@/shared/lib/system-log"
+import { recomputeApprovalStatus } from "../../_helpers"
+
 
 export async function PATCH(
   req: NextRequest,
@@ -26,7 +28,7 @@ export async function PATCH(
 
   if (description !== undefined && (typeof description !== "string" || description.trim() === ""))
     return NextResponse.json({ error: "Description cannot be empty" }, { status: 400 })
-  if (amount !== undefined && (isNaN(Number(amount)) || Number(amount) < 0))
+  if (amount !== undefined && (Number.isNaN(Number(amount)) || Number(amount) < 0))
     return NextResponse.json({ error: "Amount must be zero or positive" }, { status: 400 })
 
   const updated = await db.adhocLineItem.update({
@@ -43,6 +45,8 @@ export async function PATCH(
     userId: session.user.id,
     adhocDeliverableId: lineItem.deliverableId,
   })
+
+  await recomputeApprovalStatus(lineItem.deliverableId, session.user.id)
 
   return NextResponse.json(updated)
 }
@@ -73,6 +77,8 @@ export async function DELETE(
     userId: session.user.id,
     adhocDeliverableId: lineItem.deliverableId,
   })
+
+  await recomputeApprovalStatus(lineItem.deliverableId, session.user.id)
 
   return NextResponse.json({ ok: true })
 }

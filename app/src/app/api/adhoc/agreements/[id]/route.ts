@@ -31,6 +31,34 @@ function validatePatch(body: Record<string, unknown>): string | null {
   return null
 }
 
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const result = await requireSession()
+  if (result.error) return result.error
+  const session = result.session
+
+  if (session.user.role !== "ADMIN")
+    return NextResponse.json({ error: "Admin only" }, { status: 403 })
+
+  const { id } = await params
+  const agreement = await db.adhocAgreement.findUnique({ where: { id } })
+  if (!agreement) return NextResponse.json({ error: "Not found" }, { status: 404 })
+
+  await writeLog({
+    type: "ADHOC_AGREEMENT_UPDATED",
+    message: `Agreement "${agreement.title}" deleted by admin`,
+    userId: session.user.id,
+  })
+
+  // Deliverables have no cascade from agreement — delete them first (cascades their line items and documents)
+  await db.adhocDeliverable.deleteMany({ where: { agreementId: id } })
+  await db.adhocAgreement.delete({ where: { id } })
+
+  return NextResponse.json({ ok: true })
+}
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

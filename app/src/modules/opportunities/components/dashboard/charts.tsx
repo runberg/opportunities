@@ -9,7 +9,6 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts"
-import { useTheme } from "@/shared/components/theme/theme-provider"
 
 export type DrillTarget = {
   title: string
@@ -19,17 +18,15 @@ export type DrillTarget = {
 }
 
 function useTooltipStyle() {
-  const { theme } = useTheme()
-  const dark = theme === "dark"
   return {
     contentStyle: {
-      background: dark ? "#1c2d40" : "#ffffff",
-      border: `1px solid ${dark ? "#253d55" : "#e5e7eb"}`,
+      background: "#1c2d40",
+      border: "1px solid #253d55",
       borderRadius: 8,
       fontSize: 12,
-      color: dark ? "#e8f1f8" : "#111827",
+      color: "#e8f1f8",
     },
-    cursor: { fill: dark ? "rgba(255,255,255,0.04)" : "#f9fafb" },
+    cursor: { fill: "rgba(255,255,255,0.04)" },
   }
 }
 

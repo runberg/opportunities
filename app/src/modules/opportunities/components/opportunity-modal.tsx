@@ -111,13 +111,13 @@ export function OpportunityModal({
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-full items-start justify-center p-4 pt-[4vh]">
         <button type="button" aria-label="Close" className="fixed inset-0 bg-black/40 cursor-default" onClick={onClose} />
-        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl mb-8">
-          <div className="flex items-center justify-between px-6 py-3 border-b border-gray-100">
-            <span className="text-xs text-gray-400 font-medium tracking-wide uppercase">
+        <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-3xl mb-8">
+          <div className="flex items-center justify-between px-6 py-3 border-b border-gray-100 dark:border-gray-700">
+            <span className="text-xs text-gray-400 dark:text-gray-500 font-medium tracking-wide uppercase">
               {sectionLabel}
             </span>
             <button type="button" onClick={onClose}
-              className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+              className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
               <X size={17} />
             </button>
           </div>
@@ -143,9 +143,9 @@ export function OpportunityModal({
 
 // ─── Form helpers ─────────────────────────────────────────────────────────────
 
-const inputCls = "w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#006fff] focus:bg-white transition-colors"
-const textareaCls = "w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#006fff] focus:bg-white resize-none transition-colors"
-const dateInputCls = "w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1.5 text-xs text-gray-900 focus:outline-none focus:border-[#006fff] focus:bg-white transition-colors"
+const inputCls = "w-full rounded-md border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-[#006fff] focus:bg-white dark:focus:bg-gray-600 transition-colors"
+const textareaCls = "w-full rounded-md border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-[#006fff] focus:bg-white dark:focus:bg-gray-600 resize-none transition-colors"
+const dateInputCls = "w-full rounded-md border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-2 py-1.5 text-xs text-gray-900 dark:text-gray-100 focus:outline-none focus:border-[#006fff] focus:bg-white dark:focus:bg-gray-600 transition-colors"
 
 function makeForm(data: OpportunityFull) {
   return {
@@ -244,7 +244,7 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
     const req = STATUS_DATE_REQUIRED[form.status]
     if (!req) return null
     const existing = data[req.field as keyof OpportunityFull] as string | null
-    const formVal = form[req.field as keyof OppForm] as string
+    const formVal = form[req.field as keyof OppForm]
     if (!existing && !formVal) {
       return `"${STATUS_LABELS[form.status]}" requires the "${req.label}" date to be set first.`
     }
@@ -348,10 +348,12 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
     <div>
       {/* Title */}
       <div className="flex items-start justify-between gap-4 mb-3">
-        <input
+        <textarea
+          rows={1}
           value={form.title}
           onChange={(e) => set("title", e.target.value)}
-          className="flex-1 min-w-0 text-2xl font-semibold text-gray-900 bg-gray-50 border border-gray-200 rounded-md px-3 py-1.5 focus:outline-none focus:border-[#006fff] focus:bg-white leading-tight transition-colors"
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLTextAreaElement).blur() } }}
+          className="flex-1 min-w-0 text-2xl font-semibold text-gray-900 dark:text-gray-100 appearance-none bg-white dark:bg-gray-800 focus:bg-gray-50 dark:focus:bg-gray-700 border-b border-transparent hover:border-gray-200 dark:hover:border-gray-600 focus:outline-none focus:border-[#006fff] leading-tight transition-colors px-1 py-1.5 resize-none overflow-hidden"
         />
         <div className="flex items-center gap-2 flex-shrink-0 mt-1">
           {canAcceptQuote && !acceptingQuote && (
@@ -373,21 +375,21 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
       <div className="flex flex-wrap items-center gap-2 mb-5">
         {isProduction ? (
           <select value={form.status} onChange={(e) => set("status", e.target.value)}
-            className="px-3 py-1 border border-gray-200 rounded-full text-xs font-medium bg-gray-50 focus:outline-none focus:border-[#006fff] transition-colors">
+            className="px-3 py-1 border border-gray-200 dark:border-gray-600 rounded-full text-xs font-medium bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-[#006fff] transition-colors">
             {prodStatusOptions.map((s) => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
           </select>
         ) : (
           <StatusBadge status={data.status} />
         )}
-        <label className="inline-flex items-center gap-1.5 px-3 py-1 border border-gray-200 rounded-full bg-gray-50 focus-within:border-[#006fff] transition-colors cursor-text">
-          <span className="text-xs text-gray-400 shrink-0">ID</span>
+        <label className="inline-flex items-center gap-1.5 px-3 py-1 border border-gray-200 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus-within:border-[#006fff] transition-colors cursor-text">
+          <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">ID</span>
           <input value={form.internalId} onChange={(e) => set("internalId", e.target.value)}
-            maxLength={10} placeholder="—" className="text-xs font-medium text-gray-900 bg-transparent outline-none w-14" />
+            maxLength={10} placeholder="—" className="text-xs font-medium text-gray-900 dark:text-gray-100 bg-transparent outline-none w-14" />
         </label>
-        <label className="inline-flex items-center gap-1.5 px-3 py-1 border border-gray-200 rounded-full bg-gray-50 focus-within:border-[#006fff] transition-colors cursor-text">
-          <span className="text-xs text-gray-400 shrink-0">Ref.</span>
+        <label className="inline-flex items-center gap-1.5 px-3 py-1 border border-gray-200 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus-within:border-[#006fff] transition-colors cursor-text">
+          <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">Ref.</span>
           <input value={form.reference} onChange={(e) => set("reference", e.target.value)}
-            placeholder="—" className="text-xs font-medium text-gray-900 bg-transparent outline-none w-24" />
+            placeholder="—" className="text-xs font-medium text-gray-900 dark:text-gray-100 bg-transparent outline-none w-24" />
         </label>
       </div>
 

@@ -20,7 +20,6 @@ import {
   Plus,
 } from "lucide-react"
 import { cn } from "@/shared/lib/utils"
-import { useTheme } from "@/shared/components/theme/theme-provider"
 import { NewOpportunityModal } from "@/modules/opportunities/components/new-opportunity-modal"
 
 interface SidebarProps {
@@ -32,8 +31,6 @@ export function Sidebar({ userEmail, userRole }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const isAdmin = userRole === "ADMIN"
-  const { theme } = useTheme()
-  const isDark = theme === "dark"
   const [newModalOpen, setNewModalOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   useEffect(() => { setMounted(true) }, [])
@@ -43,30 +40,25 @@ export function Sidebar({ userEmail, userRole }: SidebarProps) {
     return pathname === href || pathname.startsWith(href + "/")
   }
 
-  const linkCls = (href: string) => {
-    let stateCls: string
-    if (isActive(href)) stateCls = "bg-blue-600/20 text-blue-400"
-    else if (isDark) stateCls = "text-gray-400 hover:bg-white/5 hover:text-blue-300"
-    else stateCls = "text-gray-400 hover:bg-gray-800 hover:text-white"
-    return cn("flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors", stateCls)
-  }
-
-  const sidebarBg = isDark ? "bg-[#0a1220]" : "bg-gray-900"
-  const borderColor = isDark ? "border-[#1a2d40]" : "border-gray-800"
-  const sectionLabelCls = cn("text-xs font-semibold uppercase tracking-wider", isDark ? "text-[#3d5570]" : "text-gray-500")
+  const linkCls = (href: string) => cn(
+    "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
+    isActive(href)
+      ? "bg-blue-600/20 text-blue-400"
+      : "text-gray-400 hover:bg-white/5 hover:text-blue-300"
+  )
 
   return (
     <>
-    <aside className={cn("w-60 text-white flex flex-col h-full fixed top-0 left-0 bottom-0", sidebarBg)}>
+    <aside className="w-60 text-white flex flex-col h-full fixed top-0 left-0 bottom-0 bg-[#0a1220]">
       {/* Logo */}
-      <div className={cn("px-5 py-5 border-b", borderColor)}>
+      <div className="px-5 py-5 border-b border-[#1a2d40]">
         <span className="text-lg font-semibold tracking-tight text-blue-400">
           Opportunities<sup className="text-[10px] font-bold text-white ml-0.5 tracking-normal">AI</sup>
         </span>
       </div>
 
       {/* New Opportunity */}
-      <div className={cn("px-3 py-3 border-b", borderColor)}>
+      <div className="px-3 py-3 border-b border-[#1a2d40]">
         <button
           type="button"
           onClick={() => setNewModalOpen(true)}
@@ -84,7 +76,9 @@ export function Sidebar({ userEmail, userRole }: SidebarProps) {
           Dashboard
         </Link>
 
-        <div className="pt-4 pb-1 px-3"><span className={sectionLabelCls}>Opportunities</span></div>
+        <div className="pt-4 pb-1 px-3">
+          <span className="text-xs font-semibold uppercase tracking-wider text-[#3d5570]">Opportunities</span>
+        </div>
         <Link href="/opportunities" className={linkCls("/opportunities")}>
           <FileText size={18} />
           Quotes
@@ -98,7 +92,9 @@ export function Sidebar({ userEmail, userRole }: SidebarProps) {
           Production
         </Link>
 
-        <div className="pt-4 pb-1 px-3"><span className={sectionLabelCls}>Ad Hoc</span></div>
+        <div className="pt-4 pb-1 px-3">
+          <span className="text-xs font-semibold uppercase tracking-wider text-[#3d5570]">Ad Hoc</span>
+        </div>
         <Link href="/adhoc" className={linkCls("/adhoc")}>
           <Package size={18} />
           Ad Hoc Deliveries
@@ -106,7 +102,9 @@ export function Sidebar({ userEmail, userRole }: SidebarProps) {
 
         {isAdmin && (
           <>
-            <div className="pt-4 pb-1 px-3"><span className={sectionLabelCls}>Admin</span></div>
+            <div className="pt-4 pb-1 px-3">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#3d5570]">Admin</span>
+            </div>
             <Link href="/admin/users" className={linkCls("/admin/users")}>
               <Users size={18} />
               Users
@@ -128,20 +126,17 @@ export function Sidebar({ userEmail, userRole }: SidebarProps) {
       </nav>
 
       {/* User section */}
-      <div className={cn("px-3 py-4 border-t space-y-1", borderColor)}>
+      <div className="px-3 py-4 border-t border-[#1a2d40] space-y-1">
         <Link href="/profile" className={linkCls("/profile")}>
           <User size={18} />
           <div className="min-w-0">
             <div className="text-xs truncate text-white">{userEmail}</div>
-            <div className={cn("text-xs capitalize", isDark ? "text-[#3d5570]" : "text-gray-500")}>{userRole.toLowerCase()}</div>
+            <div className="text-xs capitalize text-[#3d5570]">{userRole.toLowerCase()}</div>
           </div>
         </Link>
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
-          className={cn(
-            "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 transition-colors",
-            isDark ? "hover:bg-white/5 hover:text-blue-300" : "hover:bg-gray-800 hover:text-white"
-          )}
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 hover:bg-white/5 hover:text-blue-300 transition-colors"
         >
           <LogOut size={18} />
           Sign out

@@ -148,6 +148,51 @@ function SignDialog({ agreementId, onDone, onCancel }: SignDialogProps) {
 
 // ─── Agreement documents ──────────────────────────────────────────────────────
 
+type DocListProps = {
+  readonly docs: AgreementDocument[]
+  readonly label: string
+  readonly currentUserId: string
+  readonly isAdmin: boolean
+  readonly onDelete: (docId: string) => void
+}
+
+function DocList({ docs, label, currentUserId, isAdmin, onDelete }: DocListProps) {
+  if (docs.length === 0) return null
+  return (
+    <div className="mb-2">
+      <p className="text-xs font-medium text-gray-500 uppercase mb-1">{label}</p>
+      <ul className="space-y-1">
+        {docs.map((doc) => (
+          <li key={doc.id} className="flex items-center justify-between gap-2 group">
+            <div className="min-w-0">
+              <a
+                href={`/api/adhoc/agreement-documents/${doc.id}`}
+                className="text-sm font-medium text-blue-600 hover:underline truncate block"
+                download
+              >
+                {doc.displayName}
+              </a>
+              <p className="text-xs text-gray-400">
+                {doc.uploadedBy.name} · {formatDate(doc.uploadedAt)}
+              </p>
+            </div>
+            {(doc.uploadedBy.id === currentUserId || isAdmin) && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="opacity-0 group-hover:opacity-100 shrink-0 text-red-500 hover:text-red-600"
+                onClick={() => onDelete(doc.id)}
+              >
+                Delete
+              </Button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 type AgreementDocsProps = {
   readonly agreement: AgreementRow
   readonly currentUserId: string
@@ -198,50 +243,13 @@ function AgreementDocs({ agreement, currentUserId, isAdmin, onRefresh }: Agreeme
   const drafts = agreement.documents.filter((d) => d.type === "DRAFT")
   const countersigned = agreement.documents.filter((d) => d.type === "COUNTERSIGNED")
 
-  function DocList({ docs, label }: { docs: AgreementDocument[]; label: string }) {
-    if (docs.length === 0) return null
-    return (
-      <div className="mb-2">
-        <p className="text-xs font-medium text-gray-500 uppercase mb-1">{label}</p>
-        <ul className="space-y-1">
-          {docs.map((doc) => (
-            <li key={doc.id} className="flex items-center justify-between gap-2 group">
-              <div className="min-w-0">
-                <a
-                  href={`/api/adhoc/agreement-documents/${doc.id}`}
-                  className="text-sm font-medium text-blue-600 hover:underline truncate block"
-                  download
-                >
-                  {doc.displayName}
-                </a>
-                <p className="text-xs text-gray-400">
-                  {doc.uploadedBy.name} · {formatDate(doc.uploadedAt)}
-                </p>
-              </div>
-              {(doc.uploadedBy.id === currentUserId || isAdmin) && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="opacity-0 group-hover:opacity-100 shrink-0 text-red-500 hover:text-red-600"
-                  onClick={() => handleDelete(doc.id)}
-                >
-                  Delete
-                </Button>
-              )}
-            </li>
-          ))}
-        </ul>
-      </div>
-    )
-  }
-
   const isClosed = agreement.status === "CLOSED"
 
   return (
-    <div className="mt-4 pt-4 border-t border-gray-200">
+    <div>
       <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Agreement Documents</p>
-      <DocList docs={drafts} label="Draft Agreement" />
-      <DocList docs={countersigned} label="Counter-signed" />
+      <DocList docs={drafts} label="Draft Agreement" currentUserId={currentUserId} isAdmin={isAdmin} onDelete={handleDelete} />
+      <DocList docs={countersigned} label="Counter-signed" currentUserId={currentUserId} isAdmin={isAdmin} onDelete={handleDelete} />
       {agreement.documents.length === 0 && (
         <p className="text-xs text-gray-400 italic mb-2">No documents uploaded yet.</p>
       )}
@@ -298,6 +306,11 @@ export function AgreementTabs({ agreements, currentUserId, isAdmin, onRefresh }:
   const [editingAgreement, setEditingAgreement] = useState<AgreementRow | null>(null)
 
   useEffect(() => { setShowDetails(false) }, [activeTab])
+
+  useEffect(() => {
+    if (activeTab >= agreements.length && agreements.length > 0)
+      setActiveTab(agreements.length - 1)
+  }, [agreements.length, activeTab])
 
   const agreement = agreements[activeTab]
   if (!agreement) return null

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/shared/lib/db"
 import { requireSession } from "@/shared/lib/api"
 import { writeLog } from "@/shared/lib/system-log"
+import { recomputeApprovalStatus } from "../../../_helpers"
 
 export async function POST(
   req: NextRequest,
@@ -23,7 +24,7 @@ export async function POST(
 
   if (!description || typeof description !== "string" || description.trim() === "")
     return NextResponse.json({ error: "Description is required" }, { status: 400 })
-  if (amount == null || isNaN(Number(amount)) || Number(amount) < 0)
+  if (amount == null || Number.isNaN(Number(amount)) || Number(amount) < 0)
     return NextResponse.json({ error: "Amount must be zero or positive" }, { status: 400 })
 
   const lineItem = await db.adhocLineItem.create({
@@ -40,6 +41,8 @@ export async function POST(
     userId: session.user.id,
     adhocDeliverableId: id,
   })
+
+  await recomputeApprovalStatus(id, session.user.id)
 
   return NextResponse.json(lineItem, { status: 201 })
 }

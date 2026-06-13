@@ -41,15 +41,15 @@ export async function POST(
   const { id } = await params
   const agreement = await db.adhocAgreement.findUnique({ where: { id } })
   if (!agreement) return NextResponse.json({ error: "Not found" }, { status: 404 })
-  if (agreement.status !== "SIGNED")
-    return NextResponse.json({ error: "Deliverables can only be added to a signed agreement" }, { status: 422 })
+  if (agreement.status !== "SIGNED" && agreement.status !== "ACTIVE")
+    return NextResponse.json({ error: "Deliverables can only be added to a signed or active agreement" }, { status: 422 })
 
   const body = await req.json()
   const { title, description, approvedAmount } = body
 
   if (!title || typeof title !== "string" || title.trim() === "")
     return NextResponse.json({ error: "Title is required" }, { status: 400 })
-  if (approvedAmount !== undefined && (isNaN(Number(approvedAmount)) || Number(approvedAmount) < 0))
+  if (approvedAmount !== undefined && (Number.isNaN(Number(approvedAmount)) || Number(approvedAmount) < 0))
     return NextResponse.json({ error: "Approved amount must be zero or positive" }, { status: 400 })
 
   const deliverable = await db.adhocDeliverable.create({

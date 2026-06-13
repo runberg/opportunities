@@ -4,8 +4,6 @@ import { useState } from "react"
 import { Button } from "@/shared/components/ui/button"
 import { Input } from "@/shared/components/ui/input"
 import { Label } from "@/shared/components/ui/label"
-import { Sun, Monitor } from "lucide-react"
-import { useTheme } from "@/shared/components/theme/theme-provider"
 import { cn } from "@/shared/lib/utils"
 
 export function ProfileClient({
@@ -17,8 +15,6 @@ export function ProfileClient({
   readonly emailNotifications: boolean
   readonly notificationsAvailable: boolean
 }) {
-  const { theme, setTheme } = useTheme()
-
   const [notifications, setNotifications] = useState(initialNotifications)
   const [notifSaving, setNotifSaving] = useState(false)
   const [notifMsg, setNotifMsg] = useState<{ ok: boolean; text: string } | null>(null)
@@ -79,76 +75,54 @@ export function ProfileClient({
     setForm({ currentPassword: "", newPassword: "", confirmPassword: "" })
   }
 
+  const cardCls = "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6"
+
   return (
     <div className="space-y-6 max-w-md">
       {/* Account */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6">
-        <h2 className="text-base font-semibold text-gray-900 mb-1">Account</h2>
-        <p className="text-sm text-gray-500">Signed in as <span className="font-medium text-gray-700">{userEmail}</span></p>
-      </div>
-
-      {/* Appearance */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6">
-        <h2 className="text-base font-semibold text-gray-900 mb-1">Appearance</h2>
-        <p className="text-sm text-gray-500 mb-3">Choose your preferred sidebar theme.</p>
-        <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1 w-fit">
-          <button
-            onClick={() => setTheme("light")}
-            className={cn(
-              "flex items-center gap-1.5 px-4 py-2 rounded text-sm font-medium transition-colors",
-              theme === "light" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
-            )}
-          >
-            <Sun size={14} />
-            Light
-          </button>
-          <button
-            onClick={() => setTheme("dark")}
-            className={cn(
-              "flex items-center gap-1.5 px-4 py-2 rounded text-sm font-medium transition-colors",
-              theme === "dark" ? "bg-gray-900 text-white shadow-sm" : "text-gray-500 hover:text-gray-700"
-            )}
-          >
-            <Monitor size={14} />
-            Dark
-          </button>
-        </div>
+      <div className={cardCls}>
+        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">Account</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Signed in as <span className="font-medium text-gray-700 dark:text-gray-300">{userEmail}</span>
+        </p>
       </div>
 
       {/* Email notifications — only shown when admin has enabled the feature */}
-      {notificationsAvailable && <div className="bg-white border border-gray-200 rounded-xl p-6">
-        <h2 className="text-base font-semibold text-gray-900 mb-1">Email Notifications</h2>
-        <p className="text-sm text-gray-500 mb-4">
-          Receive an email when an opportunity changes status.
-        </p>
-        <div className="flex items-center gap-3">
-          <button
-            role="switch"
-            aria-checked={notifications}
-            onClick={() => toggleNotifications(!notifications)}
-            disabled={notifSaving}
-            className={cn(
-              "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-60",
-              notifications ? "bg-blue-600" : "bg-gray-300"
-            )}
-          >
-            <span
+      {notificationsAvailable && (
+        <div className={cardCls}>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">Email Notifications</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            Receive an email when an opportunity changes status.
+          </p>
+          <div className="flex items-center gap-3">
+            <button
+              role="switch"
+              aria-checked={notifications}
+              onClick={() => toggleNotifications(!notifications)}
+              disabled={notifSaving}
               className={cn(
-                "inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform",
-                notifications ? "translate-x-6" : "translate-x-1"
+                "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-60",
+                notifications ? "bg-blue-600" : "bg-gray-300 dark:bg-gray-600"
               )}
-            />
-          </button>
-          <span className="text-sm text-gray-700">{notifications ? "Enabled" : "Disabled"}</span>
+            >
+              <span
+                className={cn(
+                  "inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform",
+                  notifications ? "translate-x-6" : "translate-x-1"
+                )}
+              />
+            </button>
+            <span className="text-sm text-gray-700 dark:text-gray-300">{notifications ? "Enabled" : "Disabled"}</span>
+          </div>
+          {notifMsg && (
+            <p className={cn("text-xs mt-2", notifMsg.ok ? "text-green-600" : "text-red-600")}>{notifMsg.text}</p>
+          )}
         </div>
-        {notifMsg && (
-          <p className={cn("text-xs mt-2", notifMsg.ok ? "text-green-600" : "text-red-600")}>{notifMsg.text}</p>
-        )}
-      </div>}
+      )}
 
       {/* Change Password */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6">
-        <h2 className="text-base font-semibold text-gray-900 mb-5">Change Password</h2>
+      <div className={cardCls}>
+        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-5">Change Password</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="current">Current Password *</Label>
@@ -162,8 +136,8 @@ export function ProfileClient({
             <Label htmlFor="confirm">Confirm New Password *</Label>
             <Input id="confirm" type="password" value={form.confirmPassword} onChange={(e) => set("confirmPassword", e.target.value)} required autoComplete="new-password" />
           </div>
-          {error && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</div>}
-          {success && <div className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">{success}</div>}
+          {error && <div className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">{error}</div>}
+          {success && <div className="text-sm text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg px-3 py-2">{success}</div>}
           <Button type="submit" disabled={saving}>{saving ? "Changing…" : "Change Password"}</Button>
         </form>
       </div>

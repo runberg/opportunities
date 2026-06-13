@@ -37,7 +37,7 @@ type Deliverable = {
   status: "NOT_APPROVED" | "PARTIALLY_APPROVED" | "APPROVED" | "DELIVERED"
   createdAt: string
   createdBy: { id: string; name: string }
-  agreement: { id: string; title: string; version: number; status: string }
+  agreement: { id: string; title: string; status: string }
   lineItems: LineItem[]
   documents: AdhocDoc[]
   systemLogs: LogEntry[]
@@ -59,15 +59,251 @@ const STATUS_BADGE: Record<string, string> = {
   DELIVERED: "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
 }
 
-const STATUS_TRANSITIONS: Record<string, { label: string; next: string }[]> = {
-  NOT_APPROVED: [{ label: "Mark Partially Approved", next: "PARTIALLY_APPROVED" }, { label: "Mark Approved", next: "APPROVED" }],
-  PARTIALLY_APPROVED: [{ label: "Mark Approved", next: "APPROVED" }],
-  APPROVED: [{ label: "Mark Delivered", next: "DELIVERED" }],
-  DELIVERED: [],
-}
-
 function formatAmount(v: string | number) {
   return Number(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+function lineItemTotal(items: LineItem[]) {
+  return items.reduce((s, li) => s + Number(li.amount), 0)
+}
+
+// ─── Approve form (initial approval — NOT_APPROVED only) ─────────────────────
+
+function ApproveForm({
+  deliverable,
+  onDone,
+  onClose,
+}: {
+  readonly deliverable: Deliverable
+  readonly onDone: () => Promise<void>
+  readonly onClose: () => void
+}) {
+  const [amount, setAmount] = useState("")
+  const [displayName, setDisplayName] = useState("")
+  const [notes, setNotes] = useState("")
+  const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  const lineTotal = lineItemTotal(deliverable.lineItems)
+  const amtNum = Number(amount)
+  const willBePartial = amount !== "" && !Number.isNaN(amtNum) && amtNum >= 0 && lineTotal > amtNum
+
+  function reset() {
+    onClose()
+    setAmount("")
+    setDisplayName("")
+    setNotes("")
+    setError(null)
+    if (fileRef.current) fileRef.current.value = ""
+  }
+
+  async function handleApprove() {
+    if (amount === "" || Number.isNaN(amtNum) || amtNum < 0) {
+      setError("Please enter a valid approved amount (0 or more)")
+      return
+    }
+    setSaving(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/adhoc/deliverables/${deliverable.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ approve: true, approvedAmount: amtNum }),
+      })
+      if (!res.ok) { setError((await res.json()).error ?? "Save failed"); return }
+      reset()
+      await onDone()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleDocUpload(file: File) {
+    if (!displayName.trim()) { setError("Please enter a display name for the document"); return }
+    setUploading(true)
+    setError(null)
+    try {
+      const fd = new FormData()
+      fd.append("file", file)
+      fd.append("displayName", displayName.trim())
+      fd.append("type", "APPROVAL")
+      if (notes.trim()) fd.append("notes", notes.trim())
+      const res = await fetch(`/api/adhoc/deliverables/${deliverable.id}/documents`, {
+        method: "POST",
+        body: fd,
+      })
+      if (!res.ok) { setError((await res.json()).error ?? "Upload failed"); return }
+      setDisplayName("")
+      setNotes("")
+      if (fileRef.current) fileRef.current.value = ""
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  return (
+    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 space-y-3">
+      <div className="flex flex-wrap gap-3 items-start">
+        <div>
+          <label htmlFor="approve-amount" className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+            Approved Amount <span className="text-red-500">*</span>
+          </label>
+          <input
+            id="approve-amount"
+            autoFocus
+            type="number"
+            min="0"
+            step="0.01"
+            className="w-36 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm text-right text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="0.00"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleApprove() }}
+          />
+        </div>
+        <div className="flex-1 min-w-60">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+            Approval Document <span className="font-normal text-gray-400">(optional)</span>
+          </p>
+          <div className="flex gap-2 mb-1">
+            <input
+              className="flex-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Display name"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+            />
+            <input
+              className="w-40 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Notes (optional)"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+          </div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".pdf,.xlsx,.xls,.docx,.doc,.pptx,.ppt,.png,.jpg,.jpeg"
+            className="text-sm text-gray-700 dark:text-gray-300"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleDocUpload(f) }}
+            disabled={uploading}
+          />
+          {uploading && <p className="text-xs text-gray-500 mt-0.5">Uploading…</p>}
+        </div>
+      </div>
+
+      {willBePartial && (
+        <p className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 rounded-md">
+          Approved amount is less than the line item total ({formatAmount(lineTotal)}) — this will be set to <strong>Partially Approved</strong>.
+        </p>
+      )}
+      {error && <p className="text-xs text-red-600">{error}</p>}
+
+      <div className="flex gap-2">
+        <Button size="sm" variant="primary" onClick={handleApprove} disabled={saving || uploading}>
+          {saving ? "Saving…" : "Confirm Approval"}
+        </Button>
+        <Button size="sm" variant="ghost" onClick={reset}>Cancel</Button>
+      </div>
+    </div>
+  )
+}
+
+// ─── Approval edit panel (PARTIALLY_APPROVED or APPROVED) ────────────────────
+
+function ApprovalEditPanel({
+  deliverable,
+  onDone,
+  onClose,
+}: {
+  readonly deliverable: Deliverable
+  readonly onDone: () => Promise<void>
+  readonly onClose: () => void
+}) {
+  const [amount, setAmount] = useState(deliverable.approvedAmount)
+  const [saving, setSaving] = useState(false)
+  const [removing, setRemoving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const lineTotal = lineItemTotal(deliverable.lineItems)
+  const amtNum = Number(amount)
+  const willBePartial = !Number.isNaN(amtNum) && amtNum >= 0 && lineTotal > amtNum
+
+  async function handleUpdate() {
+    if (Number.isNaN(amtNum) || amtNum < 0) { setError("Amount must be 0 or more"); return }
+    setSaving(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/adhoc/deliverables/${deliverable.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ approve: true, approvedAmount: amtNum }),
+      })
+      if (!res.ok) { setError((await res.json()).error ?? "Save failed"); return }
+      onClose()
+      await onDone()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleRemove() {
+    setRemoving(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/adhoc/deliverables/${deliverable.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ removeApproval: true }),
+      })
+      if (!res.ok) { setError((await res.json()).error ?? "Failed"); return }
+      onClose()
+      await onDone()
+    } finally {
+      setRemoving(false)
+    }
+  }
+
+  return (
+    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 space-y-3">
+      <div>
+        <label htmlFor="edit-approval-amount" className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+          Approved Amount
+        </label>
+        <input
+          id="edit-approval-amount"
+          autoFocus
+          type="number"
+          min="0"
+          step="0.01"
+          className="w-36 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm text-right text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") handleUpdate() }}
+        />
+      </div>
+
+      {willBePartial && (
+        <p className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 rounded-md">
+          Approved amount is less than the line item total ({formatAmount(lineTotal)}) — this will be set to <strong>Partially Approved</strong>.
+        </p>
+      )}
+      {error && <p className="text-xs text-red-600">{error}</p>}
+
+      <div className="flex items-center justify-between">
+        <Button size="sm" variant="danger" onClick={handleRemove} disabled={saving || removing}>
+          {removing ? "Removing…" : "Remove Approval"}
+        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="primary" onClick={handleUpdate} disabled={saving || removing}>
+            {saving ? "Saving…" : "Update"}
+          </Button>
+          <Button size="sm" variant="ghost" onClick={onClose}>Cancel</Button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 // ─── Line Items ───────────────────────────────────────────────────────────────
@@ -77,9 +313,9 @@ function LineItemsTab({
   isLocked,
   onRefresh,
 }: {
-  deliverable: Deliverable
-  isLocked: boolean
-  onRefresh: () => Promise<void>
+  readonly deliverable: Deliverable
+  readonly isLocked: boolean
+  readonly onRefresh: () => Promise<void>
 }) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editDesc, setEditDesc] = useState("")
@@ -90,7 +326,7 @@ function LineItemsTab({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const lineTotal = deliverable.lineItems.reduce((s, li) => s + Number(li.amount), 0)
+  const lineTotal = lineItemTotal(deliverable.lineItems)
   const approved = Number(deliverable.approvedAmount)
   const balance = approved - lineTotal
   const over = lineTotal > approved && approved > 0
@@ -150,7 +386,6 @@ function LineItemsTab({
 
   return (
     <div>
-      {/* Totals bar */}
       <div className="flex gap-6 mb-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg text-sm">
         <div>
           <span className="text-gray-500 dark:text-gray-400">Approved: </span>
@@ -159,7 +394,7 @@ function LineItemsTab({
           </span>
         </div>
         <div>
-          <span className="text-gray-500 dark:text-gray-400">Line items total: </span>
+          <span className="text-gray-500 dark:text-gray-400">Line items: </span>
           <span className="font-semibold text-gray-900 dark:text-gray-100">{formatAmount(lineTotal)}</span>
         </div>
         <div>
@@ -170,12 +405,11 @@ function LineItemsTab({
         </div>
         {over && (
           <span className="ml-auto text-xs text-red-600 font-medium self-center">
-            ⚠ Exceeds approved — new approval needed
+            ⚠ Exceeds approved — re-approval needed
           </span>
         )}
       </div>
 
-      {/* Table */}
       {deliverable.lineItems.length > 0 && (
         <table className="w-full text-sm mb-3">
           <thead>
@@ -199,9 +433,7 @@ function LineItemsTab({
                   </td>
                   <td className="py-1.5 pr-2">
                     <input
-                      type="number"
-                      min="0"
-                      step="0.01"
+                      type="number" min="0" step="0.01"
                       className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-right text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={editAmt}
                       onChange={(e) => setEditAmt(e.target.value)}
@@ -209,21 +441,15 @@ function LineItemsTab({
                   </td>
                   <td className="py-1.5">
                     <div className="flex gap-1 justify-end">
-                      <Button size="sm" variant="primary" onClick={() => saveEdit(li.id)} disabled={saving}>
-                        Save
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>
-                        Cancel
-                      </Button>
+                      <Button size="sm" variant="primary" onClick={() => saveEdit(li.id)} disabled={saving}>Save</Button>
+                      <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Cancel</Button>
                     </div>
                   </td>
                 </tr>
               ) : (
                 <tr key={li.id} className="group">
                   <td className="py-2 text-gray-800 dark:text-gray-200">{li.description}</td>
-                  <td className="py-2 text-right text-gray-800 dark:text-gray-200 tabular-nums">
-                    {formatAmount(li.amount)}
-                  </td>
+                  <td className="py-2 text-right text-gray-800 dark:text-gray-200 tabular-nums">{formatAmount(li.amount)}</td>
                   {!isLocked && (
                     <td className="py-2">
                       <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
@@ -241,7 +467,6 @@ function LineItemsTab({
 
       {error && <p className="text-xs text-red-600 mb-2">{error}</p>}
 
-      {/* Add row */}
       {!isLocked && (
         adding ? (
           <div className="flex gap-2 mt-2">
@@ -251,12 +476,10 @@ function LineItemsTab({
               placeholder="Description"
               value={newDesc}
               onChange={(e) => setNewDesc(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Escape") { setAdding(false) } }}
+              onKeyDown={(e) => { if (e.key === "Escape") setAdding(false) }}
             />
             <input
-              type="number"
-              min="0"
-              step="0.01"
+              type="number" min="0" step="0.01"
               className="w-32 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm text-right text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Amount"
               value={newAmt}
@@ -282,6 +505,53 @@ function LineItemsTab({
 
 // ─── Documents ────────────────────────────────────────────────────────────────
 
+function DocList({ docs, label, isLocked, isAdmin, currentUserId, onDelete }: {
+  readonly docs: AdhocDoc[]
+  readonly label: string
+  readonly isLocked: boolean
+  readonly isAdmin: boolean
+  readonly currentUserId: string
+  readonly onDelete: (id: string) => void
+}) {
+  return (
+    <div className="mb-4">
+      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-2">{label}</p>
+      {docs.length === 0 ? (
+        <p className="text-xs text-gray-400 italic">None uploaded</p>
+      ) : (
+        <ul className="space-y-1.5">
+          {docs.map((doc) => (
+            <li key={doc.id} className="flex items-start justify-between gap-2 text-sm group">
+              <div className="min-w-0">
+                <a
+                  href={`/api/adhoc/documents/${doc.id}`}
+                  className="font-medium text-blue-600 dark:text-blue-400 hover:underline truncate block"
+                  download
+                >
+                  {doc.displayName}
+                </a>
+                {doc.notes && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{doc.notes}</p>
+                )}
+                <p className="text-xs text-gray-400">{doc.uploadedBy.name} · {formatDate(doc.uploadedAt)}</p>
+              </div>
+              {(!isLocked || isAdmin) && (doc.uploadedBy.id === currentUserId || isAdmin) && (
+                <Button
+                  size="sm" variant="ghost"
+                  className="opacity-0 group-hover:opacity-100 shrink-0 text-red-500 hover:text-red-600"
+                  onClick={() => onDelete(doc.id)}
+                >
+                  Delete
+                </Button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 function DocumentsTab({
   deliverable,
   currentUserId,
@@ -289,11 +559,11 @@ function DocumentsTab({
   isLocked,
   onRefresh,
 }: {
-  deliverable: Deliverable
-  currentUserId: string
-  isAdmin: boolean
-  isLocked: boolean
-  onRefresh: () => Promise<void>
+  readonly deliverable: Deliverable
+  readonly currentUserId: string
+  readonly isAdmin: boolean
+  readonly isLocked: boolean
+  readonly onRefresh: () => Promise<void>
 }) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
@@ -334,53 +604,10 @@ function DocumentsTab({
   const budget = deliverable.documents.filter((d) => d.type === "BUDGET")
   const approval = deliverable.documents.filter((d) => d.type === "APPROVAL")
 
-  function DocList({ docs, label }: { docs: AdhocDoc[]; label: string }) {
-    return (
-      <div className="mb-4">
-        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-2">{label}</p>
-        {docs.length === 0 ? (
-          <p className="text-xs text-gray-400 italic">None uploaded</p>
-        ) : (
-          <ul className="space-y-1.5">
-            {docs.map((doc) => (
-              <li key={doc.id} className="flex items-start justify-between gap-2 text-sm group">
-                <div className="min-w-0">
-                  <a
-                    href={`/api/adhoc/documents/${doc.id}`}
-                    className="font-medium text-blue-600 dark:text-blue-400 hover:underline truncate block"
-                    download
-                  >
-                    {doc.displayName}
-                  </a>
-                  {doc.notes && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{doc.notes}</p>
-                  )}
-                  <p className="text-xs text-gray-400">
-                    {doc.uploadedBy.name} · {formatDate(doc.uploadedAt)}
-                  </p>
-                </div>
-                {(!isLocked || isAdmin) && (doc.uploadedBy.id === currentUserId || isAdmin) && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="opacity-0 group-hover:opacity-100 shrink-0 text-red-500 hover:text-red-600"
-                    onClick={() => handleDelete(doc.id)}
-                  >
-                    Delete
-                  </Button>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    )
-  }
-
   return (
     <div>
-      <DocList docs={budget} label="Budget" />
-      <DocList docs={approval} label="Approval" />
+      <DocList docs={budget} label="Budget" isLocked={isLocked} isAdmin={isAdmin} currentUserId={currentUserId} onDelete={handleDelete} />
+      <DocList docs={approval} label="Approval" isLocked={isLocked} isAdmin={isAdmin} currentUserId={currentUserId} onDelete={handleDelete} />
 
       {(!isLocked || isAdmin) && (
         <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -402,7 +629,7 @@ function DocumentsTab({
             />
             <input
               className="flex-1 min-w-48 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Notes (optional — e.g. covers items 1–3)"
+              placeholder="Notes (optional)"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
@@ -412,10 +639,7 @@ function DocumentsTab({
             type="file"
             accept=".pdf,.xlsx,.xls,.docx,.doc,.pptx,.ppt,.png,.jpg,.jpeg,.gif,.webp,.txt,.csv"
             className="text-sm text-gray-700 dark:text-gray-300"
-            onChange={(e) => {
-              const file = e.target.files?.[0]
-              if (file) handleUpload(file)
-            }}
+            onChange={(e) => { const file = e.target.files?.[0]; if (file) handleUpload(file) }}
             disabled={uploading}
           />
           {uploadError && <p className="text-xs text-red-600 mt-1">{uploadError}</p>}
@@ -428,7 +652,7 @@ function DocumentsTab({
 
 // ─── Change Log ───────────────────────────────────────────────────────────────
 
-function ChangeLogTab({ logs }: { logs: LogEntry[] }) {
+function ChangeLogTab({ logs }: { readonly logs: LogEntry[] }) {
   if (logs.length === 0)
     return <p className="text-sm text-gray-400 py-4 text-center">No activity yet.</p>
 
@@ -436,7 +660,7 @@ function ChangeLogTab({ logs }: { logs: LogEntry[] }) {
     <ul className="space-y-3">
       {logs.map((entry) => (
         <li key={entry.id} className="flex gap-3 text-sm">
-          <div className="mt-0.5 w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600 shrink-0 mt-2" />
+          <div className="mt-2 w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600 shrink-0" />
           <div>
             <p className="text-gray-800 dark:text-gray-200">{entry.message}</p>
             <p className="text-xs text-gray-400 mt-0.5">
@@ -464,12 +688,12 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<"items" | "documents" | "log">("items")
   const [transitioning, setTransitioning] = useState(false)
-  const [editingHeader, setEditingHeader] = useState(false)
-  const [headerTitle, setHeaderTitle] = useState("")
-  const [headerDesc, setHeaderDesc] = useState("")
-  const [headerApproved, setHeaderApproved] = useState("")
-  const [headerSaving, setHeaderSaving] = useState(false)
-  const [headerError, setHeaderError] = useState<string | null>(null)
+  const [editingApproval, setEditingApproval] = useState(false)
+  const [approvePanelOpen, setApprovePanelOpen] = useState(false)
+
+  // Inline-editable title and description — synced from server on load/refresh
+  const [titleDraft, setTitleDraft] = useState("")
+  const [descDraft, setDescDraft] = useState("")
 
   const fetchDeliverable = useCallback(async () => {
     const res = await fetch(`/api/adhoc/deliverables/${deliverableId}`)
@@ -479,40 +703,44 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
 
   useEffect(() => { fetchDeliverable() }, [fetchDeliverable])
 
+  useEffect(() => {
+    if (deliverable) {
+      setTitleDraft(deliverable.title)
+      setDescDraft(deliverable.description ?? "")
+    }
+  }, [deliverable])
+
+  // Reset action panels when status changes (e.g. after approve/remove)
+  useEffect(() => {
+    setApprovePanelOpen(false)
+    setEditingApproval(false)
+  }, [deliverable?.status])
+
   async function refresh() {
     await fetchDeliverable()
     await onRefresh()
   }
 
-  function startEditHeader() {
+  async function saveField(title: string, description: string | null) {
     if (!deliverable) return
-    setHeaderTitle(deliverable.title)
-    setHeaderDesc(deliverable.description ?? "")
-    setHeaderApproved(deliverable.approvedAmount)
-    setHeaderError(null)
-    setEditingHeader(true)
+    await fetch(`/api/adhoc/deliverables/${deliverable.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, description }),
+    })
+    await refresh()
   }
 
-  async function saveHeader() {
-    if (!deliverable) return
-    setHeaderSaving(true)
-    setHeaderError(null)
-    try {
-      const res = await fetch(`/api/adhoc/deliverables/${deliverable.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: headerTitle,
-          description: headerDesc || null,
-          approvedAmount: Number(headerApproved),
-        }),
-      })
-      if (!res.ok) { setHeaderError((await res.json()).error ?? "Save failed"); return }
-      setEditingHeader(false)
-      await refresh()
-    } finally {
-      setHeaderSaving(false)
-    }
+  function handleTitleBlur() {
+    const trimmed = titleDraft.trim()
+    if (!trimmed) { setTitleDraft(deliverable?.title ?? ""); return }
+    if (trimmed !== deliverable?.title) saveField(trimmed, deliverable?.description ?? null)
+  }
+
+  function handleDescBlur() {
+    const trimmed = descDraft.trim()
+    const current = deliverable?.description ?? ""
+    if (trimmed !== current) saveField(deliverable?.title ?? titleDraft, trimmed || null)
   }
 
   async function handleTransition(nextStatus: string) {
@@ -531,44 +759,89 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
   }
 
   const isLocked = deliverable?.status === "DELIVERED" && !isAdmin
+  const canApprove = deliverable?.status === "NOT_APPROVED"
+  const canEditApproval = deliverable?.status === "PARTIALLY_APPROVED" || deliverable?.status === "APPROVED"
+  const canDeliver = deliverable?.status === "APPROVED"
+  const missingApprovalDoc =
+    canEditApproval &&
+    (deliverable?.documents.filter((d) => d.type === "APPROVAL").length ?? 0) === 0
 
+  const itemsLabel = deliverable ? `Line Items (${deliverable.lineItems.length})` : "Line Items"
+  const docsLabel = deliverable ? `Documents (${deliverable.documents.length})` : "Documents"
   const tabs = [
-    { key: "items" as const, label: `Line Items${deliverable ? ` (${deliverable.lineItems.length})` : ""}` },
-    { key: "documents" as const, label: `Documents${deliverable ? ` (${deliverable.documents.length})` : ""}` },
+    { key: "items" as const, label: itemsLabel },
+    { key: "documents" as const, label: docsLabel },
     { key: "log" as const, label: "Change Log" },
   ]
 
+  let tabContent: React.ReactNode
+  if (loading) {
+    tabContent = (
+      <div className="space-y-2">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+        ))}
+      </div>
+    )
+  } else if (deliverable) {
+    tabContent = (
+      <>
+        {activeTab === "items" && (
+          <LineItemsTab deliverable={deliverable} isLocked={!!isLocked} onRefresh={refresh} />
+        )}
+        {activeTab === "documents" && (
+          <DocumentsTab
+            deliverable={deliverable}
+            currentUserId={currentUserId}
+            isAdmin={isAdmin}
+            isLocked={!!isLocked}
+            onRefresh={refresh}
+          />
+        )}
+        {activeTab === "log" && <ChangeLogTab logs={deliverable.systemLogs} />}
+      </>
+    )
+  } else {
+    tabContent = <p className="text-sm text-gray-400">Failed to load.</p>
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex">
-      {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/40" onClick={onClose} />
+      <button type="button" aria-label="Close" className="fixed inset-0 bg-black/40 cursor-default" onClick={onClose} />
 
-      {/* Slide-over */}
       <div className="relative ml-auto w-full max-w-2xl h-full bg-white dark:bg-gray-900 shadow-xl flex flex-col overflow-hidden">
-        {/* Header */}
+        {/* Header — inline-editable title + description */}
         <div className="flex items-start justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex-1 min-w-0 pr-4">
             {loading ? (
               <div className="h-5 w-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-            ) : editingHeader ? (
-              <input
-                autoFocus
-                className="w-full text-lg font-semibold bg-transparent border-b border-gray-300 dark:border-gray-600 focus:outline-none text-gray-900 dark:text-gray-100"
-                value={headerTitle}
-                onChange={(e) => setHeaderTitle(e.target.value)}
-              />
             ) : (
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">
-                {deliverable?.title}
-              </h2>
-            )}
-            {deliverable && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                {deliverable.agreement.title} · Created by {deliverable.createdBy.name}
-              </p>
+              <>
+                <textarea
+                  className="w-full appearance-none bg-white dark:bg-gray-900 focus:bg-gray-50 dark:focus:bg-gray-800 border-b border-transparent hover:border-gray-200 dark:hover:border-gray-600 focus:border-blue-400 dark:focus:border-blue-500 focus:outline-none text-2xl font-semibold text-gray-900 dark:text-gray-100 py-0.5 leading-tight transition-colors resize-none overflow-hidden disabled:opacity-50"
+                  rows={1}
+                  value={titleDraft}
+                  disabled={!!isLocked}
+                  onChange={(e) => setTitleDraft(e.target.value)}
+                  onBlur={handleTitleBlur}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLTextAreaElement).blur() } }}
+                />
+                <textarea
+                  className="w-full mt-2 appearance-none bg-white dark:bg-gray-900 focus:bg-gray-50 dark:focus:bg-gray-800 border border-transparent hover:border-gray-200 dark:hover:border-gray-600 focus:border-blue-400 dark:focus:border-blue-500 focus:outline-none text-sm text-gray-500 dark:text-gray-400 rounded px-1 resize-none transition-colors disabled:opacity-50"
+                  rows={2}
+                  placeholder={isLocked ? "" : "Add description…"}
+                  value={descDraft}
+                  disabled={!!isLocked}
+                  onChange={(e) => setDescDraft(e.target.value)}
+                  onBlur={handleDescBlur}
+                  onKeyDown={(e) => { if (e.key === "Escape") setDescDraft(deliverable?.description ?? "") }}
+                />
+                <p className="text-xs text-gray-400 mt-0.5">Created by {deliverable?.createdBy.name}</p>
+              </>
             )}
           </div>
           <button
+            type="button"
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xl leading-none shrink-0"
           >
@@ -579,78 +852,52 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
         {/* Meta bar */}
         {deliverable && (
           <div className="px-6 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
-            {editingHeader ? (
-              <div className="space-y-2">
-                <div className="flex gap-3">
-                  <div className="flex-1">
-                    <label className="block text-xs text-gray-500 mb-1">Description</label>
-                    <textarea
-                      className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                      rows={2}
-                      value={headerDesc}
-                      onChange={(e) => setHeaderDesc(e.target.value)}
-                      placeholder="Optional description"
-                    />
-                  </div>
-                  <div className="w-36">
-                    <label className="block text-xs text-gray-500 mb-1">Approved Amount</label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm text-right text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      value={headerApproved}
-                      onChange={(e) => setHeaderApproved(e.target.value)}
-                    />
-                  </div>
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex gap-6">
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Status</p>
+                  <span className={`inline-flex mt-0.5 px-2 py-0.5 text-xs rounded-full font-medium ${STATUS_BADGE[deliverable.status]}`}>
+                    {STATUS_LABEL[deliverable.status]}
+                  </span>
                 </div>
-                {headerError && <p className="text-xs text-red-600">{headerError}</p>}
-                <div className="flex gap-2">
-                  <Button size="sm" variant="primary" onClick={saveHeader} disabled={headerSaving}>
-                    {headerSaving ? "Saving…" : "Save"}
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Approved Amount</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mt-0.5">
+                    {Number(deliverable.approvedAmount) > 0 ? formatAmount(deliverable.approvedAmount) : "—"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {canApprove && !approvePanelOpen && (
+                  <Button size="sm" variant="outline" onClick={() => setApprovePanelOpen(true)}>Approve</Button>
+                )}
+                {canEditApproval && !editingApproval && (
+                  <Button size="sm" variant="ghost" onClick={() => setEditingApproval(true)}>Edit Approval</Button>
+                )}
+                {canDeliver && (
+                  <Button size="sm" variant="outline" onClick={() => handleTransition("DELIVERED")} disabled={transitioning}>
+                    {transitioning ? "Saving…" : "Mark Delivered"}
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setEditingHeader(false)}>Cancel</Button>
-                </div>
+                )}
               </div>
-            ) : (
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex gap-6">
-                  <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Status</p>
-                    <span className={`inline-flex mt-0.5 px-2 py-0.5 text-xs rounded-full font-medium ${STATUS_BADGE[deliverable.status]}`}>
-                      {STATUS_LABEL[deliverable.status]}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Approved Amount</p>
-                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mt-0.5">
-                      {Number(deliverable.approvedAmount) > 0 ? formatAmount(deliverable.approvedAmount) : "—"}
-                    </p>
-                  </div>
-                  {deliverable.description && (
-                    <div className="max-w-xs">
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Description</p>
-                      <p className="text-sm text-gray-700 dark:text-gray-300 mt-0.5">{deliverable.description}</p>
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {!isLocked && (
-                    <Button size="sm" variant="ghost" onClick={startEditHeader}>Edit</Button>
-                  )}
-                  {STATUS_TRANSITIONS[deliverable.status]?.map((t) => (
-                    <Button
-                      key={t.next}
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleTransition(t.next)}
-                      disabled={transitioning}
-                    >
-                      {transitioning ? "Saving…" : t.label}
-                    </Button>
-                  ))}
-                </div>
-              </div>
+            </div>
+
+            {missingApprovalDoc && !editingApproval && (
+              <p className="mt-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5 rounded-md">
+                ⚠ No approval document uploaded
+              </p>
+            )}
+
+            {!isLocked && canApprove && approvePanelOpen && (
+              <ApproveForm deliverable={deliverable} onDone={refresh} onClose={() => setApprovePanelOpen(false)} />
+            )}
+
+            {canEditApproval && editingApproval && (
+              <ApprovalEditPanel
+                deliverable={deliverable}
+                onDone={refresh}
+                onClose={() => setEditingApproval(false)}
+              />
             )}
           </div>
         )}
@@ -660,6 +907,7 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
           {tabs.map((t) => (
             <button
               key={t.key}
+              type="button"
               onClick={() => setActiveTab(t.key)}
               className={[
                 "px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors",
@@ -675,31 +923,7 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
 
         {/* Tab content */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
-          {loading ? (
-            <div className="space-y-2">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-              ))}
-            </div>
-          ) : deliverable ? (
-            <>
-              {activeTab === "items" && (
-                <LineItemsTab deliverable={deliverable} isLocked={!!isLocked} onRefresh={refresh} />
-              )}
-              {activeTab === "documents" && (
-                <DocumentsTab
-                  deliverable={deliverable}
-                  currentUserId={currentUserId}
-                  isAdmin={isAdmin}
-                  isLocked={!!isLocked}
-                  onRefresh={refresh}
-                />
-              )}
-              {activeTab === "log" && <ChangeLogTab logs={deliverable.systemLogs} />}
-            </>
-          ) : (
-            <p className="text-sm text-gray-400">Failed to load.</p>
-          )}
+          {tabContent}
         </div>
       </div>
     </div>

@@ -56,7 +56,7 @@ export function AdhocClient({ initialAgreements, currentUserId, isAdmin }: Props
             Manage ad hoc agreements and work packages
           </p>
         </div>
-        <Button variant="primary" size="sm" onClick={() => setShowForm(true)}>
+        <Button variant="ghost" size="sm" onClick={() => setShowForm(true)}>
           + New Agreement
         </Button>
       </div>
