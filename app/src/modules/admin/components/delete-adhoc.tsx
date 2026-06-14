@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, type ReactNode } from "react"
 import { Trash2 } from "lucide-react"
 import { Dialog } from "@/shared/components/ui/dialog"
 
-// ─── Shared types ─────────────────────────────────────────────────────────────
+// ─── Row types ─────────────────────────────────────────────────────────────────
 
 interface AgreementRow {
   id: string
@@ -43,10 +43,13 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
 }
 
-// ─── Agreements section ────────────────────────────────────────────────────────
+// ─── Shared hook ───────────────────────────────────────────────────────────────
 
-function DeleteAgreements() {
-  const [rows, setRows] = useState<AgreementRow[]>([])
+function useDeleteSection<T extends { id: string }>(
+  fetchUrl: string,
+  deleteUrlFor: (id: string) => string,
+) {
+  const [rows, setRows] = useState<T[]>([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -56,45 +59,44 @@ function DeleteAgreements() {
 
   const fetchData = useCallback(() => {
     setLoading(true)
-    fetch("/api/adhoc/agreements")
+    fetch(fetchUrl)
       .then((r) => r.json())
-      .then((d: AgreementRow[]) => { setRows(d); setLoading(false) })
+      .then((d: T[]) => { setRows(d); setLoading(false) })
       .catch(() => setLoading(false))
-  }, [])
+  }, [fetchUrl])
 
   useEffect(() => { fetchData() }, [fetchData])
 
   const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.id))
   const someSelected = rows.some((r) => selected.has(r.id))
 
-  function toggleAll() {
-    if (allSelected) {
-      setSelected((s) => { const n = new Set(s); rows.forEach((r) => n.delete(r.id)); return n })
-    } else {
-      setSelected((s) => { const n = new Set(s); rows.forEach((r) => n.add(r.id)); return n })
-    }
-  }
-
   function toggleRow(id: string) {
     setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
   }
 
-  async function handleDelete() {
+  function selectAll() {
+    setSelected((s) => { const n = new Set(s); rows.forEach((r) => n.add(r.id)); return n })
+  }
+
+  function deselectAll() {
+    setSelected((s) => { const n = new Set(s); rows.forEach((r) => n.delete(r.id)); return n })
+  }
+
+  async function handleDelete(successMessage: string) {
     setDeleting(true)
     setDeleteError("")
     try {
       const ids = Array.from(selected)
       const results = await Promise.allSettled(
-        ids.map((id) => fetch(`/api/adhoc/agreements/${id}`, { method: "DELETE" }))
+        ids.map((id) => fetch(deleteUrlFor(id), { method: "DELETE" }))
       )
       const failed = results.filter((r) => r.status === "rejected" || (r.status === "fulfilled" && !r.value.ok))
       if (failed.length > 0) {
         setDeleteError(`${failed.length} deletion(s) failed.`)
       } else {
-        const count = ids.length
         setSelected(new Set())
         setConfirmOpen(false)
-        setDeleteSuccess(`${count} ${count === 1 ? "agreement" : "agreements"} deleted.`)
+        setDeleteSuccess(successMessage)
         setTimeout(() => setDeleteSuccess(""), 4000)
         fetchData()
       }
@@ -105,8 +107,83 @@ function DeleteAgreements() {
     }
   }
 
+  return {
+    rows,
+    loading,
+    selected,
+    confirmOpen,
+    deleting,
+    deleteError,
+    deleteSuccess,
+    allSelected,
+    someSelected,
+    toggleRow,
+    selectAll,
+    deselectAll,
+    handleDelete,
+    openConfirm: () => { setDeleteError(""); setConfirmOpen(true) },
+    closeConfirm: () => { setConfirmOpen(false); setDeleteError("") },
+  }
+}
+
+// ─── Shared confirm dialog ─────────────────────────────────────────────────────
+
+interface DeleteConfirmDialogProps {
+  open: boolean
+  onClose: () => void
+  onConfirm: () => void
+  deleting: boolean
+  selectedCount: number
+  noun: string
+  error: string
+  children?: ReactNode
+}
+
+function DeleteConfirmDialog({
+  open, onClose, onConfirm, deleting, selectedCount, noun, error, children,
+}: DeleteConfirmDialogProps) {
+  return (
+    <Dialog open={open} onClose={onClose} title="Confirm Delete">
+      <div className="space-y-4">
+        <p className="text-sm text-gray-700 dark:text-gray-300">
+          You are about to permanently delete{" "}
+          <span className="font-semibold text-red-700 dark:text-red-400">{selectedCount} {noun}</span>.
+          This cannot be undone.
+        </p>
+        {children}
+        {error && <p className="text-sm text-red-600">{error}</p>}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={deleting}
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-colors"
+          >
+            {deleting ? "Deleting…" : `Delete ${selectedCount} ${noun}`}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </Dialog>
+  )
+}
+
+// ─── Agreements section ────────────────────────────────────────────────────────
+
+function DeleteAgreements() {
+  const {
+    rows, loading, selected, confirmOpen, deleting, deleteError, deleteSuccess,
+    allSelected, someSelected, toggleRow, selectAll, deselectAll, handleDelete, openConfirm, closeConfirm,
+  } = useDeleteSection<AgreementRow>("/api/adhoc/agreements", (id) => `/api/adhoc/agreements/${id}`)
+
   const selectedCount = selected.size
-  const agreementNoun = selectedCount === 1 ? "agreement" : "agreements"
+  const noun = selectedCount === 1 ? "agreement" : "agreements"
   const selectedRows = rows.filter((r) => selected.has(r.id))
   const totalWorkPackages = selectedRows.reduce((sum, r) => sum + r.deliverables.length, 0)
 
@@ -119,7 +196,7 @@ function DeleteAgreements() {
         {selectedCount > 0 && (
           <button
             type="button"
-            onClick={() => { setDeleteError(""); setConfirmOpen(true) }}
+            onClick={openConfirm}
             className="flex items-center gap-2 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors"
           >
             <Trash2 size={13} />
@@ -143,7 +220,7 @@ function DeleteAgreements() {
                   type="checkbox"
                   checked={allSelected}
                   ref={(el) => { if (el) el.indeterminate = someSelected && !allSelected }}
-                  onChange={toggleAll}
+                  onChange={allSelected ? deselectAll : selectAll}
                   className="rounded border-gray-300 dark:border-gray-600"
                   aria-label="Select all agreements"
                 />
@@ -157,18 +234,11 @@ function DeleteAgreements() {
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
             {loading ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-400">Loading…</td>
-              </tr>
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-400">Loading…</td></tr>
             ) : rows.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-400">No agreements found.</td>
-              </tr>
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-400">No agreements found.</td></tr>
             ) : rows.map((r) => (
-              <tr
-                key={r.id}
-                className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-              >
+              <tr key={r.id} className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                 <td className="px-4 py-3">
                   <input
                     type="checkbox"
@@ -193,43 +263,26 @@ function DeleteAgreements() {
         </table>
       </div>
 
-      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} title="Confirm Delete">
-        <div className="space-y-4">
-          <p className="text-sm text-gray-700 dark:text-gray-300">
-            You are about to permanently delete{" "}
-            <span className="font-semibold text-red-700 dark:text-red-400">{selectedCount} {agreementNoun}</span>.
-            This cannot be undone.
-          </p>
-          {totalWorkPackages > 0 && (
-            <div className="flex gap-3 px-4 py-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
-              <span className="text-amber-500 mt-0.5 shrink-0">⚠</span>
-              <p className="text-sm text-amber-800 dark:text-amber-300">
-                The selected {agreementNoun} contain{selectedCount === 1 ? "s" : ""}{" "}
-                <span className="font-semibold">{totalWorkPackages} work {totalWorkPackages === 1 ? "package" : "packages"}</span>{" "}
-                that will also be permanently deleted along with all their line items and documents.
-              </p>
-            </div>
-          )}
-          {deleteError && <p className="text-sm text-red-600">{deleteError}</p>}
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={deleting}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-colors"
-            >
-              {deleting ? "Deleting…" : `Delete ${selectedCount} ${agreementNoun}`}
-            </button>
-            <button
-              type="button"
-              onClick={() => { setConfirmOpen(false); setDeleteError("") }}
-              className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
-            >
-              Cancel
-            </button>
+      <DeleteConfirmDialog
+        open={confirmOpen}
+        onClose={closeConfirm}
+        onConfirm={() => handleDelete(`${selectedCount} ${noun} deleted.`)}
+        deleting={deleting}
+        selectedCount={selectedCount}
+        noun={noun}
+        error={deleteError}
+      >
+        {totalWorkPackages > 0 && (
+          <div className="flex gap-3 px-4 py-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
+            <span className="text-amber-500 mt-0.5 shrink-0">⚠</span>
+            <p className="text-sm text-amber-800 dark:text-amber-300">
+              The selected {noun} contain{selectedCount === 1 ? "s" : ""}{" "}
+              <span className="font-semibold">{totalWorkPackages} work {totalWorkPackages === 1 ? "package" : "packages"}</span>{" "}
+              that will also be permanently deleted along with all their line items and documents.
+            </p>
           </div>
-        </div>
-      </Dialog>
+        )}
+      </DeleteConfirmDialog>
     </div>
   )
 }
@@ -237,64 +290,10 @@ function DeleteAgreements() {
 // ─── Work packages section ─────────────────────────────────────────────────────
 
 function DeleteWorkPackages() {
-  const [rows, setRows] = useState<DeliverableRow[]>([])
-  const [loading, setLoading] = useState(true)
-  const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [confirmOpen, setConfirmOpen] = useState(false)
-  const [deleting, setDeleting] = useState(false)
-  const [deleteError, setDeleteError] = useState("")
-  const [deleteSuccess, setDeleteSuccess] = useState("")
-
-  const fetchData = useCallback(() => {
-    setLoading(true)
-    fetch("/api/adhoc/deliverables")
-      .then((r) => r.json())
-      .then((d: DeliverableRow[]) => { setRows(d); setLoading(false) })
-      .catch(() => setLoading(false))
-  }, [])
-
-  useEffect(() => { fetchData() }, [fetchData])
-
-  const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.id))
-  const someSelected = rows.some((r) => selected.has(r.id))
-
-  function toggleAll() {
-    if (allSelected) {
-      setSelected((s) => { const n = new Set(s); rows.forEach((r) => n.delete(r.id)); return n })
-    } else {
-      setSelected((s) => { const n = new Set(s); rows.forEach((r) => n.add(r.id)); return n })
-    }
-  }
-
-  function toggleRow(id: string) {
-    setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
-  }
-
-  async function handleDelete() {
-    setDeleting(true)
-    setDeleteError("")
-    try {
-      const ids = Array.from(selected)
-      const results = await Promise.allSettled(
-        ids.map((id) => fetch(`/api/adhoc/deliverables/${id}`, { method: "DELETE" }))
-      )
-      const failed = results.filter((r) => r.status === "rejected" || (r.status === "fulfilled" && !r.value.ok))
-      if (failed.length > 0) {
-        setDeleteError(`${failed.length} deletion(s) failed.`)
-      } else {
-        const count = ids.length
-        setSelected(new Set())
-        setConfirmOpen(false)
-        setDeleteSuccess(`${count} ${count === 1 ? "work package" : "work packages"} deleted.`)
-        setTimeout(() => setDeleteSuccess(""), 4000)
-        fetchData()
-      }
-    } catch {
-      setDeleteError("Network error. Please try again.")
-    } finally {
-      setDeleting(false)
-    }
-  }
+  const {
+    rows, loading, selected, confirmOpen, deleting, deleteError, deleteSuccess,
+    allSelected, someSelected, toggleRow, selectAll, deselectAll, handleDelete, openConfirm, closeConfirm,
+  } = useDeleteSection<DeliverableRow>("/api/adhoc/deliverables", (id) => `/api/adhoc/deliverables/${id}`)
 
   const selectedCount = selected.size
   const noun = selectedCount === 1 ? "work package" : "work packages"
@@ -308,7 +307,7 @@ function DeleteWorkPackages() {
         {selectedCount > 0 && (
           <button
             type="button"
-            onClick={() => { setDeleteError(""); setConfirmOpen(true) }}
+            onClick={openConfirm}
             className="flex items-center gap-2 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors"
           >
             <Trash2 size={13} />
@@ -332,7 +331,7 @@ function DeleteWorkPackages() {
                   type="checkbox"
                   checked={allSelected}
                   ref={(el) => { if (el) el.indeterminate = someSelected && !allSelected }}
-                  onChange={toggleAll}
+                  onChange={allSelected ? deselectAll : selectAll}
                   className="rounded border-gray-300 dark:border-gray-600"
                   aria-label="Select all work packages"
                 />
@@ -345,18 +344,11 @@ function DeleteWorkPackages() {
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
             {loading ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-400">Loading…</td>
-              </tr>
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-400">Loading…</td></tr>
             ) : rows.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-400">No work packages found.</td>
-              </tr>
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-400">No work packages found.</td></tr>
             ) : rows.map((r) => (
-              <tr
-                key={r.id}
-                className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-              >
+              <tr key={r.id} className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                 <td className="px-4 py-3">
                   <input
                     type="checkbox"
@@ -376,33 +368,19 @@ function DeleteWorkPackages() {
         </table>
       </div>
 
-      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} title="Confirm Delete">
-        <div className="space-y-4">
-          <p className="text-sm text-gray-700 dark:text-gray-300">
-            You are about to permanently delete{" "}
-            <span className="font-semibold text-red-700 dark:text-red-400">{selectedCount} {noun}</span>{" "}
-            and all their line items and documents. This cannot be undone.
-          </p>
-          {deleteError && <p className="text-sm text-red-600">{deleteError}</p>}
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={deleting}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-colors"
-            >
-              {deleting ? "Deleting…" : `Delete ${selectedCount} ${noun}`}
-            </button>
-            <button
-              type="button"
-              onClick={() => { setConfirmOpen(false); setDeleteError("") }}
-              className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      </Dialog>
+      <DeleteConfirmDialog
+        open={confirmOpen}
+        onClose={closeConfirm}
+        onConfirm={() => handleDelete(`${selectedCount} ${noun} deleted.`)}
+        deleting={deleting}
+        selectedCount={selectedCount}
+        noun={noun}
+        error={deleteError}
+      >
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          All associated line items and documents will also be permanently deleted.
+        </p>
+      </DeleteConfirmDialog>
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import { join, basename } from "path"
-import { readFile, unlink } from "fs/promises"
+import { join, basename } from "node:path"
+import { readFile, unlink } from "node:fs/promises"
 import { db } from "@/shared/lib/db"
 import { requireSession } from "@/shared/lib/api"
 import { writeLog } from "@/shared/lib/system-log"

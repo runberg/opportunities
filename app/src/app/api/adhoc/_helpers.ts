@@ -14,7 +14,7 @@ export async function recomputeApprovalStatus(
     where: { id: deliverableId },
     include: { lineItems: true },
   })
-  if (!del || del.status !== "APPROVED") return
+  if (del?.status !== "APPROVED") return
 
   const lineTotal = del.lineItems.reduce((s, li) => s + Number(li.amount), 0)
   if (lineTotal <= Number(del.approvedAmount)) return
