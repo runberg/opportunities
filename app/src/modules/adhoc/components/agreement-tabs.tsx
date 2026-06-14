@@ -5,8 +5,7 @@ import type { AgreementRow, AgreementDocument } from "./adhoc-client"
 import { DeliverablesTable } from "./deliverables-table"
 import { AgreementForm } from "./agreement-form"
 import { Button } from "@/shared/components/ui/button"
-import { formatDate } from "@/shared/lib/utils"
-import { todayISO } from "@/shared/lib/utils"
+import { formatDate, todayISO } from "@/shared/lib/utils"
 
 const STATUS_BADGE: Record<string, string> = {
   DRAFT:  "bg-gray-100 text-gray-600",

@@ -1,22 +1,22 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect } from "react"
 import { X, Search } from "lucide-react"
 import { OpportunityModal } from "@/modules/opportunities/components/opportunity-modal"
-import { OpportunityDataTable, type OppTableRow, type DateColumn } from "@/modules/opportunities/components/opportunity-data-table"
-import { type SortDir } from "@/shared/components/ui/sortable-header"
+import { OpportunityDataTable, type DateColumn } from "@/modules/opportunities/components/opportunity-data-table"
+import { useDrillState, ModalPagination } from "./drill-shared"
 
 const DATE_COLUMNS: Record<string, DateColumn> = {
-  rfqDate:            { label: "RFQ Date",        sortKey: "rfqDate",            getValue: (r) => r.rfqDate },
-  quoteSentDate:      { label: "Quote Shared",     sortKey: "quoteSentDate",      getValue: (r) => r.quoteSentDate },
-  elRequestedDate:    { label: "EL Requested",     sortKey: "elRequestedDate",    getValue: (r) => r.elRequestedDate },
-  elDraftSharedDate:  { label: "EL Draft Shared",  sortKey: "elDraftSharedDate",  getValue: (r) => r.elDraftSharedDate },
-  elSignedSharedDate: { label: "EL Signed Shared", sortKey: "elSignedSharedDate", getValue: (r) => r.elSignedSharedDate },
-  elCountersignedDate:{ label: "EL Countersigned", sortKey: "elCountersignedDate",getValue: (r) => r.elCountersignedDate },
-  advancePaymentDate: { label: "Advance Payment",  sortKey: "advancePaymentDate", getValue: (r) => r.advancePaymentDate },
-  fatPassedDate:      { label: "FAT Passed",       sortKey: "fatPassedDate",      getValue: (r) => r.fatPassedDate },
-  satPassedDate:      { label: "SAT Passed",       sortKey: "satPassedDate",      getValue: (r) => r.satPassedDate },
-  deliveredDate:      { label: "Delivered",        sortKey: "deliveredDate",      getValue: (r) => r.deliveredDate },
+  rfqDate:             { label: "RFQ Date",         sortKey: "rfqDate",             getValue: (r) => r.rfqDate },
+  quoteSentDate:       { label: "Quote Shared",      sortKey: "quoteSentDate",       getValue: (r) => r.quoteSentDate },
+  elRequestedDate:     { label: "EL Requested",      sortKey: "elRequestedDate",     getValue: (r) => r.elRequestedDate },
+  elDraftSharedDate:   { label: "EL Draft Shared",   sortKey: "elDraftSharedDate",   getValue: (r) => r.elDraftSharedDate },
+  elSignedSharedDate:  { label: "EL Signed Shared",  sortKey: "elSignedSharedDate",  getValue: (r) => r.elSignedSharedDate },
+  elCountersignedDate: { label: "EL Countersigned",  sortKey: "elCountersignedDate", getValue: (r) => r.elCountersignedDate },
+  advancePaymentDate:  { label: "Advance Payment",   sortKey: "advancePaymentDate",  getValue: (r) => r.advancePaymentDate },
+  fatPassedDate:       { label: "FAT Passed",        sortKey: "fatPassedDate",       getValue: (r) => r.fatPassedDate },
+  satPassedDate:       { label: "SAT Passed",        sortKey: "satPassedDate",       getValue: (r) => r.satPassedDate },
+  deliveredDate:       { label: "Delivered",         sortKey: "deliveredDate",       getValue: (r) => r.deliveredDate },
 }
 
 export function DateDrillModal({
@@ -31,22 +31,14 @@ export function DateDrillModal({
   readonly isAdmin: boolean
   readonly onClose: () => void
 }) {
-  const [query, setQuery] = useState("")
-  const [debouncedQuery, setDebouncedQuery] = useState("")
-  const [page, setPage] = useState(1)
-  const [perPage, setPerPage] = useState(50)
-  const [sortKey, setSortKey] = useState("title")
-  const [sortDir, setSortDir] = useState<SortDir>("asc")
-  const [result, setResult] = useState<{ items: OppTableRow[]; total: number } | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [openId, setOpenId] = useState<string | null>(null)
-
-  function handleSort(key: string, dir: SortDir) { setSortKey(key); setSortDir(dir); setPage(1) }
-
-  useEffect(() => {
-    const t = setTimeout(() => { setDebouncedQuery(query); setPage(1) }, 350)
-    return () => clearTimeout(t)
-  }, [query])
+  const {
+    query, setQuery, debouncedQuery,
+    page, setPage, perPage, setPerPage,
+    sortKey, sortDir, handleSort,
+    loading, setLoading, setResult,
+    openId, setOpenId,
+    items, total, totalPages,
+  } = useDrillState(onClose)
 
   useEffect(() => {
     setLoading(true)
@@ -60,17 +52,7 @@ export function DateDrillModal({
       .then((r) => r.json())
       .then((d) => { setResult(d); setLoading(false) })
       .catch(() => setLoading(false))
-  }, [dateField, fromISO, toISO, debouncedQuery, page, perPage, sortKey, sortDir])
-
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) { if (e.key === "Escape" && !openId) onClose() }
-    document.addEventListener("keydown", onKey)
-    return () => document.removeEventListener("keydown", onKey)
-  }, [onClose, openId])
-
-  const items = result?.items ?? []
-  const total = result?.total ?? 0
-  const totalPages = Math.max(1, Math.ceil(total / perPage))
+  }, [dateField, fromISO, toISO, debouncedQuery, page, perPage, sortKey, sortDir, setLoading, setResult])
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -118,32 +100,10 @@ export function DateDrillModal({
             onRowClick={setOpenId}
           />
 
-          {/* Pagination */}
-          {total > perPage && (
-            <div className="flex items-center justify-between px-6 py-3 border-t border-gray-100">
-              <div className="flex items-center gap-2 text-xs text-gray-500">
-                <span>Rows per page:</span>
-                <select value={perPage} onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1) }}
-                  className="border border-gray-300 rounded px-1 py-0.5 focus:outline-none">
-                  {[25, 50, 100].map((n) => <option key={n} value={n}>{n}</option>)}
-                </select>
-                <span className="ml-2">
-                  {Math.min((page - 1) * perPage + 1, total)}–{Math.min(page * perPage, total)} of {total}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)}
-                  className="px-2 py-1 text-xs text-gray-500 hover:text-gray-700 disabled:opacity-40 transition-colors">
-                  ← Prev
-                </button>
-                <span className="text-xs text-gray-500">Page {page} of {totalPages}</span>
-                <button disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}
-                  className="px-2 py-1 text-xs text-gray-500 hover:text-gray-700 disabled:opacity-40 transition-colors">
-                  Next →
-                </button>
-              </div>
-            </div>
-          )}
+          <ModalPagination
+            total={total} perPage={perPage} page={page} totalPages={totalPages}
+            onPageChange={setPage} onPerPageChange={setPerPage}
+          />
         </div>
       </div>
 

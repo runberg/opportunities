@@ -56,7 +56,7 @@ export async function POST(
     data: {
       title: title.trim(),
       description: typeof description === "string" ? description.trim() || null : null,
-      approvedAmount: approvedAmount != null ? Number(approvedAmount) : 0,
+      approvedAmount: Number(approvedAmount ?? 0),
       agreementId: id,
       createdById: session.user.id,
     },

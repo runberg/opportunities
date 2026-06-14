@@ -43,6 +43,16 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
 }
 
+function TablePlaceholder({ colSpan, message }: { readonly colSpan: number; readonly message: string }) {
+  return (
+    <tr>
+      <td colSpan={colSpan} className="px-4 py-8 text-center text-sm text-gray-400">
+        {message}
+      </td>
+    </tr>
+  )
+}
+
 // ─── Shared hook ───────────────────────────────────────────────────────────────
 
 function useDeleteSection<T extends { id: string }>(
@@ -129,14 +139,14 @@ function useDeleteSection<T extends { id: string }>(
 // ─── Shared confirm dialog ─────────────────────────────────────────────────────
 
 interface DeleteConfirmDialogProps {
-  open: boolean
-  onClose: () => void
-  onConfirm: () => void
-  deleting: boolean
-  selectedCount: number
-  noun: string
-  error: string
-  children?: ReactNode
+  readonly open: boolean
+  readonly onClose: () => void
+  readonly onConfirm: () => void
+  readonly deleting: boolean
+  readonly selectedCount: number
+  readonly noun: string
+  readonly error: string
+  readonly children?: ReactNode
 }
 
 function DeleteConfirmDialog({
@@ -233,11 +243,9 @@ function DeleteAgreements() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-            {loading ? (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-400">Loading…</td></tr>
-            ) : rows.length === 0 ? (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-400">No agreements found.</td></tr>
-            ) : rows.map((r) => (
+            {loading && <TablePlaceholder colSpan={6} message="Loading…" />}
+            {!loading && rows.length === 0 && <TablePlaceholder colSpan={6} message="No agreements found." />}
+            {!loading && rows.map((r) => (
               <tr key={r.id} className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                 <td className="px-4 py-3">
                   <input
@@ -343,11 +351,9 @@ function DeleteWorkPackages() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-            {loading ? (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-400">Loading…</td></tr>
-            ) : rows.length === 0 ? (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-400">No work packages found.</td></tr>
-            ) : rows.map((r) => (
+            {loading && <TablePlaceholder colSpan={5} message="Loading…" />}
+            {!loading && rows.length === 0 && <TablePlaceholder colSpan={5} message="No work packages found." />}
+            {!loading && rows.map((r) => (
               <tr key={r.id} className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                 <td className="px-4 py-3">
                   <input
