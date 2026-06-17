@@ -9,6 +9,7 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   devIndicators: false,
   env: { NEXT_TELEMETRY_DISABLED: "1" },
   experimental: {
