@@ -50,7 +50,7 @@ function buildChanges(
   prev: { title: string; status: string }
 ): string[] {
   const changes: string[] = []
-  if (body.status && body.status !== prev.status) changes.push(`status → ${String(body.status)}`)
+  if (body.status && body.status !== prev.status) changes.push(`status → ${body.status as string}`)
   if (body.title && (body.title as string).trim() !== prev.title)
     changes.push(`title → "${(body.title as string).trim()}"`)
   return changes
