@@ -33,7 +33,6 @@ COPY --from=builder /app/prisma/migrations ./prisma/migrations/
 COPY --from=builder /app/prisma/seed.js ./prisma/
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
 
 # Uploads directory
 RUN mkdir -p /app/uploads && chown -R nextjs:nodejs /app
@@ -46,4 +45,4 @@ ENV PORT=3000
 USER nextjs
 
 # Run migrations, sync admin account, then start the standalone server
-CMD ["sh", "-c", "node node_modules/.bin/prisma migrate deploy && node prisma/seed.js && node server.js"]
+CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && node prisma/seed.js && node server.js"]
