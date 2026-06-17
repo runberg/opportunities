@@ -32,7 +32,7 @@ COPY --from=builder /app/prisma/schema.prisma ./prisma/
 COPY --from=builder /app/prisma/migrations ./prisma/migrations/
 COPY --from=builder /app/prisma/seed.js ./prisma/
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
-COPY --from=builder /app/node_modules/@prisma/engines ./node_modules/@prisma/engines
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
 
 # Uploads directory
