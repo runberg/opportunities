@@ -139,7 +139,7 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
                     onClick={() => setOpenDeliverableId(d.id)}
                   >
                     <td className="px-4 py-3 text-gray-900 dark:text-gray-100 font-medium">
-                      {(d as { title?: string }).title ?? "—"}
+                      {d.title}
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex px-2 py-0.5 text-xs rounded-full font-medium ${STATUS_BADGE[d.status]}`}>
@@ -156,7 +156,7 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
                       {approved > 0 ? formatAmount(balance) : "—"}
                     </td>
                     <td className="px-4 py-3 text-right text-gray-500 dark:text-gray-400">
-                      {(d as { documents?: unknown[] }).documents?.length ?? 0}
+                      {d.documents.length}
                     </td>
                   </tr>
                 )

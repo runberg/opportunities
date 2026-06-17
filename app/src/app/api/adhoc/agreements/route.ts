@@ -14,9 +14,11 @@ export async function GET() {
       deliverables: {
         select: {
           id: true,
+          title: true,
           status: true,
           approvedAmount: true,
           lineItems: { select: { amount: true } },
+          documents: { select: { id: true } },
         },
       },
       documents: {

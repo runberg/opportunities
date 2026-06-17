@@ -25,9 +25,11 @@ export type AgreementRow = {
   createdBy: { id: string; name: string }
   deliverables: {
     id: string
+    title: string
     status: string
     approvedAmount: string
     lineItems: { amount: string }[]
+    documents: { id: string }[]
   }[]
   documents: AgreementDocument[]
 }
