@@ -1,31 +1,12 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/shared/lib/auth"
-import { db } from "@/shared/lib/db"
+import { findAllAgreements } from "@/app/api/adhoc/_helpers"
 import { AdhocClient } from "@/modules/adhoc/components/adhoc-client"
 
 export default async function AdHocPage() {
   const session = await getServerSession(authOptions)
 
-  const agreements = await db.adhocAgreement.findMany({
-    orderBy: { createdAt: "asc" },
-    include: {
-      createdBy: { select: { id: true, name: true } },
-      deliverables: {
-        select: {
-          id: true,
-          title: true,
-          status: true,
-          approvedAmount: true,
-          lineItems: { select: { amount: true } },
-          documents: { select: { id: true } },
-        },
-      },
-      documents: {
-        orderBy: { uploadedAt: "asc" },
-        include: { uploadedBy: { select: { id: true, name: true } } },
-      },
-    },
-  })
+  const agreements = await findAllAgreements()
 
   const serialized = agreements.map((a) => ({
     ...a,

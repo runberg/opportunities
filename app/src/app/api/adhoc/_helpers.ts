@@ -1,6 +1,29 @@
 import { db } from "@/shared/lib/db"
 import { writeLog } from "@/shared/lib/system-log"
 
+export function findAllAgreements() {
+  return db.adhocAgreement.findMany({
+    orderBy: { createdAt: "asc" },
+    include: {
+      createdBy: { select: { id: true, name: true } },
+      deliverables: {
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          approvedAmount: true,
+          lineItems: { select: { amount: true } },
+          documents: { select: { id: true } },
+        },
+      },
+      documents: {
+        orderBy: { uploadedAt: "asc" },
+        include: { uploadedBy: { select: { id: true, name: true } } },
+      },
+    },
+  })
+}
+
 /**
  * After a line item is added, updated, or deleted, check whether the deliverable
  * should be downgraded from APPROVED to PARTIALLY_APPROVED because line items

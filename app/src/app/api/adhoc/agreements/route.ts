@@ -2,33 +2,13 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/shared/lib/db"
 import { requireSession } from "@/shared/lib/api"
 import { writeLog } from "@/shared/lib/system-log"
+import { findAllAgreements } from "../_helpers"
 
 export async function GET() {
   const result = await requireSession()
   if (result.error) return result.error
 
-  const agreements = await db.adhocAgreement.findMany({
-    orderBy: { createdAt: "asc" },
-    include: {
-      createdBy: { select: { id: true, name: true } },
-      deliverables: {
-        select: {
-          id: true,
-          title: true,
-          status: true,
-          approvedAmount: true,
-          lineItems: { select: { amount: true } },
-          documents: { select: { id: true } },
-        },
-      },
-      documents: {
-        orderBy: { uploadedAt: "asc" },
-        include: { uploadedBy: { select: { id: true, name: true } } },
-      },
-    },
-  })
-
-  return NextResponse.json(agreements)
+  return NextResponse.json(await findAllAgreements())
 }
 
 export async function POST(req: NextRequest) {
