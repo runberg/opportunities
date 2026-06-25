@@ -9,12 +9,13 @@ Built for small teams on a private network. All data stays on your own server.
 ### Pipeline views
 - **Quotes** — track opportunities from RFQ Received → Quote Sent
 - **Engagement Letters** — dedicated EL view: EL Requested → Draft Shared → Signed Shared → Countersigned
-- **Production** — track progress from Pending Advance Payment → In Production → Delivered, with per-row phase indicators (Adv. Payment, FAT, SAT)
+- **Production** — track progress from Pending Advance Payment → In Production → Delivered, with per-row phase indicators (Adv. Payment, FAT, SAT); add expected delivery lines (unit type, quantity, month/year) per opportunity to forecast output
 
 ### Opportunity workflow
 - **Modal-based editing** — create, view, and edit opportunities in a slide-over modal without leaving the list
 - **Always-editable fields** — click any field to edit it; an "Apply Changes" bar appears when there are unsaved changes
 - **One-click status transitions** — Quote Accepted promotes to EL flow; EL Countersigned promotes to Production
+- **Skip to EL** — on RFQ Received opportunities, skip the quoting step entirely and move directly to the EL stage; the Quote Shared column shows N/A in the EL view
 - **Document management** — upload and download quote, EL, FAT, and SAT documents per opportunity
 
 ### Dashboard
@@ -24,6 +25,7 @@ Built for small teams on a private network. All data stays on your own server.
 - **Production Activity** — Countersigned, Advance Payments, FAT Passed, Delivered; trend chart
 - **Drill-down tables** — clicking any KPI or chart bar opens a filtered table showing the relevant date column
 - **Configurable period** — 7 days / 30 days / 90 days / year-to-date / custom date range
+- **Delivery Plan** — upcoming deliveries grouped by month, starting from the current month; shows unit type, quantity, and the associated opportunity; click any row to open the opportunity detail
 - **Recent Activity** — the 10 most recently changed opportunities with a one-line description of the last change
 
 ### Data management
@@ -260,7 +262,7 @@ docker compose up -d --pull never
 
 Database migrations run automatically on startup. All data is stored in the `./data/` directory on the host and is not affected by image updates.
 
-> **Upgrading from an earlier version?** If your database was set up before v0.1.0, run the catch-up migrations manually via `docker compose exec app npx prisma migrate deploy`.
+> **Upgrading from an earlier version?** Run migrations manually if needed: `docker compose exec app npx prisma migrate deploy`.
 
 ---
 

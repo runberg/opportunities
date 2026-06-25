@@ -5,6 +5,7 @@ import { PeriodSelector } from "@/modules/opportunities/components/dashboard/per
 import { PipelineFlow } from "@/modules/opportunities/components/dashboard/pipeline-flow"
 import { QuoteActivitySection, ElActivitySection, ProductionActivitySection } from "@/modules/opportunities/components/dashboard/activity-sections"
 import { RecentActivity } from "@/modules/opportunities/components/dashboard/recent-activity"
+import { DeliveryPlan } from "@/modules/opportunities/components/dashboard/delivery-plan"
 import { PIPELINE_STATUSES } from "@/shared/lib/utils"
 import type { RfqTrendBucket, ElTrendBucket, ProdTrendBucket } from "@/modules/opportunities/components/dashboard/charts"
 
@@ -145,7 +146,10 @@ export default async function DashboardPage({
   const periodToISO = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString()
   const periodFromISO = periodStart.toISOString()
 
-  const [periodData, pipelineCountRaw, recentRaw] = await Promise.all([
+  const currentMonth = now.getMonth() + 1
+  const currentYear = now.getFullYear()
+
+  const [periodData, pipelineCountRaw, recentRaw, deliveryRaw] = await Promise.all([
     Promise.all([
       // Quote date arrays
       db.opportunity.findMany({ where: { rfqDate: { gte: periodStart, lte: now } }, select: { rfqDate: true } }),
@@ -182,6 +186,18 @@ export default async function DashboardPage({
       },
       orderBy: { updatedAt: "desc" },
       take: 10,
+    }),
+    db.expectedDelivery.findMany({
+      where: {
+        OR: [
+          { deliveryYear: { gt: currentYear } },
+          { deliveryYear: currentYear, deliveryMonth: { gte: currentMonth } },
+        ],
+      },
+      include: {
+        opportunity: { select: { id: true, title: true, internalId: true, customer: true } },
+      },
+      orderBy: [{ deliveryYear: "asc" }, { deliveryMonth: "asc" }],
     }),
   ])
 
@@ -229,6 +245,15 @@ export default async function DashboardPage({
   const prodTrendData = buildProdTrend(buckets, countersignedDates, advanceDates, fatDates, deliveredDates)
 
   const statusCounts = Object.fromEntries(PIPELINE_STATUSES.map((s, i) => [s, pipelineCountRaw[i]]))
+  const deliveryItems = deliveryRaw.map((d) => ({
+    id: d.id,
+    unitType: d.unitType,
+    quantity: d.quantity,
+    deliveryMonth: d.deliveryMonth,
+    deliveryYear: d.deliveryYear,
+    opportunity: d.opportunity,
+  }))
+
   const recentItems = recentRaw.map((r) => ({
     id: r.id, title: r.title, customer: r.customer, internalId: r.internalId,
     reference: r.reference, product: r.product, status: r.status,
@@ -283,6 +308,10 @@ export default async function DashboardPage({
           kpiCountersigned={countersigned} kpiAdvance={advancePaid} kpiFat={fatPassed} kpiDelivered={delivered}
           trendData={prodTrendData} periodFromISO={periodFromISO} periodToISO={periodToISO}
           currentUserId={currentUserId} isAdmin={isAdmin} />
+
+        <DeliveryPlan items={deliveryItems} currentUserId={currentUserId} isAdmin={isAdmin} />
+
+        <div className="border-t border-gray-200" />
 
         <RecentActivity items={recentItems} currentUserId={currentUserId} isAdmin={isAdmin} />
       </div>

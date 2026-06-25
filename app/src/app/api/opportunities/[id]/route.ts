@@ -27,6 +27,9 @@ export async function GET(
         include: { uploadedBy: { select: { id: true, name: true } } },
         orderBy: { uploadedAt: "desc" },
       },
+      deliveries: {
+        orderBy: [{ deliveryYear: "asc" }, { deliveryMonth: "asc" }],
+      },
     },
   })
 
@@ -99,8 +102,12 @@ function buildMilestoneEvents(existing: Opportunity, dates: DateFields): string[
   const events: string[] = []
   if (dates.quoteSentDate && dates.quoteSentDate !== toDateString(existing.quoteSentDate))
     events.push(`Quote marked as sent (${dates.quoteSentDate})`)
-  if (dates.elRequestedDate && dates.elRequestedDate !== toDateString(existing.elRequestedDate))
-    events.push(`Quote accepted — EL requested (${dates.elRequestedDate})`)
+  if (dates.elRequestedDate && dates.elRequestedDate !== toDateString(existing.elRequestedDate)) {
+    const msg = existing.status === "QUOTE_SENT"
+      ? `Quote accepted — EL requested (${dates.elRequestedDate})`
+      : `Quote skipped — EL requested (${dates.elRequestedDate})`
+    events.push(msg)
+  }
   if (dates.elCountersignedDate && dates.elCountersignedDate !== toDateString(existing.elCountersignedDate))
     events.push(`EL countersigned (${dates.elCountersignedDate})`)
   if (dates.advancePaymentDate && dates.advancePaymentDate !== toDateString(existing.advancePaymentDate))

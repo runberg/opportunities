@@ -66,6 +66,7 @@ model Opportunity {
   comments    Comment[]
   documents   Document[]
   systemLogs  SystemLog[]
+  deliveries  ExpectedDelivery[]
 }
 
 enum OpportunityStatus {
@@ -88,6 +89,19 @@ enum WaitingOn {
   CUSTOMER
   THIRD_PARTY
   NONE
+}
+
+model ExpectedDelivery {
+  id            String      @id @default(cuid())
+  unitType      String
+  quantity      Int
+  deliveryMonth Int         // 1–12
+  deliveryYear  Int
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  opportunityId String
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
 }
 
 model Comment {

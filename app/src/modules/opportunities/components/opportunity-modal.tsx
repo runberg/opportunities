@@ -29,6 +29,11 @@ interface ModalDoc {
   uploadedAt: string; uploadedBy: { id: string; name: string }
 }
 
+interface ModalDelivery {
+  id: string; unitType: string; quantity: number
+  deliveryMonth: number; deliveryYear: number
+}
+
 interface OpportunityFull {
   id: string; internalId: string | null; title: string; customer: string
   reference: string | null; rfqDate: string | null; product: string | null
@@ -41,7 +46,7 @@ interface OpportunityFull {
   satDate: string | null; satPassedDate: string | null; deliveredDate: string | null
   description: string | null; createdAt: string; updatedAt: string
   createdBy: { id: string; name: string }
-  comments: LogEntry[]; documents: ModalDoc[]
+  comments: LogEntry[]; documents: ModalDoc[]; deliveries: ModalDelivery[]
 }
 
 // ─── Main modal ──────────────────────────────────────────────────────────────
@@ -191,6 +196,7 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
   const isEL = (EL_STATUSES as readonly string[]).includes(data.status)
   const isProduction = (PRODUCTION_STATUSES as readonly string[]).includes(data.status)
   const canAcceptQuote = data.status === "QUOTE_SENT"
+  const canSkipToEL = data.status === "RFQ_RECEIVED"
 
   // Unified form state
   const [form, setForm] = useState<OppForm>(() => makeForm(data))
@@ -289,11 +295,40 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
   const [accepting, setAccepting] = useState(false)
   const [acceptError, setAcceptError] = useState("")
 
+  // Skip to EL panel
+  const [skippingToEL, setSkippingToEL] = useState(false)
+  const [skipElDate, setSkipElDate] = useState(todayISO())
+  const [skipSaving, setSkipSaving] = useState(false)
+  const [skipError, setSkipError] = useState("")
+
   // Counter-sign panel
   const [counterSigning, setCounterSigning] = useState(false)
   const [counterSignDate, setCounterSignDate] = useState(todayISO())
   const [counterSignSaving, setCounterSignSaving] = useState(false)
   const [counterSignError, setCounterSignError] = useState("")
+
+  async function handleSkipToEL() {
+    setSkipSaving(true)
+    setSkipError("")
+    try {
+      const res = await fetch(`/api/opportunities/${data.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "EL_REQUEST_RECEIVED", elRequestedDate: skipElDate }),
+      })
+      if (res.ok) {
+        setSkippingToEL(false)
+        onRefresh()
+      } else {
+        const d = await res.json().catch(() => ({}))
+        setSkipError(d.error ?? "Failed to save. Please try again.")
+      }
+    } catch {
+      setSkipError("Network error. Please try again.")
+    } finally {
+      setSkipSaving(false)
+    }
+  }
 
   async function handleAcceptQuote() {
     setAccepting(true)
@@ -356,6 +391,12 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
           className="flex-1 min-w-0 text-2xl font-semibold text-gray-900 dark:text-gray-100 appearance-none bg-white dark:bg-gray-800 focus:bg-gray-50 dark:focus:bg-gray-700 border-b border-transparent hover:border-gray-200 dark:hover:border-gray-600 focus:outline-none focus:border-[#006fff] leading-tight transition-colors px-1 py-1.5 resize-none overflow-hidden"
         />
         <div className="flex items-center gap-2 flex-shrink-0 mt-1">
+          {canSkipToEL && !skippingToEL && (
+            <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white border-0"
+              onClick={() => setSkippingToEL(true)}>
+              Skip to EL →
+            </Button>
+          )}
           {canAcceptQuote && !acceptingQuote && (
             <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white border-0"
               onClick={() => setAcceptingQuote(true)}>
@@ -392,6 +433,32 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
             placeholder="—" className="text-xs font-medium text-gray-900 dark:text-gray-100 bg-transparent outline-none w-24" />
         </label>
       </div>
+
+      {/* Skip to EL panel */}
+      {skippingToEL && (
+        <div className="mb-5 flex flex-wrap items-end gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+          <div>
+            <p className="text-xs font-semibold text-amber-800 mb-1">Skip Quote — Move to EL Stage</p>
+            <p className="text-xs text-amber-700 mb-3">The quote will not be shared. This moves the opportunity directly to the EL stage.</p>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-amber-700">EL Requested</span>
+              <input type="date" value={skipElDate} onChange={(e) => setSkipElDate(e.target.value)}
+                className="text-xs border border-amber-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-amber-400 bg-white" />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button type="button" onClick={handleSkipToEL} disabled={skipSaving || !skipElDate}
+              className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-medium rounded-lg disabled:opacity-50 transition-colors">
+              {skipSaving ? "Saving…" : "Confirm"}
+            </button>
+            <button type="button" onClick={() => { setSkippingToEL(false); setSkipError("") }}
+              className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-800">
+              Cancel
+            </button>
+          </div>
+          {skipError && <p className="w-full text-xs text-red-600">{skipError}</p>}
+        </div>
+      )}
 
       {/* Quote accepted panel */}
       {acceptingQuote && (
@@ -492,7 +559,7 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
       )}
 
       {isProduction && (
-        <ProductionSection data={data} currentUserId={currentUserId} isAdmin={isAdmin} onRefresh={onRefresh} />
+        <ProductionSection data={data} deliveries={data.deliveries} currentUserId={currentUserId} isAdmin={isAdmin} onRefresh={onRefresh} />
       )}
 
       <LogSection opportunityId={data.id} entries={data.comments}
@@ -629,7 +696,7 @@ function ELDatePanel({ data, form, setDate, setRevertTarget, onDirectPatch, onRe
           onChange={(v) => setDate("quoteSentDate", v)}
           onRevert={() => setRevertTarget({ status: "RFQ_RECEIVED", label: "RFQ Received", clearField: "quoteSentDate" })} />
       ) : (
-        <LockedDateCard label="Quote Shared" />
+        <NADateCard label="Quote Shared" />
       )}
       {data.elRequestedDate ? (
         <DateCard label="EL Requested" formValue={form.elRequestedDate}
@@ -732,6 +799,15 @@ function LockedDateCard({ label }: { readonly label: string }) {
     <div className="border border-gray-100 bg-gray-50 rounded-xl p-4">
       <p className="text-xs font-medium text-gray-300">{label}</p>
       <p className="text-sm font-medium text-gray-300 mt-1">—</p>
+    </div>
+  )
+}
+
+function NADateCard({ label }: { readonly label: string }) {
+  return (
+    <div className="border border-gray-100 bg-gray-50 rounded-xl p-4">
+      <p className="text-xs font-medium text-gray-400">{label}</p>
+      <p className="text-sm font-medium text-gray-400 mt-1">N/A</p>
     </div>
   )
 }
