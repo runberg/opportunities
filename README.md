@@ -83,13 +83,16 @@ Three deployment paths are covered below: standard (server has internet access),
 #### Prerequisites
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (or Docker Engine + Compose plugin on Linux)
-- Git
 
-#### 1. Clone the repository
+#### 1. Download the required files
+
+You do not need to clone the repository. Download only the files needed to run the stack:
 
 ```bash
-git clone https://github.com/runberg/opportunities.git
-cd opportunities
+mkdir -p opportunities/nginx/certs && cd opportunities
+curl -O https://raw.githubusercontent.com/runberg/opportunities/main/docker-compose.yml
+curl -O https://raw.githubusercontent.com/runberg/opportunities/main/.env.example
+curl -o nginx/nginx.conf https://raw.githubusercontent.com/runberg/opportunities/main/nginx/nginx.conf
 ```
 
 #### 2. Create the environment file
