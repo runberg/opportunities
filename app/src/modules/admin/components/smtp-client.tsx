@@ -42,7 +42,7 @@ interface InitialConfig {
   readonly host: string
   readonly port: number
   readonly secure: boolean
-  readonly username: string
+  readonly username: string | null
   readonly fromAddress: string
   readonly fromName: string
   readonly hasPassword: boolean
