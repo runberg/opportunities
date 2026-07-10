@@ -19,7 +19,7 @@ export async function PATCH(
 
   const { id, deliveryId } = await params
   const existing = await db.expectedDelivery.findUnique({ where: { id: deliveryId } })
-  if (!existing || existing.opportunityId !== id) {
+  if (existing?.opportunityId !== id) {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
@@ -41,7 +41,7 @@ export async function DELETE(
 
   const { id, deliveryId } = await params
   const existing = await db.expectedDelivery.findUnique({ where: { id: deliveryId } })
-  if (!existing || existing.opportunityId !== id) {
+  if (existing?.opportunityId !== id) {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 

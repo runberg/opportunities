@@ -303,8 +303,8 @@ model SmtpConfig {
   host                String
   port                Int      @default(587)
   secure              Boolean  @default(false)
-  username            String
-  password            String
+  username            String?
+  password            String?
   fromAddress         String
   fromName            String   @default("Opportunities")
   enabled             Boolean  @default(false)

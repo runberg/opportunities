@@ -172,8 +172,9 @@ export function SmtpClient({ initial }: { readonly initial: InitialConfig | null
           </div>
 
           <div>
-            <Label htmlFor="smtp-user">Username *</Label>
-            <Input id="smtp-user" value={form.username} onChange={(e) => set("username", e.target.value)} placeholder="user@example.com" autoComplete="off" required />
+            <Label htmlFor="smtp-user">Username</Label>
+            <Input id="smtp-user" value={form.username} onChange={(e) => set("username", e.target.value)} placeholder="user@example.com" autoComplete="off" />
+            <p className="text-xs text-gray-400 mt-1">Leave blank for unauthenticated relay (IP-approved servers).</p>
           </div>
 
           <div>
@@ -181,7 +182,7 @@ export function SmtpClient({ initial }: { readonly initial: InitialConfig | null
               Password{" "}
               {initial?.hasPassword && <span className="font-normal text-gray-400">(leave blank to keep current)</span>}
             </Label>
-            <Input id="smtp-pass" type="password" value={form.password} onChange={(e) => set("password", e.target.value)} autoComplete="new-password" required={!initial?.hasPassword} />
+            <Input id="smtp-pass" type="password" value={form.password} onChange={(e) => set("password", e.target.value)} autoComplete="new-password" required={!!form.username && !initial?.hasPassword} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">

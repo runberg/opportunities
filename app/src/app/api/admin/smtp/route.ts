@@ -8,7 +8,7 @@ const schema = z.object({
   host: z.string().min(1),
   port: z.number().int().min(1).max(65535),
   secure: z.boolean(),
-  username: z.string().min(1),
+  username: z.string().optional(),
   password: z.string().optional(),
   fromAddress: z.string().email(),
   fromName: z.string().min(1),
@@ -25,7 +25,7 @@ export async function GET() {
   if (!config) return NextResponse.json(null)
 
   const { password: _, ...safe } = config
-  return NextResponse.json({ ...safe, hasPassword: true })
+  return NextResponse.json({ ...safe, hasPassword: !!config.password })
 }
 
 export async function POST(req: NextRequest) {
@@ -44,19 +44,20 @@ export async function POST(req: NextRequest) {
   if (existing) {
     const data: Record<string, unknown> = { ...rest }
     if (password) data.password = password
+    if (!rest.username) { data.username = null; data.password = null }
     const config = await db.smtpConfig.update({ where: { id: "default" }, data })
     await writeLog({ type: "SMTP_UPDATED", message: "SMTP configuration updated", userId: session.user.id })
     const { password: _, ...safe } = config
-    return NextResponse.json({ ...safe, hasPassword: true })
+    return NextResponse.json({ ...safe, hasPassword: !!config.password })
   } else {
-    if (!password) {
-      return NextResponse.json({ error: "Password is required for initial setup." }, { status: 400 })
+    if (rest.username && !password) {
+      return NextResponse.json({ error: "Password is required when a username is provided." }, { status: 400 })
     }
     const config = await db.smtpConfig.create({
-      data: { id: "default", ...rest, password },
+      data: { id: "default", ...rest, password: rest.username ? password : null },
     })
     await writeLog({ type: "SMTP_UPDATED", message: "SMTP configuration created", userId: session.user.id })
     const { password: __, ...safe } = config
-    return NextResponse.json({ ...safe, hasPassword: true })
+    return NextResponse.json({ ...safe, hasPassword: !!config.password })
   }
 }

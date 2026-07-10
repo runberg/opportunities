@@ -636,8 +636,8 @@ function ExpectedDeliverySection({ opportunityId, deliveries, onRefresh }: {
   async function saveRow(index: number) {
     const row = rows[index]
     const parsed = parseMonthYear(row.monthYear)
-    const qty = parseInt(row.quantity, 10)
-    if (!row.unitType.trim() || !parsed || isNaN(qty) || qty <= 0) {
+    const qty = Number.parseInt(row.quantity, 10)
+    if (!row.unitType.trim() || !parsed || Number.isNaN(qty) || qty <= 0) {
       updateRow(index, { error: "All fields are required and quantity must be positive." })
       return
     }
