@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Download, Trash2, FileUp, Upload } from "lucide-react"
 import type { AgreementRow, AgreementDocument } from "./adhoc-client"
 import { DeliverablesTable } from "./deliverables-table"
@@ -8,7 +8,8 @@ import { AgreementForm } from "./agreement-form"
 import { Button } from "@/shared/components/ui/button"
 import { FileTypeIcon } from "@/shared/components/ui/file-type-icon"
 import { PdfViewerModal } from "@/shared/components/ui/pdf-viewer-modal"
-import { cn, formatDate, formatBytes, truncateFilename, todayISO } from "@/shared/lib/utils"
+import { cn, formatDate, formatBytes, truncateFilename, todayISO, formatAmount, nameFromFile } from "@/shared/lib/utils"
+import { useDropZone } from "@/shared/lib/use-drop-zone"
 
 const STATUS_BADGE: Record<string, string> = {
   DRAFT:  "bg-gray-100 text-gray-600",
@@ -24,17 +25,9 @@ const STATUS_LABEL: Record<string, string> = {
   CLOSED: "Closed",
 }
 
-function formatAmount(amount: string | number) {
-  return Number(amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
-
 function defaultTabIndex(agreements: AgreementRow[]) {
   const idx = agreements.findIndex((a) => a.status === "SIGNED" || a.status === "ACTIVE")
   return Math.max(0, idx)
-}
-
-function nameFromFile(f: File): string {
-  return f.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim()
 }
 
 // ─── Document list ────────────────────────────────────────────────────────────
@@ -128,7 +121,6 @@ function AgreementDocs({ agreement, currentUserId, isAdmin, onRefresh }: Agreeme
   const [notes, setNotes] = useState("")
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
-  const [dragging, setDragging] = useState(false)
   const [pdfViewer, setPdfViewer] = useState<{ id: string; name: string } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -159,14 +151,7 @@ function AgreementDocs({ agreement, currentUserId, isAdmin, onRefresh }: Agreeme
     setDisplayName((prev) => prev.trim() === "" ? nameFromFile(f) : prev)
   }
 
-  const onDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); setDragging(true) }, [])
-  const onDragLeave = useCallback(() => setDragging(false), [])
-  const onDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setDragging(false)
-    const f = e.dataTransfer.files[0]
-    if (f) applyFile(f)
-  }, [])
+  const { dragging, onDragOver, onDragLeave, onDrop } = useDropZone(applyFile)
 
   async function handleUpload(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -343,7 +328,6 @@ function SignDialog({ agreementId, onDone, onCancel }: SignDialogProps) {
   const [file, setFile] = useState<File | null>(null)
   const [displayName, setDisplayName] = useState("")
   const [notes, setNotes] = useState("")
-  const [dragging, setDragging] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -352,14 +336,7 @@ function SignDialog({ agreementId, onDone, onCancel }: SignDialogProps) {
     setDisplayName((prev) => prev.trim() === "" ? nameFromFile(f) : prev)
   }
 
-  const onDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); setDragging(true) }, [])
-  const onDragLeave = useCallback(() => setDragging(false), [])
-  const onDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setDragging(false)
-    const f = e.dataTransfer.files[0]
-    if (f) applyFile(f)
-  }, [])
+  const { dragging, onDragOver, onDragLeave, onDrop } = useDropZone(applyFile)
 
   async function handleSign() {
     if (file && !displayName.trim()) { setError("Please enter a name for the document"); return }

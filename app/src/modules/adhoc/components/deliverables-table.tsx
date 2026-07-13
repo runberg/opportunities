@@ -4,6 +4,7 @@ import { useState } from "react"
 import type { AgreementRow } from "./adhoc-client"
 import { DeliverableModal } from "./deliverable-modal"
 import { Button } from "@/shared/components/ui/button"
+import { formatAmount } from "@/shared/lib/utils"
 
 const STATUS_BADGE: Record<string, string> = {
   NOT_APPROVED: "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300",
@@ -17,10 +18,6 @@ const STATUS_LABEL: Record<string, string> = {
   PARTIALLY_APPROVED: "Partial",
   APPROVED: "Approved",
   DELIVERED: "Delivered",
-}
-
-function formatAmount(amount: string | number) {
-  return Number(amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 type Props = {

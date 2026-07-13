@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useRef, useCallback, useEffect } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Upload, Download, Trash2, FileUp } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
 import { FileTypeIcon } from "@/shared/components/ui/file-type-icon"
 import { PdfViewerModal } from "@/shared/components/ui/pdf-viewer-modal"
-import { cn, formatBytes, formatDate, truncateFilename } from "@/shared/lib/utils"
+import { cn, formatBytes, formatDate, truncateFilename, nameFromFile } from "@/shared/lib/utils"
+import { useDropZone } from "@/shared/lib/use-drop-zone"
 
 
 interface QuoteDoc {
@@ -53,7 +54,6 @@ export function QuoteSection({
   const [displayName, setDisplayName] = useState("")
   const [docStatus, setDocStatus] = useState("DRAFT")
   const [file, setFile] = useState<File | null>(null)
-  const [dragging, setDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -74,29 +74,12 @@ export function QuoteSection({
     }
   }, [])
 
-  function nameFromFile(f: File): string {
-    return f.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim()
-  }
-
   function applyFile(f: File) {
     setFile(f)
-    // Auto-fill name only if the user hasn't typed one
     setDisplayName((prev) => (prev.trim() === "" ? nameFromFile(f) : prev))
   }
 
-  const onDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setDragging(true)
-  }, [])
-
-  const onDragLeave = useCallback(() => setDragging(false), [])
-
-  const onDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setDragging(false)
-    const f = e.dataTransfer.files[0]
-    if (f) applyFile(f)
-  }, [])
+  const { dragging, onDragOver, onDragLeave, onDrop } = useDropZone(applyFile)
 
   async function handleUpload(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()

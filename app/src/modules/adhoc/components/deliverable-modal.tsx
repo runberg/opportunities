@@ -5,7 +5,8 @@ import { Download, Trash2, FileUp, Upload } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
 import { FileTypeIcon } from "@/shared/components/ui/file-type-icon"
 import { PdfViewerModal } from "@/shared/components/ui/pdf-viewer-modal"
-import { cn, formatDate, formatDateTime, formatBytes, truncateFilename } from "@/shared/lib/utils"
+import { cn, formatDate, formatDateTime, formatBytes, truncateFilename, formatAmount, nameFromFile } from "@/shared/lib/utils"
+import { useDropZone } from "@/shared/lib/use-drop-zone"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -65,16 +66,8 @@ const STATUS_BADGE: Record<string, string> = {
   DELIVERED: "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
 }
 
-function formatAmount(v: string | number) {
-  return Number(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
-
 function lineItemTotal(items: LineItem[]) {
   return items.reduce((s, li) => s + Number(li.amount), 0)
-}
-
-function nameFromFile(f: File): string {
-  return f.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim()
 }
 
 // ─── Approve form (initial approval — NOT_APPROVED only) ─────────────────────
@@ -94,7 +87,6 @@ function ApproveForm({
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [docFile, setDocFile] = useState<File | null>(null)
-  const [dragging, setDragging] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const lineTotal = lineItemTotal(deliverable.lineItems)
@@ -106,14 +98,7 @@ function ApproveForm({
     setDisplayName((prev) => prev.trim() === "" ? nameFromFile(f) : prev)
   }
 
-  const onDocDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); setDragging(true) }, [])
-  const onDocDragLeave = useCallback(() => setDragging(false), [])
-  const onDocDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setDragging(false)
-    const f = e.dataTransfer.files[0]
-    if (f) applyFile(f)
-  }, [])
+  const { dragging, onDragOver, onDragLeave, onDrop } = useDropZone(applyFile)
 
   function reset() {
     onClose()
@@ -194,9 +179,9 @@ function ApproveForm({
           </div>
           <button
             type="button"
-            onDragOver={onDocDragOver}
-            onDragLeave={onDocDragLeave}
-            onDrop={onDocDrop}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onDrop={onDrop}
             onClick={() => fileRef.current?.click()}
             className={cn(
               "w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border-2 border-dashed cursor-pointer transition-colors text-sm",
@@ -633,7 +618,6 @@ function DocumentsTab({
   const [docType, setDocType] = useState<"BUDGET" | "APPROVAL">("BUDGET")
   const [displayName, setDisplayName] = useState("")
   const [file, setFile] = useState<File | null>(null)
-  const [dragging, setDragging] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [pdfViewer, setPdfViewer] = useState<{ id: string; name: string } | null>(null)
 
@@ -642,14 +626,7 @@ function DocumentsTab({
     setDisplayName((prev) => prev.trim() === "" ? nameFromFile(f) : prev)
   }
 
-  const onDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); setDragging(true) }, [])
-  const onDragLeave = useCallback(() => setDragging(false), [])
-  const onDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setDragging(false)
-    const f = e.dataTransfer.files[0]
-    if (f) applyFile(f)
-  }, [])
+  const { dragging, onDragOver, onDragLeave, onDrop } = useDropZone(applyFile)
 
   async function handleUpload(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()

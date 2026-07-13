@@ -160,6 +160,14 @@ export const PIPELINE_STATUSES = [
   "PENDING_ADVANCE_PAYMENT", "IN_PRODUCTION", "DELIVERED",
 ] as const
 
+export function formatAmount(amount: string | number): string {
+  return Number(amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+export function nameFromFile(f: File): string {
+  return f.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim()
+}
+
 export function parseParam(val: string | undefined, fallback: number): number {
   const n = val ? Number.parseInt(val, 10) : Number.NaN
   return Number.isFinite(n) && n > 0 ? n : fallback
