@@ -8,7 +8,7 @@ import { DOC_TYPE_LABELS } from "@/shared/lib/utils"
 const UPLOAD_DIR = process.env.UPLOAD_DIR ?? join(process.cwd(), "uploads")
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { error } = await requireSession()
@@ -23,10 +23,15 @@ export async function GET(
   const buffer = await readFile(filePath).catch(() => null)
   if (!buffer) return NextResponse.json({ error: "File not found on disk" }, { status: 404 })
 
+  const inline = req.nextUrl.searchParams.get("inline") === "1"
+  const disposition = inline
+    ? `inline; filename="${encodeURIComponent(doc.originalName)}"`
+    : `attachment; filename="${encodeURIComponent(doc.originalName)}"`
+
   return new NextResponse(buffer, {
     headers: {
       "Content-Type": doc.mimeType,
-      "Content-Disposition": `attachment; filename="${encodeURIComponent(doc.originalName)}"`,
+      "Content-Disposition": disposition,
       "Content-Length": buffer.length.toString(),
     },
   })

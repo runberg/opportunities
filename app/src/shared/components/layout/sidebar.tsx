@@ -21,17 +21,20 @@ import {
 } from "lucide-react"
 import { cn } from "@/shared/lib/utils"
 import { NewOpportunityModal } from "@/modules/opportunities/components/new-opportunity-modal"
+import { OpportunityModal } from "@/modules/opportunities/components/opportunity-modal"
 
 interface SidebarProps {
   readonly userEmail: string
   readonly userRole: string
+  readonly currentUserId: string
 }
 
-export function Sidebar({ userEmail, userRole }: SidebarProps) {
+export function Sidebar({ userEmail, userRole, currentUserId }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const isAdmin = userRole === "ADMIN"
   const [newModalOpen, setNewModalOpen] = useState(false)
+  const [justCreatedId, setJustCreatedId] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
   useEffect(() => { setMounted(true) }, [])
 
@@ -147,11 +150,22 @@ export function Sidebar({ userEmail, userRole }: SidebarProps) {
     {mounted && newModalOpen && createPortal(
       <NewOpportunityModal
         onClose={() => setNewModalOpen(false)}
-        onCreated={() => {
+        onCreated={(id) => {
           setNewModalOpen(false)
-          router.push("/opportunities")
+          setJustCreatedId(id)
           router.refresh()
         }}
+      />,
+      document.body
+    )}
+
+    {mounted && createPortal(
+      <OpportunityModal
+        opportunityId={justCreatedId}
+        onClose={() => { setJustCreatedId(null); router.refresh() }}
+        currentUserId={currentUserId}
+        isAdmin={isAdmin}
+        justCreated
       />,
       document.body
     )}

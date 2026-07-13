@@ -8,7 +8,7 @@ export default async function ProfilePage() {
   const [user, smtp] = await Promise.all([
     db.user.findUnique({
       where: { id: session!.user.id },
-      select: { email: true, emailNotifications: true },
+      select: { name: true, email: true, emailNotifications: true },
     }),
     db.smtpConfig.findUnique({ where: { id: "default" }, select: { enabled: true } }),
   ])
@@ -20,6 +20,7 @@ export default async function ProfilePage() {
         <p className="text-sm text-gray-500 mt-0.5">Manage your account settings</p>
       </div>
       <ProfileClient
+        userName={user?.name ?? ""}
         userEmail={user?.email ?? ""}
         emailNotifications={user?.emailNotifications ?? false}
         notificationsAvailable={smtp?.enabled === true}

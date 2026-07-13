@@ -18,7 +18,6 @@ interface NewForm {
   customer: string
   product: string
   rfqDate: string
-  quoteSentDate: string
   description: string
 }
 
@@ -31,7 +30,6 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
     customer: "",
     product: "",
     rfqDate: todayISO(),
-    quoteSentDate: "",
     description: "",
   })
   const [saving, setSaving] = useState(false)
@@ -118,7 +116,7 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
                     value={form.internalId}
                     onChange={(e) => setField("internalId", e.target.value)}
                     maxLength={10}
-                    placeholder="—"
+                    placeholder="0000"
                     className="text-xs font-medium text-gray-900 bg-transparent outline-none w-14"
                   />
                 </label>
@@ -127,8 +125,8 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
                   <input
                     value={form.reference}
                     onChange={(e) => setField("reference", e.target.value)}
-                    placeholder="—"
-                    className="text-xs font-medium text-gray-900 bg-transparent outline-none w-24"
+                    placeholder="BTL-XXXXXXXX"
+                    className="text-xs font-medium text-gray-900 bg-transparent outline-none w-28"
                   />
                 </label>
               </div>
@@ -155,24 +153,14 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
                 />
               </FormField>
 
-              <div className="grid grid-cols-2 gap-3">
-                <FormField label="RFQ Date">
-                  <input
-                    type="date"
-                    value={form.rfqDate}
-                    onChange={(e) => setField("rfqDate", e.target.value)}
-                    className={inputCls}
-                  />
-                </FormField>
-                <FormField label="Quote Sent Date">
-                  <input
-                    type="date"
-                    value={form.quoteSentDate}
-                    onChange={(e) => setField("quoteSentDate", e.target.value)}
-                    className={inputCls}
-                  />
-                </FormField>
-              </div>
+              <FormField label="RFQ Date">
+                <input
+                  type="date"
+                  value={form.rfqDate}
+                  onChange={(e) => setField("rfqDate", e.target.value)}
+                  className={inputCls}
+                />
+              </FormField>
 
               <FormField label="Details">
                 <textarea
@@ -212,10 +200,10 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const inputCls =
-  "w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#006fff] focus:bg-white transition-colors"
+  "w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-400 transition-colors"
 
 const textareaCls =
-  "w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#006fff] focus:bg-white resize-none transition-colors"
+  "w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-400 resize-none transition-colors"
 
 function FormField({
   label,

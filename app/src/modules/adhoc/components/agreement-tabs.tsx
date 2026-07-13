@@ -1,11 +1,14 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
+import { Download, Trash2, FileUp, Upload } from "lucide-react"
 import type { AgreementRow, AgreementDocument } from "./adhoc-client"
 import { DeliverablesTable } from "./deliverables-table"
 import { AgreementForm } from "./agreement-form"
 import { Button } from "@/shared/components/ui/button"
-import { formatDate, todayISO } from "@/shared/lib/utils"
+import { FileTypeIcon } from "@/shared/components/ui/file-type-icon"
+import { PdfViewerModal } from "@/shared/components/ui/pdf-viewer-modal"
+import { cn, formatDate, formatBytes, truncateFilename, todayISO } from "@/shared/lib/utils"
 
 const STATUS_BADGE: Record<string, string> = {
   DRAFT:  "bg-gray-100 text-gray-600",
@@ -30,122 +33,11 @@ function defaultTabIndex(agreements: AgreementRow[]) {
   return Math.max(0, idx)
 }
 
-// ─── Sign dialog ──────────────────────────────────────────────────────────────
-
-type SignDialogProps = {
-  readonly agreementId: string
-  readonly onDone: () => void
-  readonly onCancel: () => void
+function nameFromFile(f: File): string {
+  return f.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim()
 }
 
-function SignDialog({ agreementId, onDone, onCancel }: SignDialogProps) {
-  const [signedDate, setSignedDate] = useState(todayISO())
-  const [saving, setSaving] = useState(false)
-  const [uploading, setUploading] = useState(false)
-  const [displayName, setDisplayName] = useState("")
-  const [notes, setNotes] = useState("")
-  const [uploadError, setUploadError] = useState<string | null>(null)
-  const fileRef = useRef<HTMLInputElement>(null)
-
-  async function handleSign() {
-    setSaving(true)
-    try {
-      await fetch(`/api/adhoc/agreements/${agreementId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "SIGNED", signedDate }),
-      })
-      onDone()
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  async function handleUpload(file: File) {
-    if (!displayName.trim()) { setUploadError("Please enter a display name"); return }
-    setUploading(true)
-    setUploadError(null)
-    try {
-      const fd = new FormData()
-      fd.append("file", file)
-      fd.append("displayName", displayName.trim())
-      fd.append("type", "COUNTERSIGNED")
-      if (notes.trim()) fd.append("notes", notes.trim())
-      const res = await fetch(`/api/adhoc/agreements/${agreementId}/documents`, {
-        method: "POST",
-        body: fd,
-      })
-      if (!res.ok) { setUploadError((await res.json()).error ?? "Upload failed"); return }
-      setDisplayName("")
-      setNotes("")
-      if (fileRef.current) fileRef.current.value = ""
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <button type="button" aria-label="Close" className="fixed inset-0 bg-black/40 cursor-default" onClick={onCancel} />
-      <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-        <h2 className="text-base font-semibold text-gray-900 mb-4">Mark Agreement Signed</h2>
-
-        <div className="space-y-3">
-          <div>
-            <label htmlFor="sign-date" className="block text-xs font-medium text-gray-700 mb-1">
-              Signed Date
-            </label>
-            <input
-              id="sign-date"
-              type="date"
-              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={signedDate}
-              onChange={(e) => setSignedDate(e.target.value)}
-            />
-          </div>
-
-          <div className="pt-2 border-t border-gray-200">
-            <p className="text-xs font-medium text-gray-700 mb-2">
-              Counter-signed document <span className="text-gray-400 font-normal">(optional — can be uploaded later)</span>
-            </p>
-            <input
-              id="sign-display-name"
-              className="w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
-              placeholder="Display name"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-            />
-            <input
-              className="w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
-              placeholder="Notes (optional)"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".pdf,.xlsx,.xls,.docx,.doc,.png,.jpg,.jpeg"
-              className="text-sm text-gray-700"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f) }}
-              disabled={uploading}
-            />
-            {uploadError && <p className="text-xs text-red-600 mt-1">{uploadError}</p>}
-            {uploading && <p className="text-xs text-gray-500 mt-1">Uploading…</p>}
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-2 mt-5">
-          <Button variant="ghost" size="sm" onClick={onCancel}>Cancel</Button>
-          <Button variant="primary" size="sm" onClick={handleSign} disabled={saving || uploading}>
-            {saving ? "Saving…" : "Confirm Signed"}
-          </Button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─── Agreement documents ──────────────────────────────────────────────────────
+// ─── Document list ────────────────────────────────────────────────────────────
 
 type DocListProps = {
   readonly docs: AgreementDocument[]
@@ -153,44 +45,74 @@ type DocListProps = {
   readonly currentUserId: string
   readonly isAdmin: boolean
   readonly onDelete: (docId: string) => void
+  readonly onView: (doc: AgreementDocument) => void
 }
 
-function DocList({ docs, label, currentUserId, isAdmin, onDelete }: DocListProps) {
+function DocList({ docs, label, currentUserId, isAdmin, onDelete, onView }: DocListProps) {
   if (docs.length === 0) return null
   return (
-    <div className="mb-2">
-      <p className="text-xs font-medium text-gray-500 uppercase mb-1">{label}</p>
-      <ul className="space-y-1">
-        {docs.map((doc) => (
-          <li key={doc.id} className="flex items-center justify-between gap-2 group">
-            <div className="min-w-0">
-              <a
-                href={`/api/adhoc/agreement-documents/${doc.id}`}
-                className="text-sm font-medium text-blue-600 hover:underline truncate block"
-                download
-              >
-                {doc.displayName}
-              </a>
-              <p className="text-xs text-gray-400">
-                {doc.uploadedBy.name} · {formatDate(doc.uploadedAt)}
-              </p>
-            </div>
-            {(doc.uploadedBy.id === currentUserId || isAdmin) && (
-              <Button
-                size="sm"
-                variant="ghost"
-                className="opacity-0 group-hover:opacity-100 shrink-0 text-red-500 hover:text-red-600"
-                onClick={() => onDelete(doc.id)}
-              >
-                Delete
-              </Button>
-            )}
-          </li>
-        ))}
-      </ul>
+    <div className="mb-3">
+      <p className="text-xs font-medium text-gray-500 uppercase mb-1.5">{label}</p>
+      <div className="border border-gray-200 rounded-xl overflow-hidden">
+        <table className="w-full text-sm">
+          <tbody className="divide-y divide-gray-100">
+            {docs.map((doc) => (
+              <tr key={doc.id} className="hover:bg-gray-50">
+                <td className="px-3 py-2.5 max-w-xs">
+                  <div className="flex items-start gap-2 min-w-0">
+                    <FileTypeIcon mimeType={doc.mimeType} />
+                    <div className="min-w-0">
+                      {doc.mimeType === "application/pdf" ? (
+                        <button
+                          type="button"
+                          onClick={() => onView(doc)}
+                          title="Click to view PDF"
+                          className="font-medium text-gray-900 truncate block text-left w-full cursor-pointer hover:underline"
+                        >
+                          {doc.displayName}
+                        </button>
+                      ) : (
+                        <div className="font-medium text-gray-900 truncate">{doc.displayName}</div>
+                      )}
+                      <div className="text-xs text-gray-400">{truncateFilename(doc.originalName)}</div>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-3 py-2.5 text-xs text-gray-400 whitespace-nowrap hidden md:table-cell">
+                  {formatBytes(doc.size)} · {doc.uploadedBy.name} · {formatDate(doc.uploadedAt)}
+                </td>
+                <td className="px-3 py-2.5">
+                  <div className="flex items-center gap-1 justify-end">
+                    <a
+                      href={`/api/adhoc/agreement-documents/${doc.id}`}
+                      download={doc.originalName}
+                      className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
+                      title="Download"
+                    >
+                      <Download size={15} />
+                    </a>
+                    {(isAdmin || doc.uploadedBy.id === currentUserId) && (
+                      <button
+                        type="button"
+                        onClick={() => onDelete(doc.id)}
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
+
+// ─── Agreement documents panel ────────────────────────────────────────────────
 
 type AgreementDocsProps = {
   readonly agreement: AgreementRow
@@ -200,18 +122,55 @@ type AgreementDocsProps = {
 }
 
 function AgreementDocs({ agreement, currentUserId, isAdmin, onRefresh }: AgreementDocsProps) {
-  const [uploading, setUploading] = useState(false)
+  const [showUpload, setShowUpload] = useState(false)
+  const [file, setFile] = useState<File | null>(null)
   const [displayName, setDisplayName] = useState("")
   const [notes, setNotes] = useState("")
+  const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
-  const fileRef = useRef<HTMLInputElement>(null)
+  const [dragging, setDragging] = useState(false)
+  const [pdfViewer, setPdfViewer] = useState<{ id: string; name: string } | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const docType = agreement.status === "SIGNED" || agreement.status === "ACTIVE"
-    ? "COUNTERSIGNED"
-    : "DRAFT"
+    ? "COUNTERSIGNED" : "DRAFT"
+  const isClosed = agreement.status === "CLOSED"
 
-  async function handleUpload(file: File) {
-    if (!displayName.trim()) { setUploadError("Please enter a display name"); return }
+  useEffect(() => {
+    function onEnter(e: DragEvent) {
+      if (e.dataTransfer?.types.includes("Files")) setShowUpload(true)
+    }
+    function onOver(e: DragEvent) {
+      if (e.dataTransfer?.types.includes("Files")) e.preventDefault()
+    }
+    function onDrop(e: DragEvent) { e.preventDefault() }
+    window.addEventListener("dragenter", onEnter)
+    window.addEventListener("dragover", onOver)
+    window.addEventListener("drop", onDrop)
+    return () => {
+      window.removeEventListener("dragenter", onEnter)
+      window.removeEventListener("dragover", onOver)
+      window.removeEventListener("drop", onDrop)
+    }
+  }, [])
+
+  function applyFile(f: File) {
+    setFile(f)
+    setDisplayName((prev) => prev.trim() === "" ? nameFromFile(f) : prev)
+  }
+
+  const onDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); setDragging(true) }, [])
+  const onDragLeave = useCallback(() => setDragging(false), [])
+  const onDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setDragging(false)
+    const f = e.dataTransfer.files[0]
+    if (f) applyFile(f)
+  }, [])
+
+  async function handleUpload(e: React.SyntheticEvent<HTMLFormElement>) {
+    e.preventDefault()
+    if (!file) return
     setUploading(true)
     setUploadError(null)
     try {
@@ -220,14 +179,12 @@ function AgreementDocs({ agreement, currentUserId, isAdmin, onRefresh }: Agreeme
       fd.append("displayName", displayName.trim())
       fd.append("type", docType)
       if (notes.trim()) fd.append("notes", notes.trim())
-      const res = await fetch(`/api/adhoc/agreements/${agreement.id}/documents`, {
-        method: "POST",
-        body: fd,
-      })
-      if (!res.ok) { setUploadError((await res.json()).error ?? "Upload failed"); return }
+      const res = await fetch(`/api/adhoc/agreements/${agreement.id}/documents`, { method: "POST", body: fd })
+      if (!res.ok) { setUploadError((await res.json() as { error?: string }).error ?? "Upload failed"); return }
+      setShowUpload(false)
+      setFile(null)
       setDisplayName("")
       setNotes("")
-      if (fileRef.current) fileRef.current.value = ""
       await onRefresh()
     } finally {
       setUploading(false)
@@ -242,48 +199,270 @@ function AgreementDocs({ agreement, currentUserId, isAdmin, onRefresh }: Agreeme
   const drafts = agreement.documents.filter((d) => d.type === "DRAFT")
   const countersigned = agreement.documents.filter((d) => d.type === "COUNTERSIGNED")
 
-  const isClosed = agreement.status === "CLOSED"
+  let dropZoneCls: string
+  if (dragging) dropZoneCls = "border-[#006fff] bg-blue-50"
+  else if (file) dropZoneCls = "border-green-400 bg-green-50"
+  else dropZoneCls = "border-gray-300 hover:border-gray-400"
 
   return (
     <div>
-      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Agreement Documents</p>
-      <DocList docs={drafts} label="Draft Agreement" currentUserId={currentUserId} isAdmin={isAdmin} onDelete={handleDelete} />
-      <DocList docs={countersigned} label="Counter-signed" currentUserId={currentUserId} isAdmin={isAdmin} onDelete={handleDelete} />
-      {agreement.documents.length === 0 && (
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Agreement Documents</p>
+        {!isClosed && (
+          <Button variant="secondary" size="sm" onClick={() => setShowUpload((v) => !v)}>
+            <Upload size={13} className="mr-1.5" />
+            Upload
+          </Button>
+        )}
+      </div>
+
+      <DocList
+        docs={drafts}
+        label="Draft Agreement"
+        currentUserId={currentUserId}
+        isAdmin={isAdmin}
+        onDelete={handleDelete}
+        onView={(doc) => setPdfViewer({ id: doc.id, name: doc.displayName })}
+      />
+      <DocList
+        docs={countersigned}
+        label="Counter-signed"
+        currentUserId={currentUserId}
+        isAdmin={isAdmin}
+        onDelete={handleDelete}
+        onView={(doc) => setPdfViewer({ id: doc.id, name: doc.displayName })}
+      />
+
+      {agreement.documents.length === 0 && !showUpload && (
         <p className="text-xs text-gray-400 italic mb-2">No documents uploaded yet.</p>
       )}
 
-      {!isClosed && (
-        <div className="mt-2">
-          <p className="text-xs font-medium text-gray-600 mb-1">
+      {showUpload && !isClosed && (
+        <form
+          onSubmit={handleUpload}
+          className="mt-2 p-4 border border-gray-200 rounded-xl bg-gray-50"
+        >
+          <p className="text-xs font-medium text-gray-600 mb-3">
             Upload {docType === "COUNTERSIGNED" ? "counter-signed copy" : "draft agreement"}
           </p>
-          <div className="flex flex-wrap gap-2 mb-1">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col gap-2.5 sm:w-52 shrink-0">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Name *</label>
+                <input
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  required
+                  placeholder="e.g. Agreement Draft v1"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
+                <input
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Optional"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
+                />
+              </div>
+              <div className="flex gap-2 pt-0.5">
+                <Button type="submit" size="sm" disabled={uploading || !file}>
+                  {uploading ? "Uploading…" : "Upload"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => { setShowUpload(false); setFile(null); setDisplayName(""); setNotes("") }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onDragOver={onDragOver}
+              onDragLeave={onDragLeave}
+              onDrop={onDrop}
+              onClick={() => fileInputRef.current?.click()}
+              className={cn(
+                "flex-1 flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed cursor-pointer transition-colors min-h-[100px]",
+                dropZoneCls
+              )}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) applyFile(f) }}
+              />
+              {file ? (
+                <>
+                  <FileUp size={18} className="text-green-600" />
+                  <p className="text-sm font-medium text-green-700 text-center px-3">{file.name}</p>
+                  <p className="text-xs text-gray-400">{formatBytes(file.size)} · click to change</p>
+                </>
+              ) : (
+                <>
+                  <FileUp size={18} className={dragging ? "text-[#006fff]" : "text-gray-400"} />
+                  <p className="text-sm text-gray-500 text-center">
+                    <span className="font-medium text-gray-700">Drop file here</span> or click to browse
+                  </p>
+                </>
+              )}
+            </button>
+          </div>
+          {uploadError && <p className="text-xs text-red-600 mt-2">{uploadError}</p>}
+        </form>
+      )}
+
+      {pdfViewer && (
+        <PdfViewerModal
+          fileUrl={`/api/adhoc/agreement-documents/${pdfViewer.id}`}
+          docName={pdfViewer.name}
+          onClose={() => setPdfViewer(null)}
+        />
+      )}
+    </div>
+  )
+}
+
+// ─── Sign dialog ──────────────────────────────────────────────────────────────
+
+type SignDialogProps = {
+  readonly agreementId: string
+  readonly onDone: () => void
+  readonly onCancel: () => void
+}
+
+function SignDialog({ agreementId, onDone, onCancel }: SignDialogProps) {
+  const [signedDate, setSignedDate] = useState(todayISO())
+  const [saving, setSaving] = useState(false)
+  const [file, setFile] = useState<File | null>(null)
+  const [displayName, setDisplayName] = useState("")
+  const [notes, setNotes] = useState("")
+  const [dragging, setDragging] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  function applyFile(f: File) {
+    setFile(f)
+    setDisplayName((prev) => prev.trim() === "" ? nameFromFile(f) : prev)
+  }
+
+  const onDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); setDragging(true) }, [])
+  const onDragLeave = useCallback(() => setDragging(false), [])
+  const onDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setDragging(false)
+    const f = e.dataTransfer.files[0]
+    if (f) applyFile(f)
+  }, [])
+
+  async function handleSign() {
+    if (file && !displayName.trim()) { setError("Please enter a name for the document"); return }
+    setSaving(true)
+    setError(null)
+    try {
+      if (file) {
+        const fd = new FormData()
+        fd.append("file", file)
+        fd.append("displayName", displayName.trim())
+        fd.append("type", "COUNTERSIGNED")
+        if (notes.trim()) fd.append("notes", notes.trim())
+        const upRes = await fetch(`/api/adhoc/agreements/${agreementId}/documents`, { method: "POST", body: fd })
+        if (!upRes.ok) { setError((await upRes.json() as { error?: string }).error ?? "Upload failed"); return }
+      }
+      await fetch(`/api/adhoc/agreements/${agreementId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "SIGNED", signedDate }),
+      })
+      onDone()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  let dropZoneCls: string
+  if (dragging) dropZoneCls = "border-[#006fff] bg-blue-50"
+  else if (file) dropZoneCls = "border-green-400 bg-green-50"
+  else dropZoneCls = "border-gray-300 hover:border-gray-400"
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <button type="button" aria-label="Close" className="fixed inset-0 bg-black/40 cursor-default" onClick={onCancel} />
+      <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+        <h2 className="text-base font-semibold text-gray-900 mb-4">Mark Agreement Signed</h2>
+
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="sign-date" className="block text-xs font-medium text-gray-700 mb-1">Signed Date</label>
             <input
-              className="flex-1 min-w-40 rounded border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Display name"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-            />
-            <input
-              className="flex-1 min-w-48 rounded border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Notes (optional)"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              id="sign-date"
+              type="date"
+              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={signedDate}
+              onChange={(e) => setSignedDate(e.target.value)}
             />
           </div>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".pdf,.xlsx,.xls,.docx,.doc,.png,.jpg,.jpeg"
-            className="text-sm text-gray-700"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f) }}
-            disabled={uploading}
-          />
-          {uploadError && <p className="text-xs text-red-600 mt-1">{uploadError}</p>}
-          {uploading && <p className="text-xs text-gray-500 mt-1">Uploading…</p>}
+
+          <div className="border-t border-gray-200 pt-3">
+            <p className="text-xs font-medium text-gray-700 mb-2">
+              Counter-signed document <span className="text-gray-400 font-normal">(optional)</span>
+            </p>
+            <div className="flex gap-2 mb-2">
+              <input
+                className="flex-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Display name"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+              />
+              <input
+                className="w-32 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+            </div>
+            <button
+              type="button"
+              onDragOver={onDragOver}
+              onDragLeave={onDragLeave}
+              onDrop={onDrop}
+              onClick={() => fileInputRef.current?.click()}
+              className={cn(
+                "w-full flex items-center justify-center gap-2 px-3 py-3 rounded-lg border-2 border-dashed cursor-pointer transition-colors text-sm",
+                dropZoneCls
+              )}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                accept=".pdf,.xlsx,.xls,.docx,.doc,.png,.jpg,.jpeg"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) applyFile(f) }}
+              />
+              <FileUp size={16} className={dragging ? "text-[#006fff]" : file ? "text-green-600" : "text-gray-400"} />
+              {file
+                ? <span className="font-medium text-green-700 truncate">{file.name}</span>
+                : <span className="text-gray-500"><span className="font-medium text-gray-700">Drop file</span> or click to browse</span>
+              }
+            </button>
+          </div>
         </div>
-      )}
+
+        {error && <p className="text-xs text-red-600 mt-3">{error}</p>}
+
+        <div className="flex justify-end gap-2 mt-5">
+          <Button variant="ghost" size="sm" onClick={onCancel}>Cancel</Button>
+          <Button variant="primary" size="sm" onClick={handleSign} disabled={saving}>
+            {saving ? "Saving…" : "Confirm Signed"}
+          </Button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -314,10 +493,7 @@ export function AgreementTabs({ agreements, currentUserId, isAdmin, onRefresh }:
   const agreement = agreements[activeTab]
   if (!agreement) return null
 
-  const committedAmount = agreement.deliverables.reduce(
-    (sum, d) => sum + Number(d.approvedAmount),
-    0
-  )
+  const committedAmount = agreement.deliverables.reduce((sum, d) => sum + Number(d.approvedAmount), 0)
   const remaining = Number(agreement.totalAmount) - committedAmount
   const isOver = committedAmount > Number(agreement.totalAmount)
 
@@ -341,7 +517,6 @@ export function AgreementTabs({ agreements, currentUserId, isAdmin, onRefresh }:
 
   return (
     <div>
-      {/* Tabs */}
       <div className="flex gap-1 border-b border-gray-200 mb-6">
         {agreements.map((a, i) => (
           <button
@@ -363,9 +538,7 @@ export function AgreementTabs({ agreements, currentUserId, isAdmin, onRefresh }:
         ))}
       </div>
 
-      {/* Agreement header */}
       <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
-        {/* Always-visible compact row */}
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0">
             <h2 className="text-base font-semibold text-gray-900 truncate">{agreement.title}</h2>
@@ -417,7 +590,6 @@ export function AgreementTabs({ agreements, currentUserId, isAdmin, onRefresh }:
           </div>
         </div>
 
-        {/* Expandable details: documents + management actions */}
         {showDetails && (
           <div className="mt-4 pt-4 border-t border-gray-200">
             <AgreementDocs
@@ -442,7 +614,6 @@ export function AgreementTabs({ agreements, currentUserId, isAdmin, onRefresh }:
         )}
       </div>
 
-      {/* Deliverables */}
       <DeliverablesTable
         agreement={agreement}
         currentUserId={currentUserId}

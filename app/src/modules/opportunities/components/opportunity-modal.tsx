@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { X } from "lucide-react"
 import {
@@ -52,12 +52,13 @@ interface OpportunityFull {
 // ─── Main modal ──────────────────────────────────────────────────────────────
 
 export function OpportunityModal({
-  opportunityId, onClose, currentUserId, isAdmin,
+  opportunityId, onClose, currentUserId, isAdmin, justCreated = false,
 }: {
   readonly opportunityId: string | null
   readonly onClose: () => void
   readonly currentUserId: string
   readonly isAdmin: boolean
+  readonly justCreated?: boolean
 }) {
   const router = useRouter()
   const [data, setData] = useState<OpportunityFull | null>(null)
@@ -126,10 +127,18 @@ export function OpportunityModal({
               <X size={17} />
             </button>
           </div>
+          {justCreated && (
+            <div className="px-6 pt-4">
+              <div className="flex items-center gap-2 px-3 py-2.5 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+                <span className="font-medium">Opportunity created.</span>
+                <span className="text-green-600 text-xs">Add documents, details and comments below, or close to continue.</span>
+              </div>
+            </div>
+          )}
           <div className="px-6 py-6">
-            {loading && <div className="py-16 text-center text-gray-400 text-sm">Loading…</div>}
+            {loading && !data && <div className="py-16 text-center text-gray-400 text-sm">Loading…</div>}
             {fetchError && <div className="py-16 text-center text-red-500 text-sm">{fetchError}</div>}
-            {!loading && !fetchError && data && (
+            {!fetchError && data && (
               <ViewMode
                 data={data}
                 currentUserId={currentUserId}
@@ -148,9 +157,9 @@ export function OpportunityModal({
 
 // ─── Form helpers ─────────────────────────────────────────────────────────────
 
-const inputCls = "w-full rounded-md border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-[#006fff] focus:bg-white dark:focus:bg-gray-600 transition-colors"
-const textareaCls = "w-full rounded-md border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-[#006fff] focus:bg-white dark:focus:bg-gray-600 resize-none transition-colors"
-const dateInputCls = "w-full rounded-md border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-2 py-1.5 text-xs text-gray-900 dark:text-gray-100 focus:outline-none focus:border-[#006fff] focus:bg-white dark:focus:bg-gray-600 transition-colors"
+const inputCls = "w-full rounded-md border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-400 transition-colors"
+const textareaCls = "w-full rounded-md border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-400 resize-none transition-colors"
+const dateInputCls = "w-full rounded-md border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-2 py-1.5 text-xs text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-gray-400 transition-colors"
 
 function makeForm(data: OpportunityFull) {
   return {
@@ -202,9 +211,12 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
   const [form, setForm] = useState<OppForm>(() => makeForm(data))
   const [saving, setSaving] = useState(false)
   const [applyError, setApplyError] = useState("")
+  // Tracks whether the user has pending edits — prevents form reset on background data refreshes
+  // (e.g. document upload should not wipe unsaved field changes)
+  const userDirtyRef = useRef(false)
 
-  // Reset form when server data refreshes
-  useEffect(() => { setForm(makeForm(data)) }, [data])
+  // Reset form when server data refreshes, but only if user hasn't made unsaved edits
+  useEffect(() => { if (!userDirtyRef.current) setForm(makeForm(data)) }, [data])
 
   const isDirty =
     form.title !== data.title ||
@@ -223,9 +235,10 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
 
   function set<K extends keyof OppForm>(field: K, value: OppForm[K]) {
     setForm(f => ({ ...f, [field]: value }))
+    userDirtyRef.current = true
   }
 
-  function discard() { setForm(makeForm(data)); setApplyError("") }
+  function discard() { setForm(makeForm(data)); setApplyError(""); userDirtyRef.current = false }
 
   async function directPatch(payload: Record<string, unknown>): Promise<string | null> {
     try {
@@ -286,7 +299,11 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
     setApplyError("")
     const err = await directPatch(buildPayload())
     setSaving(false)
-    if (err) setApplyError(err)
+    if (err) {
+      setApplyError(err)
+    } else {
+      userDirtyRef.current = false
+    }
   }
 
   // Quote accepted panel
@@ -425,12 +442,12 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
         <label className="inline-flex items-center gap-1.5 px-3 py-1 border border-gray-200 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus-within:border-[#006fff] transition-colors cursor-text">
           <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">ID</span>
           <input value={form.internalId} onChange={(e) => set("internalId", e.target.value)}
-            maxLength={10} placeholder="—" className="text-xs font-medium text-gray-900 dark:text-gray-100 bg-transparent outline-none w-14" />
+            maxLength={10} placeholder="0000" className="text-xs font-medium text-gray-900 dark:text-gray-100 bg-transparent outline-none w-14" />
         </label>
         <label className="inline-flex items-center gap-1.5 px-3 py-1 border border-gray-200 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus-within:border-[#006fff] transition-colors cursor-text">
           <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">Ref.</span>
           <input value={form.reference} onChange={(e) => set("reference", e.target.value)}
-            placeholder="—" className="text-xs font-medium text-gray-900 dark:text-gray-100 bg-transparent outline-none w-24" />
+            placeholder="BTL-XXXXXXXX" className="text-xs font-medium text-gray-900 dark:text-gray-100 bg-transparent outline-none w-28" />
         </label>
       </div>
 

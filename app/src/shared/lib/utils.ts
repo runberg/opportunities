@@ -34,6 +34,15 @@ export function formatBytes(bytes: number): string {
   return `${Number.parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`
 }
 
+export function truncateFilename(name: string, maxLength = 32): string {
+  if (name.length <= maxLength) return name
+  const dot = name.lastIndexOf(".")
+  if (dot <= 0) return name.slice(0, maxLength - 3) + "…"
+  const ext = name.slice(dot)
+  const keep = maxLength - ext.length - 1
+  return keep > 0 ? name.slice(0, keep) + "…" + ext : name.slice(0, maxLength - 1) + "…"
+}
+
 export function formatDate(date: Date | string): string {
   return format(new Date(date), "dd MMM yyyy")
 }

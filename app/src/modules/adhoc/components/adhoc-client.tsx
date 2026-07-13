@@ -9,6 +9,9 @@ import { Button } from "@/shared/components/ui/button"
 export type AgreementDocument = {
   id: string
   displayName: string
+  originalName: string
+  mimeType: string
+  size: number
   type: "DRAFT" | "COUNTERSIGNED"
   notes: string | null
   uploadedAt: string

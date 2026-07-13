@@ -1,8 +1,11 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
+import { Download, Trash2, FileUp, Upload } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
-import { formatDate, formatDateTime } from "@/shared/lib/utils"
+import { FileTypeIcon } from "@/shared/components/ui/file-type-icon"
+import { PdfViewerModal } from "@/shared/components/ui/pdf-viewer-modal"
+import { cn, formatDate, formatDateTime, formatBytes, truncateFilename } from "@/shared/lib/utils"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -15,6 +18,9 @@ type LineItem = {
 type AdhocDoc = {
   id: string
   displayName: string
+  originalName: string
+  mimeType: string
+  size: number
   type: "BUDGET" | "APPROVAL"
   notes: string | null
   uploadedAt: string
@@ -67,6 +73,10 @@ function lineItemTotal(items: LineItem[]) {
   return items.reduce((s, li) => s + Number(li.amount), 0)
 }
 
+function nameFromFile(f: File): string {
+  return f.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim()
+}
+
 // ─── Approve form (initial approval — NOT_APPROVED only) ─────────────────────
 
 function ApproveForm({
@@ -80,23 +90,37 @@ function ApproveForm({
 }) {
   const [amount, setAmount] = useState("")
   const [displayName, setDisplayName] = useState("")
-  const [notes, setNotes] = useState("")
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [docFile, setDocFile] = useState<File | null>(null)
+  const [dragging, setDragging] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const lineTotal = lineItemTotal(deliverable.lineItems)
   const amtNum = Number(amount)
   const willBePartial = amount !== "" && !Number.isNaN(amtNum) && amtNum >= 0 && lineTotal > amtNum
 
+  function applyFile(f: File) {
+    setDocFile(f)
+    setDisplayName((prev) => prev.trim() === "" ? nameFromFile(f) : prev)
+  }
+
+  const onDocDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); setDragging(true) }, [])
+  const onDocDragLeave = useCallback(() => setDragging(false), [])
+  const onDocDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setDragging(false)
+    const f = e.dataTransfer.files[0]
+    if (f) applyFile(f)
+  }, [])
+
   function reset() {
     onClose()
     setAmount("")
     setDisplayName("")
-    setNotes("")
+    setDocFile(null)
     setError(null)
-    if (fileRef.current) fileRef.current.value = ""
   }
 
   async function handleApprove() {
@@ -107,12 +131,23 @@ function ApproveForm({
     setSaving(true)
     setError(null)
     try {
+      if (docFile) {
+        if (!displayName.trim()) { setError("Please enter a display name for the document"); setSaving(false); return }
+        setUploading(true)
+        const fd = new FormData()
+        fd.append("file", docFile)
+        fd.append("displayName", displayName.trim())
+        fd.append("type", "APPROVAL")
+        const upRes = await fetch(`/api/adhoc/deliverables/${deliverable.id}/documents`, { method: "POST", body: fd })
+        setUploading(false)
+        if (!upRes.ok) { setError((await upRes.json() as { error?: string }).error ?? "Upload failed"); return }
+      }
       const res = await fetch(`/api/adhoc/deliverables/${deliverable.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ approve: true, approvedAmount: amtNum }),
       })
-      if (!res.ok) { setError((await res.json()).error ?? "Save failed"); return }
+      if (!res.ok) { setError((await res.json() as { error?: string }).error ?? "Save failed"); return }
       reset()
       await onDone()
     } finally {
@@ -120,28 +155,10 @@ function ApproveForm({
     }
   }
 
-  async function handleDocUpload(file: File) {
-    if (!displayName.trim()) { setError("Please enter a display name for the document"); return }
-    setUploading(true)
-    setError(null)
-    try {
-      const fd = new FormData()
-      fd.append("file", file)
-      fd.append("displayName", displayName.trim())
-      fd.append("type", "APPROVAL")
-      if (notes.trim()) fd.append("notes", notes.trim())
-      const res = await fetch(`/api/adhoc/deliverables/${deliverable.id}/documents`, {
-        method: "POST",
-        body: fd,
-      })
-      if (!res.ok) { setError((await res.json()).error ?? "Upload failed"); return }
-      setDisplayName("")
-      setNotes("")
-      if (fileRef.current) fileRef.current.value = ""
-    } finally {
-      setUploading(false)
-    }
-  }
+  let dropZoneCls: string
+  if (dragging) dropZoneCls = "border-[#006fff] bg-blue-50 dark:bg-blue-900/10"
+  else if (docFile) dropZoneCls = "border-green-400 bg-green-50 dark:bg-green-900/10"
+  else dropZoneCls = "border-gray-300 dark:border-gray-600 hover:border-gray-400"
 
   return (
     <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 space-y-3">
@@ -167,28 +184,38 @@ function ApproveForm({
           <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
             Approval Document <span className="font-normal text-gray-400">(optional)</span>
           </p>
-          <div className="flex gap-2 mb-1">
+          <div className="flex gap-2 mb-2">
             <input
               className="flex-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Display name"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
             />
-            <input
-              className="w-40 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Notes (optional)"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
           </div>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".pdf,.xlsx,.xls,.docx,.doc,.pptx,.ppt,.png,.jpg,.jpeg"
-            className="text-sm text-gray-700 dark:text-gray-300"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleDocUpload(f) }}
-            disabled={uploading}
-          />
+          <button
+            type="button"
+            onDragOver={onDocDragOver}
+            onDragLeave={onDocDragLeave}
+            onDrop={onDocDrop}
+            onClick={() => fileRef.current?.click()}
+            className={cn(
+              "w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border-2 border-dashed cursor-pointer transition-colors text-sm",
+              dropZoneCls
+            )}
+          >
+            <input
+              ref={fileRef}
+              type="file"
+              className="hidden"
+              accept=".pdf,.xlsx,.xls,.docx,.doc,.pptx,.ppt,.png,.jpg,.jpeg"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) applyFile(f) }}
+            />
+            <FileUp size={15} className={dragging ? "text-[#006fff]" : docFile ? "text-green-600" : "text-gray-400"} />
+            {docFile
+              ? <span className="font-medium text-green-700 dark:text-green-400 truncate">{docFile.name}</span>
+              : <span className="text-gray-500 dark:text-gray-400"><span className="font-medium text-gray-700 dark:text-gray-300">Drop file</span> or click to browse</span>
+            }
+          </button>
           {uploading && <p className="text-xs text-gray-500 mt-0.5">Uploading…</p>}
         </div>
       </div>
@@ -240,7 +267,7 @@ function ApprovalEditPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ approve: true, approvedAmount: amtNum }),
       })
-      if (!res.ok) { setError((await res.json()).error ?? "Save failed"); return }
+      if (!res.ok) { setError((await res.json() as { error?: string }).error ?? "Save failed"); return }
       onClose()
       await onDone()
     } finally {
@@ -257,7 +284,7 @@ function ApprovalEditPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ removeApproval: true }),
       })
-      if (!res.ok) { setError((await res.json()).error ?? "Failed"); return }
+      if (!res.ok) { setError((await res.json() as { error?: string }).error ?? "Failed"); return }
       onClose()
       await onDone()
     } finally {
@@ -346,7 +373,7 @@ function LineItemsTab({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ description: editDesc, amount: Number(editAmt) }),
       })
-      if (!res.ok) { setError((await res.json()).error ?? "Save failed"); return }
+      if (!res.ok) { setError((await res.json() as { error?: string }).error ?? "Save failed"); return }
       setEditingId(null)
       await onRefresh()
     } finally {
@@ -374,7 +401,7 @@ function LineItemsTab({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ description: newDesc.trim(), amount: Number(newAmt) }),
       })
-      if (!res.ok) { setError((await res.json()).error ?? "Failed to add"); return }
+      if (!res.ok) { setError((await res.json() as { error?: string }).error ?? "Failed to add"); return }
       setNewDesc("")
       setNewAmt("")
       setAdding(false)
@@ -505,49 +532,81 @@ function LineItemsTab({
 
 // ─── Documents ────────────────────────────────────────────────────────────────
 
-function DocList({ docs, label, isLocked, isAdmin, currentUserId, onDelete }: {
+function DocList({ docs, label, isLocked, isAdmin, currentUserId, onDelete, onView }: {
   readonly docs: AdhocDoc[]
   readonly label: string
   readonly isLocked: boolean
   readonly isAdmin: boolean
   readonly currentUserId: string
   readonly onDelete: (id: string) => void
+  readonly onView: (doc: AdhocDoc) => void
 }) {
+  if (docs.length === 0) {
+    return (
+      <div className="mb-4">
+        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-2">{label}</p>
+        <p className="text-xs text-gray-400 italic">None uploaded</p>
+      </div>
+    )
+  }
   return (
     <div className="mb-4">
       <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-2">{label}</p>
-      {docs.length === 0 ? (
-        <p className="text-xs text-gray-400 italic">None uploaded</p>
-      ) : (
-        <ul className="space-y-1.5">
-          {docs.map((doc) => (
-            <li key={doc.id} className="flex items-start justify-between gap-2 text-sm group">
-              <div className="min-w-0">
-                <a
-                  href={`/api/adhoc/documents/${doc.id}`}
-                  className="font-medium text-blue-600 dark:text-blue-400 hover:underline truncate block"
-                  download
-                >
-                  {doc.displayName}
-                </a>
-                {doc.notes && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{doc.notes}</p>
-                )}
-                <p className="text-xs text-gray-400">{doc.uploadedBy.name} · {formatDate(doc.uploadedAt)}</p>
-              </div>
-              {(!isLocked || isAdmin) && (doc.uploadedBy.id === currentUserId || isAdmin) && (
-                <Button
-                  size="sm" variant="ghost"
-                  className="opacity-0 group-hover:opacity-100 shrink-0 text-red-500 hover:text-red-600"
-                  onClick={() => onDelete(doc.id)}
-                >
-                  Delete
-                </Button>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+      <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+        <table className="w-full text-sm">
+          <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+            {docs.map((doc) => (
+              <tr key={doc.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                <td className="px-3 py-2.5 max-w-xs">
+                  <div className="flex items-start gap-2 min-w-0">
+                    <FileTypeIcon mimeType={doc.mimeType} />
+                    <div className="min-w-0">
+                      {doc.mimeType === "application/pdf" ? (
+                        <button
+                          type="button"
+                          onClick={() => onView(doc)}
+                          title="Click to view PDF"
+                          className="font-medium text-gray-900 dark:text-gray-100 truncate block text-left w-full cursor-pointer hover:underline"
+                        >
+                          {doc.displayName}
+                        </button>
+                      ) : (
+                        <div className="font-medium text-gray-900 dark:text-gray-100 truncate">{doc.displayName}</div>
+                      )}
+                      <div className="text-xs text-gray-400">{truncateFilename(doc.originalName)}</div>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-3 py-2.5 text-xs text-gray-400 whitespace-nowrap hidden md:table-cell">
+                  {formatBytes(doc.size)} · {doc.uploadedBy.name} · {formatDate(doc.uploadedAt)}
+                </td>
+                <td className="px-3 py-2.5">
+                  <div className="flex items-center gap-1 justify-end">
+                    <a
+                      href={`/api/adhoc/documents/${doc.id}`}
+                      download={doc.originalName}
+                      className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                      title="Download"
+                    >
+                      <Download size={15} />
+                    </a>
+                    {(!isLocked || isAdmin) && (doc.uploadedBy.id === currentUserId || isAdmin) && (
+                      <button
+                        type="button"
+                        onClick={() => onDelete(doc.id)}
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
@@ -557,23 +616,44 @@ function DocumentsTab({
   currentUserId,
   isAdmin,
   isLocked,
+  showUpload,
+  onShowUpload,
   onRefresh,
 }: {
   readonly deliverable: Deliverable
   readonly currentUserId: string
   readonly isAdmin: boolean
   readonly isLocked: boolean
+  readonly showUpload: boolean
+  readonly onShowUpload: (v: boolean) => void
   readonly onRefresh: () => Promise<void>
 }) {
-  const fileRef = useRef<HTMLInputElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [docType, setDocType] = useState<"BUDGET" | "APPROVAL">("BUDGET")
-  const [notes, setNotes] = useState("")
   const [displayName, setDisplayName] = useState("")
+  const [file, setFile] = useState<File | null>(null)
+  const [dragging, setDragging] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const [pdfViewer, setPdfViewer] = useState<{ id: string; name: string } | null>(null)
 
-  async function handleUpload(file: File) {
-    if (!displayName.trim()) { setUploadError("Please enter a display name"); return }
+  function applyFile(f: File) {
+    setFile(f)
+    setDisplayName((prev) => prev.trim() === "" ? nameFromFile(f) : prev)
+  }
+
+  const onDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); setDragging(true) }, [])
+  const onDragLeave = useCallback(() => setDragging(false), [])
+  const onDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setDragging(false)
+    const f = e.dataTransfer.files[0]
+    if (f) applyFile(f)
+  }, [])
+
+  async function handleUpload(e: React.SyntheticEvent<HTMLFormElement>) {
+    e.preventDefault()
+    if (!file) return
     setUploading(true)
     setUploadError(null)
     try {
@@ -581,15 +661,14 @@ function DocumentsTab({
       fd.append("file", file)
       fd.append("displayName", displayName.trim())
       fd.append("type", docType)
-      if (notes.trim()) fd.append("notes", notes.trim())
       const res = await fetch(`/api/adhoc/deliverables/${deliverable.id}/documents`, {
         method: "POST",
         body: fd,
       })
-      if (!res.ok) { setUploadError((await res.json()).error ?? "Upload failed"); return }
+      if (!res.ok) { setUploadError((await res.json() as { error?: string }).error ?? "Upload failed"); return }
       setDisplayName("")
-      setNotes("")
-      if (fileRef.current) fileRef.current.value = ""
+      setFile(null)
+      onShowUpload(false)
       await onRefresh()
     } finally {
       setUploading(false)
@@ -604,47 +683,128 @@ function DocumentsTab({
   const budget = deliverable.documents.filter((d) => d.type === "BUDGET")
   const approval = deliverable.documents.filter((d) => d.type === "APPROVAL")
 
+  let dropZoneCls: string
+  if (dragging) dropZoneCls = "border-[#006fff] bg-blue-50 dark:bg-blue-900/10"
+  else if (file) dropZoneCls = "border-green-400 bg-green-50 dark:bg-green-900/10"
+  else dropZoneCls = "border-gray-300 dark:border-gray-600 hover:border-gray-400"
+
   return (
     <div>
-      <DocList docs={budget} label="Budget" isLocked={isLocked} isAdmin={isAdmin} currentUserId={currentUserId} onDelete={handleDelete} />
-      <DocList docs={approval} label="Approval" isLocked={isLocked} isAdmin={isAdmin} currentUserId={currentUserId} onDelete={handleDelete} />
-
-      {(!isLocked || isAdmin) && (
-        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Upload document</p>
-          <div className="flex flex-wrap gap-2 mb-2">
-            <select
-              className="rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100"
-              value={docType}
-              onChange={(e) => setDocType(e.target.value as "BUDGET" | "APPROVAL")}
-            >
-              <option value="BUDGET">Budget</option>
-              <option value="APPROVAL">Approval</option>
-            </select>
-            <input
-              className="flex-1 min-w-36 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Display name"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-            />
-            <input
-              className="flex-1 min-w-48 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Notes (optional)"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
-          </div>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".pdf,.xlsx,.xls,.docx,.doc,.pptx,.ppt,.png,.jpg,.jpeg,.gif,.webp,.txt,.csv"
-            className="text-sm text-gray-700 dark:text-gray-300"
-            onChange={(e) => { const file = e.target.files?.[0]; if (file) handleUpload(file) }}
-            disabled={uploading}
-          />
-          {uploadError && <p className="text-xs text-red-600 mt-1">{uploadError}</p>}
-          {uploading && <p className="text-xs text-gray-500 mt-1">Uploading…</p>}
+      {!isLocked && (
+        <div className="flex justify-end mb-3">
+          <Button variant="secondary" size="sm" onClick={() => onShowUpload(!showUpload)}>
+            <Upload size={13} className="mr-1.5" />
+            Upload
+          </Button>
         </div>
+      )}
+
+      <DocList
+        docs={budget}
+        label="Budget"
+        isLocked={isLocked}
+        isAdmin={isAdmin}
+        currentUserId={currentUserId}
+        onDelete={handleDelete}
+        onView={(doc) => setPdfViewer({ id: doc.id, name: doc.displayName })}
+      />
+      <DocList
+        docs={approval}
+        label="Approval"
+        isLocked={isLocked}
+        isAdmin={isAdmin}
+        currentUserId={currentUserId}
+        onDelete={handleDelete}
+        onView={(doc) => setPdfViewer({ id: doc.id, name: doc.displayName })}
+      />
+
+      {showUpload && !isLocked && (
+        <form
+          onSubmit={handleUpload}
+          className="mt-2 p-4 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800/50"
+        >
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col gap-2.5 sm:w-52 shrink-0">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Type</label>
+                <select
+                  className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100"
+                  value={docType}
+                  onChange={(e) => setDocType(e.target.value as "BUDGET" | "APPROVAL")}
+                >
+                  <option value="BUDGET">Budget</option>
+                  <option value="APPROVAL">Approval</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Name *</label>
+                <input
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  required
+                  placeholder="Display name"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-gray-400"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button type="submit" size="sm" disabled={uploading || !file}>
+                  {uploading ? "Uploading…" : "Upload"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => { onShowUpload(false); setFile(null); setDisplayName("") }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onDragOver={onDragOver}
+              onDragLeave={onDragLeave}
+              onDrop={onDrop}
+              onClick={() => fileInputRef.current?.click()}
+              className={cn(
+                "flex-1 flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed cursor-pointer transition-colors min-h-[100px]",
+                dropZoneCls
+              )}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                accept=".pdf,.xlsx,.xls,.docx,.doc,.pptx,.ppt,.png,.jpg,.jpeg,.gif,.webp,.txt,.csv"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) applyFile(f) }}
+              />
+              {file ? (
+                <>
+                  <FileUp size={18} className="text-green-600" />
+                  <p className="text-sm font-medium text-green-700 dark:text-green-400 text-center px-3">{file.name}</p>
+                  <p className="text-xs text-gray-400">{formatBytes(file.size)} · click to change</p>
+                </>
+              ) : (
+                <>
+                  <FileUp size={18} className={dragging ? "text-[#006fff]" : "text-gray-400 dark:text-gray-500"} />
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+                    <span className="font-medium text-gray-700 dark:text-gray-300">Drop file here</span> or click to browse
+                  </p>
+                </>
+              )}
+            </button>
+          </div>
+          {uploadError && <p className="text-xs text-red-600 mt-2">{uploadError}</p>}
+        </form>
+      )}
+
+      {pdfViewer && (
+        <PdfViewerModal
+          fileUrl={`/api/adhoc/documents/${pdfViewer.id}`}
+          docName={pdfViewer.name}
+          onClose={() => setPdfViewer(null)}
+        />
       )}
     </div>
   )
@@ -687,11 +847,11 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
   const [deliverable, setDeliverable] = useState<Deliverable | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<"items" | "documents" | "log">("items")
+  const [showUpload, setShowUpload] = useState(false)
   const [transitioning, setTransitioning] = useState(false)
   const [editingApproval, setEditingApproval] = useState(false)
   const [approvePanelOpen, setApprovePanelOpen] = useState(false)
 
-  // Inline-editable title and description — synced from server on load/refresh
   const [titleDraft, setTitleDraft] = useState("")
   const [descDraft, setDescDraft] = useState("")
 
@@ -710,11 +870,31 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
     }
   }, [deliverable])
 
-  // Reset action panels when status changes (e.g. after approve/remove)
   useEffect(() => {
     setApprovePanelOpen(false)
     setEditingApproval(false)
   }, [deliverable?.status])
+
+  useEffect(() => {
+    function onEnter(e: DragEvent) {
+      if (e.dataTransfer?.types.includes("Files")) {
+        setActiveTab("documents")
+        setShowUpload(true)
+      }
+    }
+    function onOver(e: DragEvent) {
+      if (e.dataTransfer?.types.includes("Files")) e.preventDefault()
+    }
+    function onDrop(e: DragEvent) { e.preventDefault() }
+    window.addEventListener("dragenter", onEnter)
+    window.addEventListener("dragover", onOver)
+    window.addEventListener("drop", onDrop)
+    return () => {
+      window.removeEventListener("dragenter", onEnter)
+      window.removeEventListener("dragover", onOver)
+      window.removeEventListener("drop", onDrop)
+    }
+  }, [])
 
   async function refresh() {
     await fetchDeliverable()
@@ -795,6 +975,8 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
             currentUserId={currentUserId}
             isAdmin={isAdmin}
             isLocked={!!isLocked}
+            showUpload={showUpload}
+            onShowUpload={setShowUpload}
             onRefresh={refresh}
           />
         )}

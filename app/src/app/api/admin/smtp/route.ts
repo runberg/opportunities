@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Password is required when a username is provided." }, { status: 400 })
     }
     const config = await db.smtpConfig.create({
-      data: { id: "default", ...rest, password: rest.username ? password : null },
+      data: { id: "default", ...rest, password: rest.username ? (password ?? null) : null },
     })
     await writeLog({ type: "SMTP_UPDATED", message: "SMTP configuration created", userId: session.user.id })
     const { password: __, ...safe } = config

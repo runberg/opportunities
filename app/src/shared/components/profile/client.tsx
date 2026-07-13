@@ -7,14 +7,35 @@ import { Label } from "@/shared/components/ui/label"
 import { cn } from "@/shared/lib/utils"
 
 export function ProfileClient({
+  userName: initialName,
   userEmail,
   emailNotifications: initialNotifications,
   notificationsAvailable,
 }: {
+  readonly userName: string
   readonly userEmail: string
   readonly emailNotifications: boolean
   readonly notificationsAvailable: boolean
 }) {
+  const [name, setName] = useState(initialName)
+  const [nameSaving, setNameSaving] = useState(false)
+  const [nameMsg, setNameMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
+  async function saveName(e: React.SyntheticEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const trimmed = name.trim()
+    if (!trimmed) return
+    setNameSaving(true)
+    setNameMsg(null)
+    const res = await fetch("/api/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: trimmed }),
+    })
+    setNameSaving(false)
+    setNameMsg(res.ok ? { ok: true, text: "Display name updated." } : { ok: false, text: "Failed to save." })
+  }
+
   const [notifications, setNotifications] = useState(initialNotifications)
   const [notifSaving, setNotifSaving] = useState(false)
   const [notifMsg, setNotifMsg] = useState<{ ok: boolean; text: string } | null>(null)
@@ -43,7 +64,7 @@ export function ProfileClient({
     setError("")
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
     setError("")
     setSuccess("")
@@ -85,6 +106,31 @@ export function ProfileClient({
         <p className="text-sm text-gray-500 dark:text-gray-400">
           Signed in as <span className="font-medium text-gray-700 dark:text-gray-300">{userEmail}</span>
         </p>
+      </div>
+
+      {/* Display Name */}
+      <div className={cardCls}>
+        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">Display Name</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          Shown in comments, logs, and document uploads.
+        </p>
+        <form onSubmit={saveName} className="flex gap-2">
+          <Input
+            id="display-name"
+            value={name}
+            onChange={(e) => { setName(e.target.value); setNameMsg(null) }}
+            placeholder="Your name"
+            maxLength={100}
+            required
+            className="flex-1"
+          />
+          <Button type="submit" disabled={nameSaving || !name.trim() || name.trim() === initialName}>
+            {nameSaving ? "Saving…" : "Save"}
+          </Button>
+        </form>
+        {nameMsg && (
+          <p className={cn("text-xs mt-2", nameMsg.ok ? "text-green-600" : "text-red-600")}>{nameMsg.text}</p>
+        )}
       </div>
 
       {/* Email notifications — only shown when admin has enabled the feature */}

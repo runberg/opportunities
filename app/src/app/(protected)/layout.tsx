@@ -16,6 +16,7 @@ export default async function ProtectedLayout({
       <Sidebar
         userEmail={session.user.email ?? session.user.name ?? ""}
         userRole={session.user.role}
+        currentUserId={session.user.id}
       />
       <main className="flex-1 ml-60 overflow-y-auto">
         <div className="max-w-7xl mx-auto px-6 py-8">{children}</div>

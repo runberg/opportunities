@@ -27,12 +27,11 @@ export interface SavedFile {
   originalName: string
 }
 
-/** Reads a file from UPLOAD_DIR and returns a download response. */
-export async function serveFile(doc: {
-  filename: string
-  mimeType: string
-  originalName: string
-}): Promise<NextResponse> {
+/** Reads a file from UPLOAD_DIR and returns a file response. Pass inline=true to view in browser. */
+export async function serveFile(
+  doc: { filename: string; mimeType: string; originalName: string },
+  inline = false
+): Promise<NextResponse> {
   const filePath = join(UPLOAD_DIR, basename(doc.filename))
   let bytes: Buffer
   try {
@@ -40,10 +39,13 @@ export async function serveFile(doc: {
   } catch {
     return NextResponse.json({ error: "File not found on disk" }, { status: 404 })
   }
+  const disposition = inline
+    ? `inline; filename="${encodeURIComponent(doc.originalName)}"`
+    : `attachment; filename="${doc.originalName}"`
   return new NextResponse(bytes.buffer as ArrayBuffer, {
     headers: {
       "Content-Type": doc.mimeType,
-      "Content-Disposition": `attachment; filename="${doc.originalName}"`,
+      "Content-Disposition": disposition,
       "Content-Length": String(bytes.length),
     },
   })

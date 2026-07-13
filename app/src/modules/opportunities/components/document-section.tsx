@@ -2,9 +2,11 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { formatBytes, formatDate, DOC_TYPE_LABELS } from "@/shared/lib/utils"
+import { formatBytes, formatDate, truncateFilename, DOC_TYPE_LABELS } from "@/shared/lib/utils"
 import { Download, Trash2, Upload } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
+import { FileTypeIcon } from "@/shared/components/ui/file-type-icon"
+import { PdfViewerModal } from "@/shared/components/ui/pdf-viewer-modal"
 
 interface Document {
   id: string
@@ -37,6 +39,7 @@ export function DocumentSection({
   onRefresh,
 }: DocumentSectionProps) {
   const router = useRouter()
+  const [pdfViewer, setPdfViewer] = useState<{ id: string; name: string } | null>(null)
   const [filter, setFilter] = useState<TypeFilter>("ALL")
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState("")
@@ -45,7 +48,7 @@ export function DocumentSection({
   const filtered =
     filter === "ALL" ? documents : documents.filter((d) => d.type === filter)
 
-  async function handleUpload(e: React.FormEvent<HTMLFormElement>) {
+  async function handleUpload(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
     setUploading(true)
@@ -253,9 +256,25 @@ export function DocumentSection({
             <tbody className="divide-y divide-gray-100">
               {filtered.map((doc) => (
                 <tr key={doc.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-900 max-w-xs truncate">
-                    {doc.displayName}
-                    <div className="text-xs text-gray-400 font-normal truncate">{doc.originalName}</div>
+                  <td className="px-4 py-3 max-w-xs">
+                    <div className="flex items-start gap-2 min-w-0">
+                      <FileTypeIcon mimeType={doc.mimeType} />
+                      <div className="min-w-0">
+                        {doc.mimeType === "application/pdf" ? (
+                          <button
+                            type="button"
+                            onClick={() => setPdfViewer({ id: doc.id, name: doc.displayName })}
+                            title="Click to view PDF"
+                            className="font-medium text-gray-900 truncate block text-left w-full cursor-pointer hover:underline"
+                          >
+                            {doc.displayName}
+                          </button>
+                        ) : (
+                          <div className="font-medium text-gray-900 truncate">{doc.displayName}</div>
+                        )}
+                        <div className="text-xs text-gray-400 font-normal">{truncateFilename(doc.originalName)}</div>
+                      </div>
+                    </div>
                   </td>
                   <td className="px-4 py-3">{docTypeBadge(doc.type)}</td>
                   <td className="px-4 py-3">{docStatusBadge(doc.docStatus)}</td>
@@ -288,6 +307,13 @@ export function DocumentSection({
             </tbody>
           </table>
         </div>
+      )}
+      {pdfViewer && (
+        <PdfViewerModal
+          fileUrl={`/api/files/${pdfViewer.id}`}
+          docName={pdfViewer.name}
+          onClose={() => setPdfViewer(null)}
+        />
       )}
     </div>
   )

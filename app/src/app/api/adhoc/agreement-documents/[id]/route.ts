@@ -5,7 +5,7 @@ import { writeLog } from "@/shared/lib/system-log"
 import { serveFile, deleteUploadedFile } from "@/shared/lib/upload"
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const result = await requireSession()
@@ -15,7 +15,8 @@ export async function GET(
   const doc = await db.adhocAgreementDocument.findUnique({ where: { id } })
   if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
-  return serveFile(doc)
+  const inline = req.nextUrl.searchParams.get("inline") === "1"
+  return serveFile(doc, inline)
 }
 
 export async function DELETE(

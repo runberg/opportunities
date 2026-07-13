@@ -97,7 +97,7 @@ export function LogSection({
 
       {/* Add comment form */}
       {showForm && (
-        <div className="mb-5 p-4 border border-gray-200 rounded-xl bg-gray-50 space-y-3">
+        <div className="mb-5 p-4 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800/50 space-y-3">
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
@@ -107,7 +107,7 @@ export function LogSection({
             onKeyDown={(e) => {
               if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleSubmit()
             }}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-900 placeholder-gray-400 resize-none focus:outline-none focus:ring-1 focus:ring-gray-400"
+            className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 resize-none focus:outline-none focus:ring-1 focus:ring-gray-400"
           />
           {error && <p className="text-xs text-red-600">{error}</p>}
           <div className="flex items-center gap-2">
