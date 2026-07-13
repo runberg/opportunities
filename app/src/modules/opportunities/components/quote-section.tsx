@@ -1,13 +1,14 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Upload, Download, Trash2, FileUp } from "lucide-react"
+import { Upload, Download, Trash2 } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
 import { FileTypeIcon } from "@/shared/components/ui/file-type-icon"
 import { PdfViewerModal } from "@/shared/components/ui/pdf-viewer-modal"
-import { cn, formatBytes, formatDate, truncateFilename, nameFromFile } from "@/shared/lib/utils"
-import { useDropZone } from "@/shared/lib/use-drop-zone"
+import { formatBytes, formatDate, truncateFilename, nameFromFile } from "@/shared/lib/utils"
+import { useDropZone, useWindowDragExpand } from "@/shared/lib/use-drop-zone"
+import { FileDropZone } from "@/shared/components/ui/file-drop-zone"
 
 
 interface QuoteDoc {
@@ -54,25 +55,8 @@ export function QuoteSection({
   const [displayName, setDisplayName] = useState("")
   const [docStatus, setDocStatus] = useState("DRAFT")
   const [file, setFile] = useState<File | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    function onEnter(e: DragEvent) {
-      if (e.dataTransfer?.types.includes("Files")) setShowUpload(true)
-    }
-    function onOver(e: DragEvent) {
-      if (e.dataTransfer?.types.includes("Files")) e.preventDefault()
-    }
-    function onDrop(e: DragEvent) { e.preventDefault() }
-    window.addEventListener("dragenter", onEnter)
-    window.addEventListener("dragover", onOver)
-    window.addEventListener("drop", onDrop)
-    return () => {
-      window.removeEventListener("dragenter", onEnter)
-      window.removeEventListener("dragover", onOver)
-      window.removeEventListener("drop", onDrop)
-    }
-  }, [])
+  useWindowDragExpand(() => setShowUpload(true))
 
   function applyFile(f: File) {
     setFile(f)
@@ -121,10 +105,6 @@ export function QuoteSection({
 
   const { section: sectionLabel, empty: emptyLabel } = DOC_TYPE_LABELS[docType]
 
-  let dropZoneBorderCls: string
-  if (dragging) dropZoneBorderCls = "border-[#006fff] bg-blue-50"
-  else if (file) dropZoneBorderCls = "border-green-400 bg-green-50"
-  else dropZoneBorderCls = "border-gray-300 hover:border-gray-400"
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-4">
@@ -190,38 +170,15 @@ export function QuoteSection({
               </div>
 
               {/* Right: drop zone */}
-              <button
-                type="button"
+              <FileDropZone
+                file={file}
+                dragging={dragging}
                 onDragOver={onDragOver}
                 onDragLeave={onDragLeave}
                 onDrop={onDrop}
-                onClick={() => fileInputRef.current?.click()}
-                className={cn(
-                  "flex-1 flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed cursor-pointer transition-colors min-h-[120px]",
-                  dropZoneBorderCls
-                )}
-              >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  className="hidden"
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) applyFile(f) }}
-                />
-                {file ? (
-                  <>
-                    <FileUp size={20} className="text-green-600" />
-                    <p className="text-sm font-medium text-green-700 text-center px-3">{file.name}</p>
-                    <p className="text-xs text-gray-400">{formatBytes(file.size)} · click to change</p>
-                  </>
-                ) : (
-                  <>
-                    <FileUp size={20} className={dragging ? "text-[#006fff]" : "text-gray-400"} />
-                    <p className="text-sm text-gray-500 text-center">
-                      <span className="font-medium text-gray-700">Drop file here</span> or click to browse
-                    </p>
-                  </>
-                )}
-              </button>
+                onFile={applyFile}
+                className="min-h-[120px]"
+              />
             </div>
             {uploadError && <p className="text-xs text-red-600 mt-2">{uploadError}</p>}
           </form>

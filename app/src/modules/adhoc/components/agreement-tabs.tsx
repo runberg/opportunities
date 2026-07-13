@@ -1,15 +1,16 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
-import { Download, Trash2, FileUp, Upload } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Download, Trash2, Upload } from "lucide-react"
 import type { AgreementRow, AgreementDocument } from "./adhoc-client"
 import { DeliverablesTable } from "./deliverables-table"
 import { AgreementForm } from "./agreement-form"
 import { Button } from "@/shared/components/ui/button"
 import { FileTypeIcon } from "@/shared/components/ui/file-type-icon"
 import { PdfViewerModal } from "@/shared/components/ui/pdf-viewer-modal"
-import { cn, formatDate, formatBytes, truncateFilename, todayISO, formatAmount, nameFromFile } from "@/shared/lib/utils"
-import { useDropZone } from "@/shared/lib/use-drop-zone"
+import { formatDate, formatBytes, truncateFilename, todayISO, formatAmount, nameFromFile } from "@/shared/lib/utils"
+import { useDropZone, useWindowDragExpand } from "@/shared/lib/use-drop-zone"
+import { FileDropZone } from "@/shared/components/ui/file-drop-zone"
 
 const STATUS_BADGE: Record<string, string> = {
   DRAFT:  "bg-gray-100 text-gray-600",
@@ -122,29 +123,12 @@ function AgreementDocs({ agreement, currentUserId, isAdmin, onRefresh }: Agreeme
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [pdfViewer, setPdfViewer] = useState<{ id: string; name: string } | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const docType = agreement.status === "SIGNED" || agreement.status === "ACTIVE"
     ? "COUNTERSIGNED" : "DRAFT"
   const isClosed = agreement.status === "CLOSED"
 
-  useEffect(() => {
-    function onEnter(e: DragEvent) {
-      if (e.dataTransfer?.types.includes("Files")) setShowUpload(true)
-    }
-    function onOver(e: DragEvent) {
-      if (e.dataTransfer?.types.includes("Files")) e.preventDefault()
-    }
-    function onDrop(e: DragEvent) { e.preventDefault() }
-    window.addEventListener("dragenter", onEnter)
-    window.addEventListener("dragover", onOver)
-    window.addEventListener("drop", onDrop)
-    return () => {
-      window.removeEventListener("dragenter", onEnter)
-      window.removeEventListener("dragover", onOver)
-      window.removeEventListener("drop", onDrop)
-    }
-  }, [])
+  useWindowDragExpand(() => setShowUpload(true))
 
   function applyFile(f: File) {
     setFile(f)
@@ -183,11 +167,6 @@ function AgreementDocs({ agreement, currentUserId, isAdmin, onRefresh }: Agreeme
 
   const drafts = agreement.documents.filter((d) => d.type === "DRAFT")
   const countersigned = agreement.documents.filter((d) => d.type === "COUNTERSIGNED")
-
-  let dropZoneCls: string
-  if (dragging) dropZoneCls = "border-[#006fff] bg-blue-50"
-  else if (file) dropZoneCls = "border-green-400 bg-green-50"
-  else dropZoneCls = "border-gray-300 hover:border-gray-400"
 
   return (
     <div>
@@ -233,8 +212,9 @@ function AgreementDocs({ agreement, currentUserId, isAdmin, onRefresh }: Agreeme
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex flex-col gap-2.5 sm:w-52 shrink-0">
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Name *</label>
+                <label htmlFor="agr-doc-name" className="block text-xs font-medium text-gray-600 mb-1">Name *</label>
                 <input
+                  id="agr-doc-name"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   required
@@ -243,8 +223,9 @@ function AgreementDocs({ agreement, currentUserId, isAdmin, onRefresh }: Agreeme
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
+                <label htmlFor="agr-doc-notes" className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
                 <input
+                  id="agr-doc-notes"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Optional"
@@ -266,38 +247,14 @@ function AgreementDocs({ agreement, currentUserId, isAdmin, onRefresh }: Agreeme
               </div>
             </div>
 
-            <button
-              type="button"
+            <FileDropZone
+              file={file}
+              dragging={dragging}
               onDragOver={onDragOver}
               onDragLeave={onDragLeave}
               onDrop={onDrop}
-              onClick={() => fileInputRef.current?.click()}
-              className={cn(
-                "flex-1 flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed cursor-pointer transition-colors min-h-[100px]",
-                dropZoneCls
-              )}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                className="hidden"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) applyFile(f) }}
-              />
-              {file ? (
-                <>
-                  <FileUp size={18} className="text-green-600" />
-                  <p className="text-sm font-medium text-green-700 text-center px-3">{file.name}</p>
-                  <p className="text-xs text-gray-400">{formatBytes(file.size)} · click to change</p>
-                </>
-              ) : (
-                <>
-                  <FileUp size={18} className={dragging ? "text-[#006fff]" : "text-gray-400"} />
-                  <p className="text-sm text-gray-500 text-center">
-                    <span className="font-medium text-gray-700">Drop file here</span> or click to browse
-                  </p>
-                </>
-              )}
-            </button>
+              onFile={applyFile}
+            />
           </div>
           {uploadError && <p className="text-xs text-red-600 mt-2">{uploadError}</p>}
         </form>
@@ -329,8 +286,6 @@ function SignDialog({ agreementId, onDone, onCancel }: SignDialogProps) {
   const [displayName, setDisplayName] = useState("")
   const [notes, setNotes] = useState("")
   const [error, setError] = useState<string | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-
   function applyFile(f: File) {
     setFile(f)
     setDisplayName((prev) => prev.trim() === "" ? nameFromFile(f) : prev)
@@ -362,11 +317,6 @@ function SignDialog({ agreementId, onDone, onCancel }: SignDialogProps) {
       setSaving(false)
     }
   }
-
-  let dropZoneCls: string
-  if (dragging) dropZoneCls = "border-[#006fff] bg-blue-50"
-  else if (file) dropZoneCls = "border-green-400 bg-green-50"
-  else dropZoneCls = "border-gray-300 hover:border-gray-400"
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -404,30 +354,16 @@ function SignDialog({ agreementId, onDone, onCancel }: SignDialogProps) {
                 onChange={(e) => setNotes(e.target.value)}
               />
             </div>
-            <button
-              type="button"
+            <FileDropZone
+              file={file}
+              dragging={dragging}
               onDragOver={onDragOver}
               onDragLeave={onDragLeave}
               onDrop={onDrop}
-              onClick={() => fileInputRef.current?.click()}
-              className={cn(
-                "w-full flex items-center justify-center gap-2 px-3 py-3 rounded-lg border-2 border-dashed cursor-pointer transition-colors text-sm",
-                dropZoneCls
-              )}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                className="hidden"
-                accept=".pdf,.xlsx,.xls,.docx,.doc,.png,.jpg,.jpeg"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) applyFile(f) }}
-              />
-              <FileUp size={16} className={dragging ? "text-[#006fff]" : file ? "text-green-600" : "text-gray-400"} />
-              {file
-                ? <span className="font-medium text-green-700 truncate">{file.name}</span>
-                : <span className="text-gray-500"><span className="font-medium text-gray-700">Drop file</span> or click to browse</span>
-              }
-            </button>
+              onFile={applyFile}
+              accept=".pdf,.xlsx,.xls,.docx,.doc,.png,.jpg,.jpeg"
+              compact
+            />
           </div>
         </div>
 

@@ -1,6 +1,28 @@
 "use client"
 
-import { useState, useCallback, useRef } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
+
+export function useWindowDragExpand(onEnter: () => void) {
+  const onEnterRef = useRef(onEnter)
+  onEnterRef.current = onEnter
+  useEffect(() => {
+    function handleEnter(e: DragEvent) {
+      if (e.dataTransfer?.types.includes("Files")) onEnterRef.current()
+    }
+    function handleOver(e: DragEvent) {
+      if (e.dataTransfer?.types.includes("Files")) e.preventDefault()
+    }
+    function handleDrop(e: DragEvent) { e.preventDefault() }
+    window.addEventListener("dragenter", handleEnter)
+    window.addEventListener("dragover", handleOver)
+    window.addEventListener("drop", handleDrop)
+    return () => {
+      window.removeEventListener("dragenter", handleEnter)
+      window.removeEventListener("dragover", handleOver)
+      window.removeEventListener("drop", handleDrop)
+    }
+  }, [])
+}
 
 export function useDropZone(onFile: (f: File) => void) {
   const [dragging, setDragging] = useState(false)

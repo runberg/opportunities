@@ -160,6 +160,12 @@ export const PIPELINE_STATUSES = [
   "PENDING_ADVANCE_PAYMENT", "IN_PRODUCTION", "DELIVERED",
 ] as const
 
+export function getDropZoneCls(dragging: boolean, hasFile: boolean): string {
+  if (dragging) return "border-[#006fff] bg-blue-50 dark:bg-blue-900/10"
+  if (hasFile) return "border-green-400 bg-green-50 dark:bg-green-900/10"
+  return "border-gray-300 dark:border-gray-600 hover:border-gray-400"
+}
+
 export function formatAmount(amount: string | number): string {
   return Number(amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }

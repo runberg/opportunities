@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
-import { Download, Trash2, FileUp, Upload } from "lucide-react"
+import { useState, useEffect, useCallback } from "react"
+import { Download, Trash2, Upload } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
 import { FileTypeIcon } from "@/shared/components/ui/file-type-icon"
 import { PdfViewerModal } from "@/shared/components/ui/pdf-viewer-modal"
 import { cn, formatDate, formatDateTime, formatBytes, truncateFilename, formatAmount, nameFromFile } from "@/shared/lib/utils"
-import { useDropZone } from "@/shared/lib/use-drop-zone"
+import { useDropZone, useWindowDragExpand } from "@/shared/lib/use-drop-zone"
+import { FileDropZone } from "@/shared/components/ui/file-drop-zone"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -87,7 +88,6 @@ function ApproveForm({
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [docFile, setDocFile] = useState<File | null>(null)
-  const fileRef = useRef<HTMLInputElement>(null)
 
   const lineTotal = lineItemTotal(deliverable.lineItems)
   const amtNum = Number(amount)
@@ -140,11 +140,6 @@ function ApproveForm({
     }
   }
 
-  let dropZoneCls: string
-  if (dragging) dropZoneCls = "border-[#006fff] bg-blue-50 dark:bg-blue-900/10"
-  else if (docFile) dropZoneCls = "border-green-400 bg-green-50 dark:bg-green-900/10"
-  else dropZoneCls = "border-gray-300 dark:border-gray-600 hover:border-gray-400"
-
   return (
     <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 space-y-3">
       <div className="flex flex-wrap gap-3 items-start">
@@ -177,30 +172,16 @@ function ApproveForm({
               onChange={(e) => setDisplayName(e.target.value)}
             />
           </div>
-          <button
-            type="button"
+          <FileDropZone
+            file={docFile}
+            dragging={dragging}
             onDragOver={onDragOver}
             onDragLeave={onDragLeave}
             onDrop={onDrop}
-            onClick={() => fileRef.current?.click()}
-            className={cn(
-              "w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border-2 border-dashed cursor-pointer transition-colors text-sm",
-              dropZoneCls
-            )}
-          >
-            <input
-              ref={fileRef}
-              type="file"
-              className="hidden"
-              accept=".pdf,.xlsx,.xls,.docx,.doc,.pptx,.ppt,.png,.jpg,.jpeg"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) applyFile(f) }}
-            />
-            <FileUp size={15} className={dragging ? "text-[#006fff]" : docFile ? "text-green-600" : "text-gray-400"} />
-            {docFile
-              ? <span className="font-medium text-green-700 dark:text-green-400 truncate">{docFile.name}</span>
-              : <span className="text-gray-500 dark:text-gray-400"><span className="font-medium text-gray-700 dark:text-gray-300">Drop file</span> or click to browse</span>
-            }
-          </button>
+            onFile={applyFile}
+            accept=".pdf,.xlsx,.xls,.docx,.doc,.pptx,.ppt,.png,.jpg,.jpeg"
+            compact
+          />
           {uploading && <p className="text-xs text-gray-500 mt-0.5">Uploading…</p>}
         </div>
       </div>
@@ -613,7 +594,6 @@ function DocumentsTab({
   readonly onShowUpload: (v: boolean) => void
   readonly onRefresh: () => Promise<void>
 }) {
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [docType, setDocType] = useState<"BUDGET" | "APPROVAL">("BUDGET")
   const [displayName, setDisplayName] = useState("")
@@ -659,11 +639,6 @@ function DocumentsTab({
 
   const budget = deliverable.documents.filter((d) => d.type === "BUDGET")
   const approval = deliverable.documents.filter((d) => d.type === "APPROVAL")
-
-  let dropZoneCls: string
-  if (dragging) dropZoneCls = "border-[#006fff] bg-blue-50 dark:bg-blue-900/10"
-  else if (file) dropZoneCls = "border-green-400 bg-green-50 dark:bg-green-900/10"
-  else dropZoneCls = "border-gray-300 dark:border-gray-600 hover:border-gray-400"
 
   return (
     <div>
@@ -738,39 +713,15 @@ function DocumentsTab({
               </div>
             </div>
 
-            <button
-              type="button"
+            <FileDropZone
+              file={file}
+              dragging={dragging}
               onDragOver={onDragOver}
               onDragLeave={onDragLeave}
               onDrop={onDrop}
-              onClick={() => fileInputRef.current?.click()}
-              className={cn(
-                "flex-1 flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed cursor-pointer transition-colors min-h-[100px]",
-                dropZoneCls
-              )}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                className="hidden"
-                accept=".pdf,.xlsx,.xls,.docx,.doc,.pptx,.ppt,.png,.jpg,.jpeg,.gif,.webp,.txt,.csv"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) applyFile(f) }}
-              />
-              {file ? (
-                <>
-                  <FileUp size={18} className="text-green-600" />
-                  <p className="text-sm font-medium text-green-700 dark:text-green-400 text-center px-3">{file.name}</p>
-                  <p className="text-xs text-gray-400">{formatBytes(file.size)} · click to change</p>
-                </>
-              ) : (
-                <>
-                  <FileUp size={18} className={dragging ? "text-[#006fff]" : "text-gray-400 dark:text-gray-500"} />
-                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
-                    <span className="font-medium text-gray-700 dark:text-gray-300">Drop file here</span> or click to browse
-                  </p>
-                </>
-              )}
-            </button>
+              onFile={applyFile}
+              accept=".pdf,.xlsx,.xls,.docx,.doc,.pptx,.ppt,.png,.jpg,.jpeg,.gif,.webp,.txt,.csv"
+            />
           </div>
           {uploadError && <p className="text-xs text-red-600 mt-2">{uploadError}</p>}
         </form>
@@ -852,26 +803,7 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
     setEditingApproval(false)
   }, [deliverable?.status])
 
-  useEffect(() => {
-    function onEnter(e: DragEvent) {
-      if (e.dataTransfer?.types.includes("Files")) {
-        setActiveTab("documents")
-        setShowUpload(true)
-      }
-    }
-    function onOver(e: DragEvent) {
-      if (e.dataTransfer?.types.includes("Files")) e.preventDefault()
-    }
-    function onDrop(e: DragEvent) { e.preventDefault() }
-    window.addEventListener("dragenter", onEnter)
-    window.addEventListener("dragover", onOver)
-    window.addEventListener("drop", onDrop)
-    return () => {
-      window.removeEventListener("dragenter", onEnter)
-      window.removeEventListener("dragover", onOver)
-      window.removeEventListener("drop", onDrop)
-    }
-  }, [])
+  useWindowDragExpand(() => { setActiveTab("documents"); setShowUpload(true) })
 
   async function refresh() {
     await fetchDeliverable()
