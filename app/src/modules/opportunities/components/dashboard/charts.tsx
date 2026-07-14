@@ -63,7 +63,7 @@ function TrendBarChart({ data, isEmpty, children }: {
   }
   return (
     <ResponsiveContainer width="100%" height={200}>
-      <BarChart data={data} margin={{ top: 4, right: 8, left: -24, bottom: 0 }} barGap={2}>
+      <BarChart data={data} margin={{ top: 4, right: 0, left: -24, bottom: 0 }} barGap={2}>
         <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#9ca3af" }} tickLine={false} axisLine={false} />
         <YAxis tick={{ fontSize: 11, fill: "#9ca3af" }} tickLine={false} axisLine={false} allowDecimals={false} />
         <Tooltip {...tooltip} />

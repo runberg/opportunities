@@ -33,7 +33,7 @@ const PIPELINE_GROUPS = [
   {
     label: "Engagement Letter",
     accentClass: "bg-amber-400",
-    countClass: "text-amber-600",
+    countClass: "text-amber-400",
     steps: [
       { status: "EL_REQUEST_RECEIVED", label: "EL Requested"  },
       { status: "EL_DRAFT_SHARED",     label: "EL Draft"      },
@@ -43,7 +43,7 @@ const PIPELINE_GROUPS = [
   {
     label: "Production",
     accentClass: "bg-green-500",
-    countClass: "text-green-600",
+    countClass: "text-green-500",
     steps: [
       { status: "PENDING_ADVANCE_PAYMENT", label: "Adv. Payment"  },
       { status: "IN_PRODUCTION",           label: "In Production" },
@@ -79,13 +79,13 @@ export function PipelineFlow({
 
   return (
     <>
-      <div className="bg-white border border-gray-200 rounded-xl p-5 mb-6 overflow-x-auto">
+      <div className="bg-gray-900 border border-gray-700 rounded-xl p-5 mb-6 overflow-x-auto">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Pipeline</p>
-        <div className="flex items-stretch gap-3 min-w-max">
+        <div className="flex items-stretch justify-between min-w-max w-full">
           {PIPELINE_GROUPS.map((group, gi) => (
             <div key={group.label} className="flex items-center gap-3">
-              {gi > 0 && <ChevronRight size={20} className="text-gray-300 flex-shrink-0" />}
-              <div className="border border-gray-100 rounded-xl overflow-hidden">
+              {gi > 0 && <ChevronRight size={20} className="text-gray-600 flex-shrink-0" />}
+              <div className="border border-gray-700 rounded-xl overflow-hidden">
                 <div className={cn("h-1", group.accentClass)} />
                 <div className="px-4 pt-2.5 pb-4">
                   <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-3">
@@ -103,7 +103,7 @@ export function PipelineFlow({
                             onClick={() => open(step.status, step.label)}
                             className={cn(
                               "flex flex-col items-center px-3 py-2 rounded-lg min-w-[76px] transition-colors",
-                              count > 0 ? "hover:bg-gray-50 cursor-pointer" : "cursor-default"
+                              count > 0 ? "hover:bg-gray-800 cursor-pointer" : "cursor-default"
                             )}
                           >
                             <span className="text-xs text-gray-500 whitespace-nowrap">{step.label}</span>
@@ -172,35 +172,35 @@ function StatusDrillModal({
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-full items-start justify-center p-4 pt-[4vh]">
         <button type="button" aria-label="Close" className="fixed inset-0 bg-black/40 cursor-default" onClick={() => { if (!openId) onClose() }} />
-        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl mb-8">
+        <div className="relative bg-gray-900 rounded-2xl shadow-2xl w-full max-w-4xl mb-8">
 
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">{label}</h2>
+              <h2 className="text-lg font-semibold text-gray-100">{label}</h2>
               <p className="text-sm text-gray-500 mt-0.5">{total} {total === 1 ? "opportunity" : "opportunities"}</p>
             </div>
             <button type="button" onClick={onClose}
-              className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+              className="p-1.5 text-gray-400 hover:text-gray-300 hover:bg-gray-800 rounded-lg transition-colors">
               <X size={17} />
             </button>
           </div>
 
           {/* Search + export */}
-          <div className="flex items-center gap-3 px-6 py-3 border-b border-gray-100">
+          <div className="flex items-center gap-3 px-6 py-3 border-b border-gray-700">
             <div className="flex-1 relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search by title, customer, ID, reference…"
-                className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
+                className="w-full pl-8 pr-3 py-2 border border-gray-600 bg-gray-800 text-gray-100 placeholder-gray-500 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-gray-500"
               />
             </div>
             <a
               href={exportHref}
               download
-              className="flex items-center gap-1.5 px-3 py-2 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 rounded-lg text-sm transition-colors whitespace-nowrap"
+              className="flex items-center gap-1.5 px-3 py-2 border border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-700 rounded-lg text-sm transition-colors whitespace-nowrap"
             >
               <Download size={14} />
               Export CSV

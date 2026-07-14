@@ -9,7 +9,7 @@ import type { DrillTarget, RfqTrendBucket, ElTrendBucket, ProdTrendBucket } from
 // ─── Shared KPI tile ──────────────────────────────────────────────────────────
 
 function KpiTile({
-  label, value, unit = "", color = "text-gray-900", onClick,
+  label, value, unit = "", color = "text-gray-100", onClick,
 }: {
   readonly label: string; readonly value: number | string; readonly unit?: string; readonly color?: string; readonly onClick?: () => void
 }) {
@@ -50,10 +50,10 @@ export function QuoteActivitySection({
   const [drill, setDrill] = useState<DrillTarget | null>(null)
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-6">
-      <h2 className="text-base font-semibold text-gray-900 mb-6">Quote Activity</h2>
+    <div className="bg-gray-900 border border-gray-700 rounded-xl p-6">
+      <h2 className="text-base font-semibold text-gray-100 mb-6">Quote Activity</h2>
 
-      <div className="grid grid-cols-3 gap-6 mb-6">
+      <div className="grid grid-cols-3 gap-6 pb-5 border-b border-gray-700 mb-5">
         <KpiTile label="RFQs Received" value={kpiRfq} color="text-[#006fff]"
           onClick={() => setDrill({ title: "RFQs Received", dateField: "rfqDate", fromISO: periodFromISO, toISO: periodToISO })} />
         <KpiTile label="Quotes Shared" value={kpiQuotes} color="text-emerald-500"
@@ -85,10 +85,10 @@ export function ElActivitySection({
   const [drill, setDrill] = useState<DrillTarget | null>(null)
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-6">
-      <h2 className="text-base font-semibold text-gray-900 mb-6">EL Activity</h2>
+    <div className="bg-gray-900 border border-gray-700 rounded-xl p-6">
+      <h2 className="text-base font-semibold text-gray-100 mb-6">EL Activity</h2>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 pb-5 border-b border-gray-700 mb-5">
         <KpiTile label="ELs Requested" value={kpiRequested} color="text-[#006fff]"
           onClick={() => setDrill({ title: "ELs Requested", dateField: "elRequestedDate", fromISO: periodFromISO, toISO: periodToISO })} />
         <KpiTile label="EL Drafts Shared" value={kpiDrafted} color="text-amber-500"
@@ -122,10 +122,10 @@ export function ProductionActivitySection({
   const [drill, setDrill] = useState<DrillTarget | null>(null)
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-6">
-      <h2 className="text-base font-semibold text-gray-900 mb-6">Production Activity</h2>
+    <div className="bg-gray-900 border border-gray-700 rounded-xl p-6">
+      <h2 className="text-base font-semibold text-gray-100 mb-6">Production Activity</h2>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 pb-5 border-b border-gray-700 mb-5">
         <KpiTile label="Countersigned" value={kpiCountersigned} color="text-[#006fff]"
           onClick={() => setDrill({ title: "Contract Countersigned", dateField: "elCountersignedDate", fromISO: periodFromISO, toISO: periodToISO })} />
         <KpiTile label="Advance Payments" value={kpiAdvance} color="text-amber-500"
