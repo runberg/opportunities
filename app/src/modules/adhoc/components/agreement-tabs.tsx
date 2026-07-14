@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Upload } from "lucide-react"
-import type { AgreementRow, AgreementDocument } from "./adhoc-client"
+import type { AgreementRow } from "./adhoc-client"
 import { DeliverablesTable } from "./deliverables-table"
 import { AgreementForm } from "./agreement-form"
 import { AdhocDocList } from "./adhoc-doc-list"

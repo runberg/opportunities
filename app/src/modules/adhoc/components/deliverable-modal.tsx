@@ -595,8 +595,9 @@ function DocumentsTab({
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex flex-col gap-2.5 sm:w-52 shrink-0">
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Type</label>
+                <label htmlFor="dm-doc-type" className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Type</label>
                 <select
+                  id="dm-doc-type"
                   className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100"
                   value={docType}
                   onChange={(e) => setDocType(e.target.value as "BUDGET" | "APPROVAL")}
@@ -606,8 +607,9 @@ function DocumentsTab({
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Name *</label>
+                <label htmlFor="dm-doc-name" className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Name *</label>
                 <input
+                  id="dm-doc-name"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   required

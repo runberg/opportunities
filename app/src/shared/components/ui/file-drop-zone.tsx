@@ -31,6 +31,8 @@ export function FileDropZone({
   const borderCls = getDropZoneCls(dragging, !!file)
 
   if (compact) {
+    const idleIconCls = file ? "text-green-600" : "text-gray-400 dark:text-gray-500"
+    const upIconCls = dragging ? "text-[#006fff]" : idleIconCls
     return (
       <button
         type="button"
@@ -51,7 +53,7 @@ export function FileDropZone({
           accept={accept}
           onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f) }}
         />
-        <FileUp size={15} className={dragging ? "text-[#006fff]" : file ? "text-green-600" : "text-gray-400 dark:text-gray-500"} />
+        <FileUp size={15} className={upIconCls} />
         {file
           ? <span className="font-medium text-green-700 dark:text-green-400 truncate">{file.name}</span>
           : <span className="text-gray-500 dark:text-gray-400"><span className="font-medium text-gray-700 dark:text-gray-300">Drop file</span> or click to browse</span>
