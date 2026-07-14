@@ -155,13 +155,13 @@ function DeleteConfirmDialog({
   return (
     <Dialog open={open} onClose={onClose} title="Confirm Delete">
       <div className="space-y-4">
-        <p className="text-sm text-gray-700 dark:text-gray-300">
+        <p className="text-sm text-gray-300">
           You are about to permanently delete{" "}
-          <span className="font-semibold text-red-700 dark:text-red-400">{selectedCount} {noun}</span>.
+          <span className="font-semibold text-red-400">{selectedCount} {noun}</span>.
           This cannot be undone.
         </p>
         {children}
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-red-400">{error}</p>}
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -174,7 +174,7 @@ function DeleteConfirmDialog({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+            className="px-4 py-2 text-sm text-gray-400 hover:text-gray-200 transition-colors"
           >
             Cancel
           </button>
@@ -200,7 +200,7 @@ function DeleteAgreements() {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+        <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">
           Ad Hoc Agreements
         </h3>
         {selectedCount > 0 && (
@@ -216,14 +216,14 @@ function DeleteAgreements() {
       </div>
 
       {deleteSuccess && (
-        <div className="px-4 py-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-sm text-green-800 dark:text-green-300">
+        <div className="px-4 py-3 bg-green-900/20 border border-green-800 rounded-lg text-sm text-green-300">
           {deleteSuccess}
         </div>
       )}
 
-      <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+      <div className="border border-gray-700 rounded-lg overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 dark:bg-gray-800/50">
+          <thead className="bg-gray-800/50">
             <tr>
               <th className="px-4 py-2.5 w-10">
                 <input
@@ -231,40 +231,40 @@ function DeleteAgreements() {
                   checked={allSelected}
                   ref={(el) => { if (el) el.indeterminate = someSelected && !allSelected }}
                   onChange={allSelected ? deselectAll : selectAll}
-                  className="rounded border-gray-300 dark:border-gray-600"
+                  className="rounded border-gray-600"
                   aria-label="Select all agreements"
                 />
               </th>
-              <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Title</th>
-              <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Status</th>
-              <th className="px-4 py-2.5 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Work Pkgs</th>
-              <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Created By</th>
-              <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Date</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-400 uppercase tracking-wide">Title</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-400 uppercase tracking-wide">Status</th>
+              <th className="px-4 py-2.5 text-right text-xs font-medium text-gray-400 uppercase tracking-wide">Work Pkgs</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-400 uppercase tracking-wide">Created By</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-400 uppercase tracking-wide">Date</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+          <tbody className="divide-y divide-gray-700">
             {loading && <TablePlaceholder colSpan={6} message="Loading…" />}
             {!loading && rows.length === 0 && <TablePlaceholder colSpan={6} message="No agreements found." />}
             {!loading && rows.map((r) => (
-              <tr key={r.id} className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+              <tr key={r.id} className="bg-gray-800 hover:bg-gray-700/50 transition-colors">
                 <td className="px-4 py-3">
                   <input
                     type="checkbox"
                     checked={selected.has(r.id)}
                     onChange={() => toggleRow(r.id)}
-                    className="rounded border-gray-300 dark:border-gray-600"
+                    className="rounded border-gray-600"
                     aria-label={`Select ${r.title}`}
                   />
                 </td>
-                <td className="px-4 py-3 text-gray-900 dark:text-gray-100 font-medium">{r.title}</td>
-                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{AGREEMENT_STATUS_LABEL[r.status] ?? r.status}</td>
-                <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400">
+                <td className="px-4 py-3 text-gray-100 font-medium">{r.title}</td>
+                <td className="px-4 py-3 text-gray-400">{AGREEMENT_STATUS_LABEL[r.status] ?? r.status}</td>
+                <td className="px-4 py-3 text-right text-gray-400">
                   {r.deliverables.length > 0
-                    ? <span className="text-amber-600 dark:text-amber-400 font-medium">{r.deliverables.length}</span>
-                    : <span className="text-gray-400">0</span>}
+                    ? <span className="text-amber-400 font-medium">{r.deliverables.length}</span>
+                    : <span className="text-gray-500">0</span>}
                 </td>
-                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{r.createdBy.name}</td>
-                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{formatDate(r.createdAt)}</td>
+                <td className="px-4 py-3 text-gray-400">{r.createdBy.name}</td>
+                <td className="px-4 py-3 text-gray-400">{formatDate(r.createdAt)}</td>
               </tr>
             ))}
           </tbody>
@@ -281,9 +281,9 @@ function DeleteAgreements() {
         error={deleteError}
       >
         {totalWorkPackages > 0 && (
-          <div className="flex gap-3 px-4 py-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
+          <div className="flex gap-3 px-4 py-3 bg-amber-900/20 border border-amber-700 rounded-lg">
             <span className="text-amber-500 mt-0.5 shrink-0">⚠</span>
-            <p className="text-sm text-amber-800 dark:text-amber-300">
+            <p className="text-sm text-amber-300">
               The selected {noun} contain{selectedCount === 1 ? "s" : ""}{" "}
               <span className="font-semibold">{totalWorkPackages} work {totalWorkPackages === 1 ? "package" : "packages"}</span>{" "}
               that will also be permanently deleted along with all their line items and documents.
@@ -309,7 +309,7 @@ function DeleteWorkPackages() {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+        <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">
           Ad Hoc Work Packages
         </h3>
         {selectedCount > 0 && (
@@ -325,14 +325,14 @@ function DeleteWorkPackages() {
       </div>
 
       {deleteSuccess && (
-        <div className="px-4 py-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-sm text-green-800 dark:text-green-300">
+        <div className="px-4 py-3 bg-green-900/20 border border-green-800 rounded-lg text-sm text-green-300">
           {deleteSuccess}
         </div>
       )}
 
-      <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+      <div className="border border-gray-700 rounded-lg overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 dark:bg-gray-800/50">
+          <thead className="bg-gray-800/50">
             <tr>
               <th className="px-4 py-2.5 w-10">
                 <input
@@ -340,34 +340,34 @@ function DeleteWorkPackages() {
                   checked={allSelected}
                   ref={(el) => { if (el) el.indeterminate = someSelected && !allSelected }}
                   onChange={allSelected ? deselectAll : selectAll}
-                  className="rounded border-gray-300 dark:border-gray-600"
+                  className="rounded border-gray-600"
                   aria-label="Select all work packages"
                 />
               </th>
-              <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Title</th>
-              <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Agreement</th>
-              <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Status</th>
-              <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Date</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-400 uppercase tracking-wide">Title</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-400 uppercase tracking-wide">Agreement</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-400 uppercase tracking-wide">Status</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-400 uppercase tracking-wide">Date</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+          <tbody className="divide-y divide-gray-700">
             {loading && <TablePlaceholder colSpan={5} message="Loading…" />}
             {!loading && rows.length === 0 && <TablePlaceholder colSpan={5} message="No work packages found." />}
             {!loading && rows.map((r) => (
-              <tr key={r.id} className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+              <tr key={r.id} className="bg-gray-800 hover:bg-gray-700/50 transition-colors">
                 <td className="px-4 py-3">
                   <input
                     type="checkbox"
                     checked={selected.has(r.id)}
                     onChange={() => toggleRow(r.id)}
-                    className="rounded border-gray-300 dark:border-gray-600"
+                    className="rounded border-gray-600"
                     aria-label={`Select ${r.title}`}
                   />
                 </td>
-                <td className="px-4 py-3 text-gray-900 dark:text-gray-100 font-medium">{r.title}</td>
-                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{r.agreement.title}</td>
-                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{DELIVERABLE_STATUS_LABEL[r.status] ?? r.status}</td>
-                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{formatDate(r.createdAt)}</td>
+                <td className="px-4 py-3 text-gray-100 font-medium">{r.title}</td>
+                <td className="px-4 py-3 text-gray-400">{r.agreement.title}</td>
+                <td className="px-4 py-3 text-gray-400">{DELIVERABLE_STATUS_LABEL[r.status] ?? r.status}</td>
+                <td className="px-4 py-3 text-gray-400">{formatDate(r.createdAt)}</td>
               </tr>
             ))}
           </tbody>
@@ -383,7 +383,7 @@ function DeleteWorkPackages() {
         noun={noun}
         error={deleteError}
       >
-        <p className="text-sm text-gray-600 dark:text-gray-400">
+        <p className="text-sm text-gray-400">
           All associated line items and documents will also be permanently deleted.
         </p>
       </DeleteConfirmDialog>

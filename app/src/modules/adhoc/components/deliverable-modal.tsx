@@ -68,7 +68,7 @@ function lineItemTotal(items: LineItem[]) {
 function PartialApprovalWarning({ show, lineTotal }: { readonly show: boolean; readonly lineTotal: number }) {
   if (!show) return null
   return (
-    <p className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 rounded-md">
+    <p className="text-xs text-amber-400 bg-amber-900/20 px-3 py-2 rounded-md">
       Approved amount is less than the line item total ({formatAmount(lineTotal)}) — this will be set to <strong>Partially Approved</strong>.
     </p>
   )
@@ -144,10 +144,10 @@ function ApproveForm({
   }
 
   return (
-    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 space-y-3">
+    <div className="mt-3 pt-3 border-t border-gray-700 space-y-3">
       <div className="flex flex-wrap gap-3 items-start">
         <div>
-          <label htmlFor="approve-amount" className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+          <label htmlFor="approve-amount" className="block text-xs text-gray-400 mb-1">
             Approved Amount <span className="text-red-500">*</span>
           </label>
           <input
@@ -156,7 +156,7 @@ function ApproveForm({
             type="number"
             min="0"
             step="0.01"
-            className="w-36 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm text-right text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-36 rounded border border-gray-600 bg-gray-800 px-2 py-1.5 text-sm text-right text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="0.00"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
@@ -164,12 +164,12 @@ function ApproveForm({
           />
         </div>
         <div className="flex-1 min-w-60">
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-            Approval Document <span className="font-normal text-gray-400">(optional)</span>
+          <p className="text-xs text-gray-400 mb-1">
+            Approval Document <span className="font-normal text-gray-500">(optional)</span>
           </p>
           <div className="flex gap-2 mb-2">
             <input
-              className="flex-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 rounded border border-gray-600 bg-gray-800 px-2 py-1.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Display name"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
@@ -258,9 +258,9 @@ function ApprovalEditPanel({
   }
 
   return (
-    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 space-y-3">
+    <div className="mt-3 pt-3 border-t border-gray-700 space-y-3">
       <div>
-        <label htmlFor="edit-approval-amount" className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+        <label htmlFor="edit-approval-amount" className="block text-xs text-gray-400 mb-1">
           Approved Amount
         </label>
         <input
@@ -269,7 +269,7 @@ function ApprovalEditPanel({
           type="number"
           min="0"
           step="0.01"
-          className="w-36 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm text-right text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-36 rounded border border-gray-600 bg-gray-800 px-2 py-1.5 text-sm text-right text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") handleUpdate() }}
@@ -374,25 +374,25 @@ function LineItemsTab({
 
   return (
     <div>
-      <div className="flex gap-6 mb-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg text-sm">
+      <div className="flex gap-6 mb-4 p-3 bg-gray-800/50 rounded-lg text-sm">
         <div>
-          <span className="text-gray-500 dark:text-gray-400">Approved: </span>
-          <span className="font-semibold text-gray-900 dark:text-gray-100">
+          <span className="text-gray-400">Approved: </span>
+          <span className="font-semibold text-gray-100">
             {approved > 0 ? formatAmount(approved) : "—"}
           </span>
         </div>
         <div>
-          <span className="text-gray-500 dark:text-gray-400">Line items: </span>
-          <span className="font-semibold text-gray-900 dark:text-gray-100">{formatAmount(lineTotal)}</span>
+          <span className="text-gray-400">Line items: </span>
+          <span className="font-semibold text-gray-100">{formatAmount(lineTotal)}</span>
         </div>
         <div>
-          <span className="text-gray-500 dark:text-gray-400">Balance: </span>
-          <span className={`font-semibold ${over ? "text-red-600" : "text-gray-900 dark:text-gray-100"}`}>
+          <span className="text-gray-400">Balance: </span>
+          <span className={`font-semibold ${over ? "text-red-400" : "text-gray-100"}`}>
             {approved > 0 ? formatAmount(balance) : "—"}
           </span>
         </div>
         {over && (
-          <span className="ml-auto text-xs text-red-600 font-medium self-center">
+          <span className="ml-auto text-xs text-red-400 font-medium self-center">
             ⚠ Exceeds approved — re-approval needed
           </span>
         )}
@@ -401,20 +401,20 @@ function LineItemsTab({
       {deliverable.lineItems.length > 0 && (
         <table className="w-full text-sm mb-3">
           <thead>
-            <tr className="border-b border-gray-200 dark:border-gray-700">
-              <th className="py-2 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-              <th className="py-2 text-right text-xs font-medium text-gray-500 uppercase w-36">Amount</th>
+            <tr className="border-b border-gray-700">
+              <th className="py-2 text-left text-xs font-medium text-gray-400 uppercase">Description</th>
+              <th className="py-2 text-right text-xs font-medium text-gray-400 uppercase w-36">Amount</th>
               {!isLocked && <th className="py-2 w-20" />}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+          <tbody className="divide-y divide-gray-700">
             {deliverable.lineItems.map((li) =>
               editingId === li.id ? (
                 <tr key={li.id}>
                   <td className="py-1.5 pr-2">
                     <input
                       autoFocus
-                      className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full rounded border border-gray-600 bg-gray-700 px-2 py-1 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={editDesc}
                       onChange={(e) => setEditDesc(e.target.value)}
                     />
@@ -422,7 +422,7 @@ function LineItemsTab({
                   <td className="py-1.5 pr-2">
                     <input
                       type="number" min="0" step="0.01"
-                      className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-right text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full rounded border border-gray-600 bg-gray-700 px-2 py-1 text-sm text-right text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={editAmt}
                       onChange={(e) => setEditAmt(e.target.value)}
                     />
@@ -436,8 +436,8 @@ function LineItemsTab({
                 </tr>
               ) : (
                 <tr key={li.id} className="group">
-                  <td className="py-2 text-gray-800 dark:text-gray-200">{li.description}</td>
-                  <td className="py-2 text-right text-gray-800 dark:text-gray-200 tabular-nums">{formatAmount(li.amount)}</td>
+                  <td className="py-2 text-gray-200">{li.description}</td>
+                  <td className="py-2 text-right text-gray-200 tabular-nums">{formatAmount(li.amount)}</td>
                   {!isLocked && (
                     <td className="py-2">
                       <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
@@ -460,7 +460,7 @@ function LineItemsTab({
           <div className="flex gap-2 mt-2">
             <input
               autoFocus
-              className="flex-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 rounded border border-gray-600 bg-gray-800 px-2 py-1.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Description"
               value={newDesc}
               onChange={(e) => setNewDesc(e.target.value)}
@@ -468,7 +468,7 @@ function LineItemsTab({
             />
             <input
               type="number" min="0" step="0.01"
-              className="w-32 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm text-right text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-32 rounded border border-gray-600 bg-gray-800 px-2 py-1.5 text-sm text-right text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Amount"
               value={newAmt}
               onChange={(e) => setNewAmt(e.target.value)}
@@ -590,15 +590,15 @@ function DocumentsTab({
       {showUpload && !isLocked && (
         <form
           onSubmit={handleUpload}
-          className="mt-2 p-4 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800/50"
+          className="mt-2 p-4 border border-gray-700 rounded-xl bg-gray-800/50"
         >
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex flex-col gap-2.5 sm:w-52 shrink-0">
               <div>
-                <label htmlFor="dm-doc-type" className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Type</label>
+                <label htmlFor="dm-doc-type" className="block text-xs font-medium text-gray-400 mb-1">Type</label>
                 <select
                   id="dm-doc-type"
-                  className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100"
+                  className="w-full rounded border border-gray-600 bg-gray-800 px-2 py-1.5 text-sm text-gray-100"
                   value={docType}
                   onChange={(e) => setDocType(e.target.value as "BUDGET" | "APPROVAL")}
                 >
@@ -607,14 +607,14 @@ function DocumentsTab({
                 </select>
               </div>
               <div>
-                <label htmlFor="dm-doc-name" className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Name *</label>
+                <label htmlFor="dm-doc-name" className="block text-xs font-medium text-gray-400 mb-1">Name *</label>
                 <input
                   id="dm-doc-name"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   required
                   placeholder="Display name"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-gray-400"
+                  className="w-full px-3 py-2 border border-gray-600 rounded-lg text-sm bg-gray-800 text-gray-100 focus:outline-none focus:ring-1 focus:ring-gray-500"
                 />
               </div>
               <div className="flex gap-2">
@@ -667,9 +667,9 @@ function ChangeLogTab({ logs }: { readonly logs: LogEntry[] }) {
     <ul className="space-y-3">
       {logs.map((entry) => (
         <li key={entry.id} className="flex gap-3 text-sm">
-          <div className="mt-2 w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600 shrink-0" />
+          <div className="mt-2 w-1.5 h-1.5 rounded-full bg-gray-600 shrink-0" />
           <div>
-            <p className="text-gray-800 dark:text-gray-200">{entry.message}</p>
+            <p className="text-gray-200">{entry.message}</p>
             <p className="text-xs text-gray-400 mt-0.5">
               {entry.user?.name ?? "System"} · {formatDateTime(entry.createdAt)}
             </p>
@@ -787,7 +787,7 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
     tabContent = (
       <div className="space-y-2">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+          <div key={i} className="h-4 bg-gray-700 rounded animate-pulse" />
         ))}
       </div>
     )
@@ -819,16 +819,16 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
     <div className="fixed inset-0 z-50 flex">
       <button type="button" aria-label="Close" className="fixed inset-0 bg-black/40 cursor-default" onClick={onClose} />
 
-      <div className="relative ml-auto w-full max-w-2xl h-full bg-white dark:bg-gray-900 shadow-xl flex flex-col overflow-hidden">
+      <div className="relative ml-auto w-full max-w-2xl h-full bg-gray-900 shadow-xl flex flex-col overflow-hidden">
         {/* Header — inline-editable title + description */}
-        <div className="flex items-start justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-start justify-between px-6 py-4 border-b border-gray-700">
           <div className="flex-1 min-w-0 pr-4">
             {loading ? (
-              <div className="h-5 w-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+              <div className="h-5 w-48 bg-gray-700 rounded animate-pulse" />
             ) : (
               <>
                 <textarea
-                  className="w-full appearance-none bg-white dark:bg-gray-900 focus:bg-gray-50 dark:focus:bg-gray-800 border-b border-transparent hover:border-gray-200 dark:hover:border-gray-600 focus:border-blue-400 dark:focus:border-blue-500 focus:outline-none text-2xl font-semibold text-gray-900 dark:text-gray-100 py-0.5 leading-tight transition-colors resize-none overflow-hidden disabled:opacity-50"
+                  className="w-full appearance-none bg-gray-900 focus:bg-gray-800 border-b border-transparent hover:border-gray-600 focus:border-blue-500 focus:outline-none text-2xl font-semibold text-gray-100 py-0.5 leading-tight transition-colors resize-none overflow-hidden disabled:opacity-50"
                   rows={1}
                   value={titleDraft}
                   disabled={!!isLocked}
@@ -837,7 +837,7 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLTextAreaElement).blur() } }}
                 />
                 <textarea
-                  className="w-full mt-2 appearance-none bg-white dark:bg-gray-900 focus:bg-gray-50 dark:focus:bg-gray-800 border border-transparent hover:border-gray-200 dark:hover:border-gray-600 focus:border-blue-400 dark:focus:border-blue-500 focus:outline-none text-sm text-gray-500 dark:text-gray-400 rounded px-1 resize-none transition-colors disabled:opacity-50"
+                  className="w-full mt-2 appearance-none bg-gray-900 focus:bg-gray-800 border border-transparent hover:border-gray-600 focus:border-blue-500 focus:outline-none text-sm text-gray-400 rounded px-1 resize-none transition-colors disabled:opacity-50"
                   rows={2}
                   placeholder={isLocked ? "" : "Add description…"}
                   value={descDraft}
@@ -853,7 +853,7 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xl leading-none shrink-0"
+            className="text-gray-400 hover:text-gray-300 text-xl leading-none shrink-0"
           >
             ✕
           </button>
@@ -861,18 +861,18 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
 
         {/* Meta bar */}
         {deliverable && (
-          <div className="px-6 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+          <div className="px-6 py-3 bg-gray-800/50 border-b border-gray-700">
             <div className="flex items-start justify-between gap-4">
               <div className="flex gap-6">
                 <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Status</p>
+                  <p className="text-xs text-gray-400">Status</p>
                   <span className={`inline-flex mt-0.5 px-2 py-0.5 text-xs rounded-full font-medium ${STATUS_BADGE[deliverable.status]}`}>
                     {STATUS_LABEL[deliverable.status]}
                   </span>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Approved Amount</p>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mt-0.5">
+                  <p className="text-xs text-gray-400">Approved Amount</p>
+                  <p className="text-sm font-semibold text-gray-100 mt-0.5">
                     {Number(deliverable.approvedAmount) > 0 ? formatAmount(deliverable.approvedAmount) : "—"}
                   </p>
                 </div>
@@ -893,7 +893,7 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
             </div>
 
             {missingApprovalDoc && !editingApproval && (
-              <p className="mt-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5 rounded-md">
+              <p className="mt-2 text-xs text-amber-400 bg-amber-900/20 px-3 py-1.5 rounded-md">
                 ⚠ No approval document uploaded
               </p>
             )}
@@ -913,7 +913,7 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
         )}
 
         {/* Tabs */}
-        <div className="flex gap-0 border-b border-gray-200 dark:border-gray-700 px-6">
+        <div className="flex gap-0 border-b border-gray-700 px-6">
           {tabs.map((t) => (
             <button
               key={t.key}
@@ -922,8 +922,8 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
               className={[
                 "px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors",
                 activeTab === t.key
-                  ? "border-blue-600 text-blue-600 dark:text-blue-400"
-                  : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300",
+                  ? "border-blue-500 text-blue-400"
+                  : "border-transparent text-gray-400 hover:text-gray-300",
               ].join(" ")}
             >
               {t.label}

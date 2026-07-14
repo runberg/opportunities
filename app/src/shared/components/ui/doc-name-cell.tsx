@@ -26,12 +26,12 @@ export function DocNameCell({
               type="button"
               onClick={onViewPdf}
               title="Click to view PDF"
-              className="font-medium text-gray-900 dark:text-gray-100 truncate block text-left w-full cursor-pointer hover:underline"
+              className="font-medium text-gray-100 truncate block text-left w-full cursor-pointer hover:underline"
             >
               {doc.displayName}
             </button>
           ) : (
-            <div className="font-medium text-gray-900 dark:text-gray-100 truncate">{doc.displayName}</div>
+            <div className="font-medium text-gray-100 truncate">{doc.displayName}</div>
           )}
           <div className="text-xs text-gray-400 font-normal">{truncateFilename(doc.originalName)}</div>
         </div>

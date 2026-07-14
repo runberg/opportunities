@@ -2,10 +2,11 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Upload, Download, Trash2 } from "lucide-react"
+import { Upload } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
 import { PdfViewerModal } from "@/shared/components/ui/pdf-viewer-modal"
 import { DocNameCell } from "@/shared/components/ui/doc-name-cell"
+import { DocActionCell } from "@/shared/components/ui/doc-action-cell"
 import { formatBytes, formatDate, nameFromFile } from "@/shared/lib/utils"
 import { useDropZone, useWindowDragExpand } from "@/shared/lib/use-drop-zone"
 import { FileDropZone } from "@/shared/components/ui/file-drop-zone"
@@ -107,11 +108,11 @@ export function QuoteSection({
 
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4">
+    <div className="bg-gray-900 border border-gray-700 rounded-xl p-4">
       {/* Documents */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-3">
-          <p className="text-sm font-medium text-gray-700">
+          <p className="text-sm font-medium text-gray-200">
             {sectionLabel}
             <span className="ml-1.5 text-gray-400 font-normal">({documents.length})</span>
           </p>
@@ -124,13 +125,13 @@ export function QuoteSection({
         {showUpload && (
           <form
             onSubmit={handleUpload}
-            className="mb-4 p-4 border border-gray-200 rounded-xl bg-gray-50"
+            className="mb-4 p-4 border border-gray-700 rounded-xl bg-gray-800/50"
           >
             <div className="flex flex-col sm:flex-row gap-4">
               {/* Left: fields */}
               <div className="flex flex-col gap-3 sm:w-56 shrink-0">
                 <div>
-                  <label htmlFor="qs-doc-name" className="block text-xs font-medium text-gray-600 mb-1">
+                  <label htmlFor="qs-doc-name" className="block text-xs font-medium text-gray-400 mb-1">
                     Document Name *
                   </label>
                   <input
@@ -139,16 +140,16 @@ export function QuoteSection({
                     onChange={(e) => setDisplayName(e.target.value)}
                     required
                     placeholder="e.g. Quote v1 — ACME"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
                   />
                 </div>
                 <div>
-                  <label htmlFor="qs-doc-version" className="block text-xs font-medium text-gray-600 mb-1">Version</label>
+                  <label htmlFor="qs-doc-version" className="block text-xs font-medium text-gray-400 mb-1">Version</label>
                   <select
                     id="qs-doc-version"
                     value={docStatus}
                     onChange={(e) => setDocStatus(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-gray-500"
                   >
                     <option value="DRAFT">Draft</option>
                     <option value="FINAL">Final</option>
@@ -189,28 +190,20 @@ export function QuoteSection({
             {emptyLabel}
           </p>
         ) : (
-          <div className="border border-gray-200 rounded-xl overflow-hidden">
+          <div className="border border-gray-700 rounded-xl overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-gray-800/50 border-b border-gray-700">
                 <tr>
-                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">
-                    Name
-                  </th>
-                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">
-                    Version
-                  </th>
-                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 hidden sm:table-cell">
-                    Size
-                  </th>
-                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 hidden md:table-cell">
-                    Uploaded
-                  </th>
+                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400">Name</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400">Version</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400 hidden sm:table-cell">Size</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400 hidden md:table-cell">Uploaded</th>
                   <th className="px-4 py-2.5" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-700">
                 {documents.map((doc) => (
-                  <tr key={doc.id} className="hover:bg-gray-50">
+                  <tr key={doc.id} className="hover:bg-gray-800/50">
                     <DocNameCell
                       doc={doc}
                       onViewPdf={() => setPdfViewer({ id: doc.id, name: doc.displayName })}
@@ -219,41 +212,24 @@ export function QuoteSection({
                       <span
                         className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
                           doc.docStatus === "FINAL"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-gray-100 text-gray-600"
+                            ? "bg-green-900/40 text-green-300"
+                            : "bg-gray-700 text-gray-300"
                         }`}
                       >
                         {doc.docStatus === "FINAL" ? "Final" : "Draft"}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">
+                    <td className="px-4 py-3 text-gray-400 hidden sm:table-cell">
                       {formatBytes(doc.size)}
                     </td>
-                    <td className="px-4 py-3 text-gray-500 hidden md:table-cell">
+                    <td className="px-4 py-3 text-gray-400 hidden md:table-cell">
                       {doc.uploadedBy.name} · {formatDate(doc.uploadedAt)}
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1 justify-end">
-                        <a
-                          href={`/api/files/${doc.id}`}
-                          download={doc.originalName}
-                          className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
-                          title="Download"
-                        >
-                          <Download size={15} />
-                        </a>
-                        {(isAdmin || doc.uploadedBy.id === currentUserId) && (
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(doc.id, doc.displayName)}
-                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
+                    <DocActionCell
+                      downloadHref={`/api/files/${doc.id}`}
+                      originalName={doc.originalName}
+                      onDelete={(isAdmin || doc.uploadedBy.id === currentUserId) ? () => handleDelete(doc.id, doc.displayName) : null}
+                    />
                   </tr>
                 ))}
               </tbody>

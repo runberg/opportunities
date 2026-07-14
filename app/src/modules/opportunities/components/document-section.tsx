@@ -3,9 +3,10 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { formatBytes, formatDate, DOC_TYPE_LABELS } from "@/shared/lib/utils"
-import { Download, Trash2, Upload } from "lucide-react"
+import { Upload } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
 import { DocNameCell } from "@/shared/components/ui/doc-name-cell"
+import { DocActionCell } from "@/shared/components/ui/doc-action-cell"
 import { PdfViewerModal } from "@/shared/components/ui/pdf-viewer-modal"
 
 interface Document {
@@ -88,13 +89,13 @@ export function DocumentSection({
   function docStatusBadge(status: string) {
     if (status === "FINAL") {
       return (
-        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-900/40 text-green-300">
           Final
         </span>
       )
     }
     return (
-      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-700 text-gray-300">
         Draft
       </span>
     )
@@ -102,13 +103,13 @@ export function DocumentSection({
 
   function docTypeBadge(type: string) {
     const styles: Record<string, string> = {
-      QUOTE: "bg-sky-100 text-sky-700",
-      EL: "bg-violet-100 text-violet-700",
-      OTHER: "bg-gray-100 text-gray-600",
+      QUOTE: "bg-sky-900/40 text-sky-300",
+      EL: "bg-violet-900/40 text-violet-300",
+      OTHER: "bg-gray-700 text-gray-300",
     }
     return (
       <span
-        className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${styles[type] ?? "bg-gray-100 text-gray-600"}`}
+        className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${styles[type] ?? "bg-gray-700 text-gray-300"}`}
       >
         {DOC_TYPE_LABELS[type] ?? type}
       </span>
@@ -118,7 +119,7 @@ export function DocumentSection({
   return (
     <div className="mt-8">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-base font-semibold text-gray-900">
+        <h2 className="text-base font-semibold text-gray-200">
           Documents{" "}
           <span className="text-gray-400 font-normal">({documents.length})</span>
         </h2>
@@ -136,11 +137,11 @@ export function DocumentSection({
       {showForm && (
         <form
           onSubmit={handleUpload}
-          className="mb-5 p-4 border border-gray-200 rounded-xl bg-gray-50 space-y-3"
+          className="mb-5 p-4 border border-gray-700 rounded-xl bg-gray-800/50 space-y-3"
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label htmlFor="doc-name" className="block text-xs font-medium text-gray-600 mb-1">
+              <label htmlFor="doc-name" className="block text-xs font-medium text-gray-400 mb-1">
                 Document Name *
               </label>
               <input
@@ -148,28 +149,28 @@ export function DocumentSection({
                 name="displayName"
                 required
                 placeholder="e.g. Draft Quote v2"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
               />
             </div>
 
             <div>
-              <label htmlFor="doc-file" className="block text-xs font-medium text-gray-600 mb-1">File *</label>
+              <label htmlFor="doc-file" className="block text-xs font-medium text-gray-400 mb-1">File *</label>
               <input
                 id="doc-file"
                 name="file"
                 type="file"
                 required
-                className="w-full text-sm text-gray-600"
+                className="w-full text-sm text-gray-400"
               />
             </div>
 
             <div>
-              <label htmlFor="doc-type" className="block text-xs font-medium text-gray-600 mb-1">Type</label>
+              <label htmlFor="doc-type" className="block text-xs font-medium text-gray-400 mb-1">Type</label>
               <select
                 id="doc-type"
                 name="type"
                 defaultValue="QUOTE"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-gray-500"
               >
                 <option value="QUOTE">Quote</option>
                 <option value="EL">EL</option>
@@ -178,12 +179,12 @@ export function DocumentSection({
             </div>
 
             <div>
-              <label htmlFor="doc-status" className="block text-xs font-medium text-gray-600 mb-1">Status</label>
+              <label htmlFor="doc-status" className="block text-xs font-medium text-gray-400 mb-1">Status</label>
               <select
                 id="doc-status"
                 name="docStatus"
                 defaultValue="DRAFT"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-gray-500"
               >
                 <option value="DRAFT">Draft</option>
                 <option value="FINAL">Final</option>
@@ -192,7 +193,7 @@ export function DocumentSection({
           </div>
 
           {uploadError && (
-            <p className="text-xs text-red-600">{uploadError}</p>
+            <p className="text-xs text-red-400">{uploadError}</p>
           )}
 
           <div className="flex items-center gap-2">
@@ -219,8 +220,8 @@ export function DocumentSection({
             onClick={() => setFilter(f)}
             className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors ${
               filter === f
-                ? "bg-gray-900 text-white"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                ? "bg-gray-600 text-gray-100"
+                : "bg-gray-800 text-gray-400 hover:bg-gray-700"
             }`}
           >
             {f === "ALL" ? "All" : DOC_TYPE_LABELS[f]}
@@ -240,52 +241,36 @@ export function DocumentSection({
       {filtered.length === 0 ? (
         <p className="text-sm text-gray-400 py-4">No documents yet.</p>
       ) : (
-        <div className="border border-gray-200 rounded-xl overflow-hidden">
+        <div className="border border-gray-700 rounded-xl overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-gray-800/50 border-b border-gray-700">
               <tr>
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">Name</th>
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">Type</th>
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">Status</th>
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 hidden sm:table-cell">Size</th>
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 hidden md:table-cell">Uploaded by</th>
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 hidden md:table-cell">Date</th>
+                <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400">Name</th>
+                <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400">Type</th>
+                <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400">Status</th>
+                <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400 hidden sm:table-cell">Size</th>
+                <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400 hidden md:table-cell">Uploaded by</th>
+                <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400 hidden md:table-cell">Date</th>
                 <th className="px-4 py-2.5" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-700">
               {filtered.map((doc) => (
-                <tr key={doc.id} className="hover:bg-gray-50">
+                <tr key={doc.id} className="hover:bg-gray-800/50">
                   <DocNameCell
                     doc={doc}
                     onViewPdf={() => setPdfViewer({ id: doc.id, name: doc.displayName })}
                   />
                   <td className="px-4 py-3">{docTypeBadge(doc.type)}</td>
                   <td className="px-4 py-3">{docStatusBadge(doc.docStatus)}</td>
-                  <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">{formatBytes(doc.size)}</td>
-                  <td className="px-4 py-3 text-gray-500 hidden md:table-cell">{doc.uploadedBy.name}</td>
-                  <td className="px-4 py-3 text-gray-500 hidden md:table-cell">{formatDate(doc.uploadedAt)}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1 justify-end">
-                      <a
-                        href={`/api/files/${doc.id}`}
-                        download={doc.originalName}
-                        className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
-                        title="Download"
-                      >
-                        <Download size={15} />
-                      </a>
-                      {(isAdmin || doc.uploadedBy.id === currentUserId) && (
-                        <button
-                          onClick={() => handleDelete(doc.id, doc.displayName)}
-                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      )}
-                    </div>
-                  </td>
+                  <td className="px-4 py-3 text-gray-400 hidden sm:table-cell">{formatBytes(doc.size)}</td>
+                  <td className="px-4 py-3 text-gray-400 hidden md:table-cell">{doc.uploadedBy.name}</td>
+                  <td className="px-4 py-3 text-gray-400 hidden md:table-cell">{formatDate(doc.uploadedAt)}</td>
+                  <DocActionCell
+                    downloadHref={`/api/files/${doc.id}`}
+                    originalName={doc.originalName}
+                    onDelete={(isAdmin || doc.uploadedBy.id === currentUserId) ? () => handleDelete(doc.id, doc.displayName) : null}
+                  />
                 </tr>
               ))}
             </tbody>

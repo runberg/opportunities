@@ -96,22 +96,22 @@ export function ProfileClient({
     setForm({ currentPassword: "", newPassword: "", confirmPassword: "" })
   }
 
-  const cardCls = "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6"
+  const cardCls = "bg-gray-800 border border-gray-700 rounded-xl p-6"
 
   return (
     <div className="space-y-6 max-w-md">
       {/* Account */}
       <div className={cardCls}>
-        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">Account</h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Signed in as <span className="font-medium text-gray-700 dark:text-gray-300">{userEmail}</span>
+        <h2 className="text-base font-semibold text-gray-100 mb-1">Account</h2>
+        <p className="text-sm text-gray-400">
+          Signed in as <span className="font-medium text-gray-300">{userEmail}</span>
         </p>
       </div>
 
       {/* Display Name */}
       <div className={cardCls}>
-        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">Display Name</h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+        <h2 className="text-base font-semibold text-gray-100 mb-1">Display Name</h2>
+        <p className="text-sm text-gray-400 mb-4">
           Shown in comments, logs, and document uploads.
         </p>
         <form onSubmit={saveName} className="flex gap-2">
@@ -136,8 +136,8 @@ export function ProfileClient({
       {/* Email notifications — only shown when admin has enabled the feature */}
       {notificationsAvailable && (
         <div className={cardCls}>
-          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">Email Notifications</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          <h2 className="text-base font-semibold text-gray-100 mb-1">Email Notifications</h2>
+          <p className="text-sm text-gray-400 mb-4">
             Receive an email when an opportunity changes status.
           </p>
           <div className="flex items-center gap-3">
@@ -148,7 +148,7 @@ export function ProfileClient({
               disabled={notifSaving}
               className={cn(
                 "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-60",
-                notifications ? "bg-blue-600" : "bg-gray-300 dark:bg-gray-600"
+                notifications ? "bg-blue-600" : "bg-gray-600"
               )}
             >
               <span
@@ -158,7 +158,7 @@ export function ProfileClient({
                 )}
               />
             </button>
-            <span className="text-sm text-gray-700 dark:text-gray-300">{notifications ? "Enabled" : "Disabled"}</span>
+            <span className="text-sm text-gray-300">{notifications ? "Enabled" : "Disabled"}</span>
           </div>
           {notifMsg && (
             <p className={cn("text-xs mt-2", notifMsg.ok ? "text-green-600" : "text-red-600")}>{notifMsg.text}</p>
@@ -168,7 +168,7 @@ export function ProfileClient({
 
       {/* Change Password */}
       <div className={cardCls}>
-        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-5">Change Password</h2>
+        <h2 className="text-base font-semibold text-gray-100 mb-5">Change Password</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="current">Current Password *</Label>
@@ -182,8 +182,8 @@ export function ProfileClient({
             <Label htmlFor="confirm">Confirm New Password *</Label>
             <Input id="confirm" type="password" value={form.confirmPassword} onChange={(e) => set("confirmPassword", e.target.value)} required autoComplete="new-password" />
           </div>
-          {error && <div className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">{error}</div>}
-          {success && <div className="text-sm text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg px-3 py-2">{success}</div>}
+          {error && <div className="text-sm text-red-400 bg-red-900/20 border border-red-800 rounded-lg px-3 py-2">{error}</div>}
+          {success && <div className="text-sm text-green-400 bg-green-900/20 border border-green-800 rounded-lg px-3 py-2">{success}</div>}
           <Button type="submit" disabled={saving}>{saving ? "Changing…" : "Change Password"}</Button>
         </form>
       </div>

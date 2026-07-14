@@ -31,7 +31,7 @@ export function FileDropZone({
   const borderCls = getDropZoneCls(dragging, !!file)
 
   if (compact) {
-    const idleIconCls = file ? "text-green-600" : "text-gray-400 dark:text-gray-500"
+    const idleIconCls = file ? "text-green-500" : "text-gray-500"
     const upIconCls = dragging ? "text-[#006fff]" : idleIconCls
     return (
       <button
@@ -55,8 +55,8 @@ export function FileDropZone({
         />
         <FileUp size={15} className={upIconCls} />
         {file
-          ? <span className="font-medium text-green-700 dark:text-green-400 truncate">{file.name}</span>
-          : <span className="text-gray-500 dark:text-gray-400"><span className="font-medium text-gray-700 dark:text-gray-300">Drop file</span> or click to browse</span>
+          ? <span className="font-medium text-green-400 truncate">{file.name}</span>
+          : <span className="text-gray-400"><span className="font-medium text-gray-300">Drop file</span> or click to browse</span>
         }
       </button>
     )
@@ -84,15 +84,15 @@ export function FileDropZone({
       />
       {file ? (
         <>
-          <FileUp size={18} className="text-green-600" />
-          <p className="text-sm font-medium text-green-700 dark:text-green-400 text-center px-3">{file.name}</p>
+          <FileUp size={18} className="text-green-500" />
+          <p className="text-sm font-medium text-green-400 text-center px-3">{file.name}</p>
           <p className="text-xs text-gray-400">{formatBytes(file.size)} · click to change</p>
         </>
       ) : (
         <>
-          <FileUp size={18} className={dragging ? "text-[#006fff]" : "text-gray-400 dark:text-gray-500"} />
-          <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
-            <span className="font-medium text-gray-700 dark:text-gray-300">Drop file here</span> or click to browse
+          <FileUp size={18} className={dragging ? "text-[#006fff]" : "text-gray-500"} />
+          <p className="text-sm text-gray-400 text-center">
+            <span className="font-medium text-gray-300">Drop file here</span> or click to browse
           </p>
         </>
       )}

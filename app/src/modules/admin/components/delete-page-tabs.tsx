@@ -17,7 +17,7 @@ export function DeletePageTabs() {
   return (
     <div>
       {/* Tab bar */}
-      <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700 mb-6">
+      <div className="flex gap-1 border-b border-gray-700 mb-6">
         {TABS.map((tab) => (
           <button
             key={tab.id}
@@ -26,8 +26,8 @@ export function DeletePageTabs() {
             className={[
               "px-4 py-2 text-sm font-medium rounded-t-md border border-b-0 transition-colors",
               activeTab === tab.id
-                ? "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100"
-                : "bg-gray-50 dark:bg-gray-900 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200",
+                ? "bg-gray-800 border-gray-700 text-gray-100"
+                : "bg-gray-900 border-transparent text-gray-400 hover:text-gray-200",
             ].join(" ")}
           >
             {tab.label}

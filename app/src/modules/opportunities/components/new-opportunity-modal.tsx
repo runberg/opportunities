@@ -73,16 +73,16 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
       />
 
       {/* Modal panel */}
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-y-auto max-h-[90vh]">
+      <div className="relative bg-gray-800 rounded-2xl shadow-2xl w-full max-w-3xl overflow-y-auto max-h-[90vh]">
           {/* Top bar */}
-          <div className="flex items-center justify-between px-6 py-3 border-b border-gray-100">
-            <span className="text-xs text-gray-400 font-medium tracking-wide uppercase">
+          <div className="flex items-center justify-between px-6 py-3 border-b border-gray-700">
+            <span className="text-xs text-gray-500 font-medium tracking-wide uppercase">
               New Opportunity
             </span>
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-1.5 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded-lg transition-colors"
             >
               <X size={17} />
             </button>
@@ -97,7 +97,7 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
                 onChange={(e) => setField("title", e.target.value)}
                 placeholder="Opportunity title"
                 autoFocus
-                className="w-full text-2xl font-semibold text-gray-900 bg-gray-50 border border-gray-200 rounded-md px-3 py-2 focus:outline-none focus:border-[#006fff] focus:bg-white leading-tight placeholder-gray-300 transition-colors"
+                className="w-full text-2xl font-semibold text-gray-100 bg-gray-700 border border-gray-600 rounded-md px-3 py-2 focus:outline-none focus:border-[#006fff] focus:bg-gray-600 leading-tight placeholder-gray-500 transition-colors"
               />
 
               {/* Status + Pending + ID + Ref inline */}
@@ -105,29 +105,29 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
                 <select
                   value={form.status}
                   onChange={(e) => setField("status", e.target.value)}
-                  className="px-3 py-1 border border-gray-300 rounded-full text-xs font-medium bg-white focus:outline-none focus:ring-1 focus:ring-gray-400"
+                  className="px-3 py-1 border border-gray-600 rounded-full text-xs font-medium bg-gray-700 text-gray-100 focus:outline-none focus:ring-1 focus:ring-gray-500"
                 >
                   {QUOTE_STATUSES.map((s) => (
                     <option key={s} value={s}>{STATUS_LABELS[s]}</option>
                   ))}
                 </select>
-                <label className="inline-flex items-center gap-1.5 px-3 py-1 border border-gray-300 rounded-full bg-white focus-within:ring-1 focus-within:ring-gray-400 cursor-text">
-                  <span className="text-xs text-gray-400 shrink-0">ID</span>
+                <label className="inline-flex items-center gap-1.5 px-3 py-1 border border-gray-600 rounded-full bg-gray-700 focus-within:ring-1 focus-within:ring-gray-500 cursor-text">
+                  <span className="text-xs text-gray-500 shrink-0">ID</span>
                   <input
                     value={form.internalId}
                     onChange={(e) => setField("internalId", e.target.value)}
                     maxLength={10}
                     placeholder="0000"
-                    className="text-xs font-medium text-gray-900 bg-transparent outline-none w-14"
+                    className="text-xs font-medium text-gray-100 bg-transparent outline-none w-14"
                   />
                 </label>
-                <label className="inline-flex items-center gap-1.5 px-3 py-1 border border-gray-300 rounded-full bg-white focus-within:ring-1 focus-within:ring-gray-400 cursor-text">
-                  <span className="text-xs text-gray-400 shrink-0">Ref.</span>
+                <label className="inline-flex items-center gap-1.5 px-3 py-1 border border-gray-600 rounded-full bg-gray-700 focus-within:ring-1 focus-within:ring-gray-500 cursor-text">
+                  <span className="text-xs text-gray-500 shrink-0">Ref.</span>
                   <input
                     value={form.reference}
                     onChange={(e) => setField("reference", e.target.value)}
                     placeholder="BTL-XXXXXXXX"
-                    className="text-xs font-medium text-gray-900 bg-transparent outline-none w-28"
+                    className="text-xs font-medium text-gray-100 bg-transparent outline-none w-28"
                   />
                 </label>
               </div>
@@ -201,7 +201,7 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const inputCls =
-  "w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-400 transition-colors"
+  "w-full rounded-md border border-gray-600 bg-gray-700 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500 transition-colors"
 
 const textareaCls =
-  "w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-400 resize-none transition-colors"
+  "w-full rounded-md border border-gray-600 bg-gray-700 px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500 resize-none transition-colors"

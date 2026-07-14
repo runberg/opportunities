@@ -55,7 +55,7 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+        <h3 className="text-sm font-medium text-gray-300">
           Work Packages ({agreement.deliverables.length})
         </h3>
         {canAdd && !adding && (
@@ -69,7 +69,7 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
         <div className="flex gap-2 mb-3">
           <input
             autoFocus
-            className="flex-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 rounded-md border border-gray-600 bg-gray-800 px-3 py-1.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Work package title"
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
@@ -93,31 +93,19 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
           {canAdd ? "No work packages yet. Add one above." : "No work packages."}
         </p>
       ) : (
-        <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+        <div className="border border-gray-700 rounded-lg overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-800/50">
+            <thead className="bg-gray-800/50">
               <tr>
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                  Title
-                </th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                  Status
-                </th>
-                <th className="px-4 py-2.5 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                  Approved
-                </th>
-                <th className="px-4 py-2.5 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                  Line Items
-                </th>
-                <th className="px-4 py-2.5 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                  Balance
-                </th>
-                <th className="px-4 py-2.5 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                  Docs
-                </th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-400 uppercase tracking-wide">Title</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-400 uppercase tracking-wide">Status</th>
+                <th className="px-4 py-2.5 text-right text-xs font-medium text-gray-400 uppercase tracking-wide">Approved</th>
+                <th className="px-4 py-2.5 text-right text-xs font-medium text-gray-400 uppercase tracking-wide">Line Items</th>
+                <th className="px-4 py-2.5 text-right text-xs font-medium text-gray-400 uppercase tracking-wide">Balance</th>
+                <th className="px-4 py-2.5 text-right text-xs font-medium text-gray-400 uppercase tracking-wide">Docs</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody className="divide-y divide-gray-700">
               {agreement.deliverables.map((d) => {
                 const lineTotal = d.lineItems.reduce((s, li) => s + Number(li.amount), 0)
                 const approved = Number(d.approvedAmount)
@@ -126,27 +114,25 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
                 return (
                   <tr
                     key={d.id}
-                    className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
+                    className="bg-gray-800 hover:bg-gray-700/50 transition-colors cursor-pointer"
                     onClick={() => setOpenDeliverableId(d.id)}
                   >
-                    <td className="px-4 py-3 text-gray-900 dark:text-gray-100 font-medium">
-                      {d.title}
-                    </td>
+                    <td className="px-4 py-3 text-gray-100 font-medium">{d.title}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex px-2 py-0.5 text-xs rounded-full font-medium ${STATUS_BADGE[d.status]}`}>
                         {STATUS_LABEL[d.status]}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right text-gray-700 dark:text-gray-300 tabular-nums">
+                    <td className="px-4 py-3 text-right text-gray-300 tabular-nums">
                       {approved > 0 ? formatAmount(approved) : "—"}
                     </td>
-                    <td className="px-4 py-3 text-right text-gray-700 dark:text-gray-300 tabular-nums">
+                    <td className="px-4 py-3 text-right text-gray-300 tabular-nums">
                       {lineTotal > 0 ? formatAmount(lineTotal) : "—"}
                     </td>
-                    <td className={`px-4 py-3 text-right tabular-nums font-medium ${over ? "text-red-600" : "text-gray-700 dark:text-gray-300"}`}>
+                    <td className={`px-4 py-3 text-right tabular-nums font-medium ${over ? "text-red-400" : "text-gray-300"}`}>
                       {approved > 0 ? formatAmount(balance) : "—"}
                     </td>
-                    <td className="px-4 py-3 text-right text-gray-500 dark:text-gray-400">
+                    <td className="px-4 py-3 text-right text-gray-400">
                       {d.documents.length}
                     </td>
                   </tr>

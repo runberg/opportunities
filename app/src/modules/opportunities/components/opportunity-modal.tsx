@@ -118,21 +118,21 @@ export function OpportunityModal({
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-full items-start justify-center p-4 pt-[4vh]">
         <button type="button" aria-label="Close" className="fixed inset-0 bg-black/40 cursor-default" onClick={onClose} />
-        <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-3xl mb-8">
-          <div className="flex items-center justify-between px-6 py-3 border-b border-gray-100 dark:border-gray-700">
-            <span className="text-xs text-gray-400 dark:text-gray-500 font-medium tracking-wide uppercase">
+        <div className="relative bg-gray-800 rounded-2xl shadow-2xl w-full max-w-3xl mb-8">
+          <div className="flex items-center justify-between px-6 py-3 border-b border-gray-700">
+            <span className="text-xs text-gray-500 font-medium tracking-wide uppercase">
               {sectionLabel}
             </span>
             <button type="button" onClick={onClose}
-              className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+              className="p-1.5 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded-lg transition-colors">
               <X size={17} />
             </button>
           </div>
           {justCreated && (
             <div className="px-6 pt-4">
-              <div className="flex items-center gap-2 px-3 py-2.5 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+              <div className="flex items-center gap-2 px-3 py-2.5 bg-green-900/20 border border-green-800 rounded-lg text-sm text-green-400">
                 <span className="font-medium">Opportunity created.</span>
-                <span className="text-green-600 text-xs">Add documents, details and comments below, or close to continue.</span>
+                <span className="text-green-500 text-xs">Add documents, details and comments below, or close to continue.</span>
               </div>
             </div>
           )}
@@ -158,9 +158,9 @@ export function OpportunityModal({
 
 // ─── Form helpers ─────────────────────────────────────────────────────────────
 
-const inputCls = "w-full rounded-md border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-400 transition-colors"
-const textareaCls = "w-full rounded-md border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-400 resize-none transition-colors"
-const dateInputCls = "w-full rounded-md border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-2 py-1.5 text-xs text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-gray-400 transition-colors"
+const inputCls = "w-full rounded-md border border-gray-600 bg-gray-700 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500 transition-colors"
+const textareaCls = "w-full rounded-md border border-gray-600 bg-gray-700 px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500 resize-none transition-colors"
+const dateInputCls = "w-full rounded-md border border-gray-600 bg-gray-700 px-2 py-1.5 text-xs text-gray-100 focus:outline-none focus:ring-1 focus:ring-gray-500 transition-colors"
 
 function makeForm(data: OpportunityFull) {
   return {
@@ -393,7 +393,7 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
           value={form.title}
           onChange={(e) => set("title", e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLTextAreaElement).blur() } }}
-          className="flex-1 min-w-0 text-2xl font-semibold text-gray-900 dark:text-gray-100 appearance-none bg-white dark:bg-gray-800 focus:bg-gray-50 dark:focus:bg-gray-700 border-b border-transparent hover:border-gray-200 dark:hover:border-gray-600 focus:outline-none focus:border-[#006fff] leading-tight transition-colors px-1 py-1.5 resize-none overflow-hidden"
+          className="flex-1 min-w-0 text-2xl font-semibold text-gray-100 appearance-none bg-gray-800 focus:bg-gray-700 border-b border-transparent hover:border-gray-600 focus:outline-none focus:border-[#006fff] leading-tight transition-colors px-1 py-1.5 resize-none overflow-hidden"
         />
         <div className="flex items-center gap-2 flex-shrink-0 mt-1">
           {canSkipToEL && !skippingToEL && (
@@ -421,34 +421,34 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
       <div className="flex flex-wrap items-center gap-2 mb-5">
         {isProduction ? (
           <select value={form.status} onChange={(e) => set("status", e.target.value)}
-            className="px-3 py-1 border border-gray-200 dark:border-gray-600 rounded-full text-xs font-medium bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-[#006fff] transition-colors">
+            className="px-3 py-1 border border-gray-600 rounded-full text-xs font-medium bg-gray-700 text-gray-100 focus:outline-none focus:border-[#006fff] transition-colors">
             {prodStatusOptions.map((s) => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
           </select>
         ) : (
           <StatusBadge status={data.status} />
         )}
-        <label className="inline-flex items-center gap-1.5 px-3 py-1 border border-gray-200 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus-within:border-[#006fff] transition-colors cursor-text">
-          <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">ID</span>
+        <label className="inline-flex items-center gap-1.5 px-3 py-1 border border-gray-600 rounded-full bg-gray-700 focus-within:border-[#006fff] transition-colors cursor-text">
+          <span className="text-xs text-gray-500 shrink-0">ID</span>
           <input value={form.internalId} onChange={(e) => set("internalId", e.target.value)}
-            maxLength={10} placeholder="0000" className="text-xs font-medium text-gray-900 dark:text-gray-100 bg-transparent outline-none w-14" />
+            maxLength={10} placeholder="0000" className="text-xs font-medium text-gray-100 bg-transparent outline-none w-14" />
         </label>
-        <label className="inline-flex items-center gap-1.5 px-3 py-1 border border-gray-200 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-700 focus-within:border-[#006fff] transition-colors cursor-text">
-          <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">Ref.</span>
+        <label className="inline-flex items-center gap-1.5 px-3 py-1 border border-gray-600 rounded-full bg-gray-700 focus-within:border-[#006fff] transition-colors cursor-text">
+          <span className="text-xs text-gray-500 shrink-0">Ref.</span>
           <input value={form.reference} onChange={(e) => set("reference", e.target.value)}
-            placeholder="BTL-XXXXXXXX" className="text-xs font-medium text-gray-900 dark:text-gray-100 bg-transparent outline-none w-28" />
+            placeholder="BTL-XXXXXXXX" className="text-xs font-medium text-gray-100 bg-transparent outline-none w-28" />
         </label>
       </div>
 
       {/* Skip to EL panel */}
       {skippingToEL && (
-        <div className="mb-5 flex flex-wrap items-end gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+        <div className="mb-5 flex flex-wrap items-end gap-3 p-4 bg-amber-900/20 border border-amber-700 rounded-xl">
           <div>
-            <p className="text-xs font-semibold text-amber-800 mb-1">Skip Quote — Move to EL Stage</p>
-            <p className="text-xs text-amber-700 mb-3">The quote will not be shared. This moves the opportunity directly to the EL stage.</p>
+            <p className="text-xs font-semibold text-amber-300 mb-1">Skip Quote — Move to EL Stage</p>
+            <p className="text-xs text-amber-400 mb-3">The quote will not be shared. This moves the opportunity directly to the EL stage.</p>
             <div className="flex items-center gap-1.5">
-              <span className="text-xs text-amber-700">EL Requested</span>
+              <span className="text-xs text-amber-400">EL Requested</span>
               <input type="date" value={skipElDate} onChange={(e) => setSkipElDate(e.target.value)}
-                className="text-xs border border-amber-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-amber-400 bg-white" />
+                className="text-xs border border-amber-700 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-amber-500 bg-gray-800 text-amber-300" />
             </div>
           </div>
           <div className="flex gap-2">
@@ -457,24 +457,24 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
               {skipSaving ? "Saving…" : "Confirm"}
             </button>
             <button type="button" onClick={() => { setSkippingToEL(false); setSkipError("") }}
-              className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-800">
+              className="px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-gray-300">
               Cancel
             </button>
           </div>
-          {skipError && <p className="w-full text-xs text-red-600">{skipError}</p>}
+          {skipError && <p className="w-full text-xs text-red-400">{skipError}</p>}
         </div>
       )}
 
       {/* Quote accepted panel */}
       {acceptingQuote && (
-        <div className="mb-5 flex flex-wrap items-end gap-3 p-4 bg-green-50 border border-green-200 rounded-xl">
+        <div className="mb-5 flex flex-wrap items-end gap-3 p-4 bg-green-900/20 border border-green-800 rounded-xl">
           <div>
-            <p className="text-xs font-semibold text-green-800 mb-1">Transition to Engagement Letter</p>
-            <p className="text-xs text-green-700 mb-3">This will move the opportunity to the EL stage.</p>
+            <p className="text-xs font-semibold text-green-300 mb-1">Transition to Engagement Letter</p>
+            <p className="text-xs text-green-400 mb-3">This will move the opportunity to the EL stage.</p>
             <div className="flex items-center gap-1.5">
-              <span className="text-xs text-green-700">EL Requested</span>
+              <span className="text-xs text-green-400">EL Requested</span>
               <input type="date" value={elDate} onChange={(e) => setElDate(e.target.value)}
-                className="text-xs border border-green-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-green-400 bg-white" />
+                className="text-xs border border-green-800 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-green-600 bg-gray-800 text-green-300" />
             </div>
           </div>
           <div className="flex gap-2">
@@ -483,24 +483,24 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
               {accepting ? "Saving…" : "Confirm"}
             </button>
             <button type="button" onClick={() => { setAcceptingQuote(false); setAcceptError("") }}
-              className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-800">
+              className="px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-gray-300">
               Cancel
             </button>
           </div>
-          {acceptError && <p className="w-full text-xs text-red-600">{acceptError}</p>}
+          {acceptError && <p className="w-full text-xs text-red-400">{acceptError}</p>}
         </div>
       )}
 
       {/* Counter-sign panel */}
       {counterSigning && (
-        <div className="mb-5 flex flex-wrap items-end gap-3 p-4 bg-green-50 border border-green-200 rounded-xl">
+        <div className="mb-5 flex flex-wrap items-end gap-3 p-4 bg-green-900/20 border border-green-800 rounded-xl">
           <div>
-            <p className="text-xs font-semibold text-green-800 mb-1">EL Countersigned — Transition to Production</p>
-            <p className="text-xs text-green-700 mb-3">Records the countersigned date and moves the opportunity to Production.</p>
+            <p className="text-xs font-semibold text-green-300 mb-1">EL Countersigned — Transition to Production</p>
+            <p className="text-xs text-green-400 mb-3">Records the countersigned date and moves the opportunity to Production.</p>
             <div className="flex items-center gap-1.5">
-              <span className="text-xs text-green-700">Countersigned date</span>
+              <span className="text-xs text-green-400">Countersigned date</span>
               <input type="date" value={counterSignDate} onChange={(e) => setCounterSignDate(e.target.value)}
-                className="text-xs border border-green-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-green-400 bg-white" />
+                className="text-xs border border-green-800 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-green-600 bg-gray-800 text-green-300" />
             </div>
           </div>
           <div className="flex gap-2">
@@ -509,11 +509,11 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
               {counterSignSaving ? "Saving…" : "Confirm"}
             </button>
             <button type="button" onClick={() => { setCounterSigning(false); setCounterSignError("") }}
-              className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-800">
+              className="px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-gray-300">
               Cancel
             </button>
           </div>
-          {counterSignError && <p className="w-full text-xs text-red-600">{counterSignError}</p>}
+          {counterSignError && <p className="w-full text-xs text-red-400">{counterSignError}</p>}
         </div>
       )}
 
@@ -586,7 +586,7 @@ function ShareActionCard({ label, date, onDateChange, docCount, docLabel, saving
   readonly error: string; readonly buttonLabel: string
 }) {
   return (
-    <div className="border border-gray-200 bg-white rounded-xl p-4 flex flex-col gap-2">
+    <div className="border border-gray-600 bg-gray-700 rounded-xl p-4 flex flex-col gap-2">
       <p className="text-xs font-medium text-gray-400">{label}</p>
       <input type="date" value={date} onChange={(e) => onDateChange(e.target.value)} className={dateInputCls} />
       {docCount === 0 && <p className="text-xs text-red-500">No {docLabel} attached</p>}
@@ -753,8 +753,8 @@ function DateSection({ data, form, onSetDate, onRefresh, onDirectPatch }: {
           onDirectPatch={onDirectPatch} onRefresh={onRefresh} />
       )}
       {revertTarget && (
-        <div className="mt-3 p-4 bg-red-50 border border-red-200 rounded-xl">
-          <p className="text-xs font-medium text-red-800 mb-3">
+        <div className="mt-3 p-4 bg-red-900/20 border border-red-800 rounded-xl">
+          <p className="text-xs font-medium text-red-400 mb-3">
             Revert status to <span className="font-semibold">"{revertTarget.label}"</span>? The milestone date will be cleared.
           </p>
           <div className="flex items-center gap-2">
@@ -763,7 +763,7 @@ function DateSection({ data, form, onSetDate, onRefresh, onDirectPatch }: {
               {reverting ? "Reverting…" : "Confirm Revert"}
             </button>
             <button type="button" onClick={() => { setRevertTarget(null); setRevertError("") }}
-              className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 transition-colors">
+              className="px-3 py-1.5 text-xs text-gray-400 hover:text-gray-300 transition-colors">
               Cancel
             </button>
           </div>
@@ -783,13 +783,13 @@ function DateCard({ label, formValue, onChange, onRevert }: {
   readonly onRevert?: () => void
 }) {
   return (
-    <div className={cn("border border-green-200 bg-green-50 rounded-xl p-4 flex flex-col gap-2", onRevert && "group/card")}>
-      <p className="text-xs font-medium text-green-700">{label}</p>
+    <div className={cn("border border-green-800 bg-green-900/20 rounded-xl p-4 flex flex-col gap-2", onRevert && "group/card")}>
+      <p className="text-xs font-medium text-green-400">{label}</p>
       <input type="date" value={formValue} onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-md border border-green-200 bg-white px-2 py-1.5 text-xs text-green-900 focus:outline-none focus:border-[#006fff] focus:bg-white transition-colors" />
+        className="w-full rounded-md border border-green-800 bg-gray-800 px-2 py-1.5 text-xs text-green-300 focus:outline-none focus:border-[#006fff] transition-colors" />
       {onRevert && (
         <button type="button" onClick={onRevert}
-          className="opacity-0 group-hover/card:opacity-100 w-full px-2 py-1 bg-white hover:bg-red-50 text-red-500 border border-red-200 text-xs font-medium rounded-lg transition-all">
+          className="opacity-0 group-hover/card:opacity-100 w-full px-2 py-1 bg-gray-800 hover:bg-red-900/20 text-red-400 border border-red-800 text-xs font-medium rounded-lg transition-all">
           Revert
         </button>
       )}
@@ -799,18 +799,18 @@ function DateCard({ label, formValue, onChange, onRevert }: {
 
 function LockedDateCard({ label }: { readonly label: string }) {
   return (
-    <div className="border border-gray-100 bg-gray-50 rounded-xl p-4">
-      <p className="text-xs font-medium text-gray-300">{label}</p>
-      <p className="text-sm font-medium text-gray-300 mt-1">—</p>
+    <div className="border border-gray-700 bg-gray-800/50 rounded-xl p-4">
+      <p className="text-xs font-medium text-gray-500">{label}</p>
+      <p className="text-sm font-medium text-gray-500 mt-1">—</p>
     </div>
   )
 }
 
 function NADateCard({ label }: { readonly label: string }) {
   return (
-    <div className="border border-gray-100 bg-gray-50 rounded-xl p-4">
-      <p className="text-xs font-medium text-gray-400">{label}</p>
-      <p className="text-sm font-medium text-gray-400 mt-1">N/A</p>
+    <div className="border border-gray-700 bg-gray-800/50 rounded-xl p-4">
+      <p className="text-xs font-medium text-gray-500">{label}</p>
+      <p className="text-sm font-medium text-gray-500 mt-1">N/A</p>
     </div>
   )
 }
