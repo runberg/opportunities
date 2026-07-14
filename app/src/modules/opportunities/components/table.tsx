@@ -4,7 +4,7 @@ import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { MessageSquarePlus } from "lucide-react"
 import { sortRows, type SortDir } from "@/shared/components/ui/sortable-header"
-import { OpportunityDataTable, type OppTableRow } from "@/modules/opportunities/components/opportunity-data-table"
+import { OpportunityDataTable, type OppTableRow, type DateColumn } from "@/modules/opportunities/components/opportunity-data-table"
 import { OpportunityModal } from "@/modules/opportunities/components/opportunity-modal"
 import { CommentDialog } from "@/modules/opportunities/components/comment-dialog"
 
@@ -13,17 +13,20 @@ export interface OpportunityRow extends OppTableRow {
   _count: { comments: number; documents: number }
 }
 
-export function OpportunitiesTable({
-  opportunities, currentUserId, isAdmin,
+export function OppTableView({
+  opportunities, currentUserId, isAdmin, initialSortKey, dateColumn, emptyMessage,
 }: {
-  readonly opportunities: OpportunityRow[]
+  readonly opportunities: OppTableRow[]
   readonly currentUserId: string
   readonly isAdmin: boolean
+  readonly initialSortKey: string
+  readonly dateColumn: DateColumn
+  readonly emptyMessage: string
 }) {
   const router = useRouter()
   const [openModalId, setOpenModalId] = useState<string | null>(null)
-  const [commentTarget, setCommentTarget] = useState<OpportunityRow | null>(null)
-  const [sortKey, setSortKey] = useState("rfqDate")
+  const [commentTarget, setCommentTarget] = useState<OppTableRow | null>(null)
+  const [sortKey, setSortKey] = useState(initialSortKey)
   const [sortDir, setSortDir] = useState<SortDir>("desc")
 
   const sorted = useMemo(() => sortRows(opportunities, sortKey, sortDir), [opportunities, sortKey, sortDir])
@@ -32,16 +35,16 @@ export function OpportunitiesTable({
     <>
       <OpportunityDataTable
         rows={sorted}
-        emptyMessage="No opportunities found."
+        emptyMessage={emptyMessage}
         sortKey={sortKey}
         sortDir={sortDir}
         onSort={(k, d) => { setSortKey(k); setSortDir(d) }}
-        dateColumn={{ label: "RFQ Date", sortKey: "rfqDate", getValue: (r) => r.rfqDate }}
+        dateColumn={dateColumn}
         onRowClick={setOpenModalId}
         renderAction={(row) => (
           <button
             type="button"
-            onClick={() => setCommentTarget(row as OpportunityRow)}
+            onClick={() => setCommentTarget(row)}
             className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
             title="Add comment"
           >
@@ -59,5 +62,24 @@ export function OpportunitiesTable({
 
       <CommentDialog target={commentTarget} onClose={() => setCommentTarget(null)} />
     </>
+  )
+}
+
+export function OpportunitiesTable({
+  opportunities, currentUserId, isAdmin,
+}: {
+  readonly opportunities: OpportunityRow[]
+  readonly currentUserId: string
+  readonly isAdmin: boolean
+}) {
+  return (
+    <OppTableView
+      opportunities={opportunities}
+      currentUserId={currentUserId}
+      isAdmin={isAdmin}
+      initialSortKey="rfqDate"
+      dateColumn={{ label: "RFQ Date", sortKey: "rfqDate", getValue: (r) => r.rfqDate }}
+      emptyMessage="No opportunities found."
+    />
   )
 }

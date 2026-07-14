@@ -184,25 +184,39 @@ function DeleteConfirmDialog({
   )
 }
 
-// ─── Agreements section ────────────────────────────────────────────────────────
+// ─── Generic delete section ────────────────────────────────────────────────────
 
-function DeleteAgreements() {
+interface DeleteCol<T> {
+  label: string
+  align?: "right"
+  render: (row: T) => ReactNode
+}
+
+function DeleteSection<T extends { id: string; title: string }>({
+  heading, fetchUrl, deleteUrlFor, singularNoun, pluralNoun, columns, renderDialogWarning,
+}: {
+  readonly heading: string
+  readonly fetchUrl: string
+  readonly deleteUrlFor: (id: string) => string
+  readonly singularNoun: string
+  readonly pluralNoun: string
+  readonly columns: DeleteCol<T>[]
+  readonly renderDialogWarning: (selectedRows: T[], selectedCount: number) => ReactNode
+}) {
   const {
     rows, loading, selected, confirmOpen, deleting, deleteError, deleteSuccess,
     allSelected, someSelected, toggleRow, selectAll, deselectAll, handleDelete, openConfirm, closeConfirm,
-  } = useDeleteSection<AgreementRow>("/api/adhoc/agreements", (id) => `/api/adhoc/agreements/${id}`)
+  } = useDeleteSection<T>(fetchUrl, deleteUrlFor)
 
   const selectedCount = selected.size
-  const noun = selectedCount === 1 ? "agreement" : "agreements"
+  const noun = selectedCount === 1 ? singularNoun : pluralNoun
   const selectedRows = rows.filter((r) => selected.has(r.id))
-  const totalWorkPackages = selectedRows.reduce((sum, r) => sum + r.deliverables.length, 0)
+  const colSpan = columns.length + 1
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">
-          Ad Hoc Agreements
-        </h3>
+        <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">{heading}</h3>
         {selectedCount > 0 && (
           <button
             type="button"
@@ -232,19 +246,22 @@ function DeleteAgreements() {
                   ref={(el) => { if (el) el.indeterminate = someSelected && !allSelected }}
                   onChange={allSelected ? deselectAll : selectAll}
                   className="rounded border-gray-600"
-                  aria-label="Select all agreements"
+                  aria-label={`Select all ${pluralNoun}`}
                 />
               </th>
-              <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-400 uppercase tracking-wide">Title</th>
-              <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-400 uppercase tracking-wide">Status</th>
-              <th className="px-4 py-2.5 text-right text-xs font-medium text-gray-400 uppercase tracking-wide">Work Pkgs</th>
-              <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-400 uppercase tracking-wide">Created By</th>
-              <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-400 uppercase tracking-wide">Date</th>
+              {columns.map((col) => (
+                <th
+                  key={col.label}
+                  className={`px-4 py-2.5 text-xs font-medium text-gray-400 uppercase tracking-wide ${col.align === "right" ? "text-right" : "text-left"}`}
+                >
+                  {col.label}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-700">
-            {loading && <TablePlaceholder colSpan={6} message="Loading…" />}
-            {!loading && rows.length === 0 && <TablePlaceholder colSpan={6} message="No agreements found." />}
+            {loading && <TablePlaceholder colSpan={colSpan} message="Loading…" />}
+            {!loading && rows.length === 0 && <TablePlaceholder colSpan={colSpan} message={`No ${pluralNoun} found.`} />}
             {!loading && rows.map((r) => (
               <tr key={r.id} className="bg-gray-800 hover:bg-gray-700/50 transition-colors">
                 <td className="px-4 py-3">
@@ -256,15 +273,11 @@ function DeleteAgreements() {
                     aria-label={`Select ${r.title}`}
                   />
                 </td>
-                <td className="px-4 py-3 text-gray-100 font-medium">{r.title}</td>
-                <td className="px-4 py-3 text-gray-400">{AGREEMENT_STATUS_LABEL[r.status] ?? r.status}</td>
-                <td className="px-4 py-3 text-right text-gray-400">
-                  {r.deliverables.length > 0
-                    ? <span className="text-amber-400 font-medium">{r.deliverables.length}</span>
-                    : <span className="text-gray-500">0</span>}
-                </td>
-                <td className="px-4 py-3 text-gray-400">{r.createdBy.name}</td>
-                <td className="px-4 py-3 text-gray-400">{formatDate(r.createdAt)}</td>
+                {columns.map((col) => (
+                  <td key={col.label} className={`px-4 py-3${col.align === "right" ? " text-right" : ""}`}>
+                    {col.render(r)}
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>
@@ -280,7 +293,39 @@ function DeleteAgreements() {
         noun={noun}
         error={deleteError}
       >
-        {totalWorkPackages > 0 && (
+        {renderDialogWarning(selectedRows, selectedCount)}
+      </DeleteConfirmDialog>
+    </div>
+  )
+}
+
+// ─── Agreements section ────────────────────────────────────────────────────────
+
+function DeleteAgreements() {
+  return (
+    <DeleteSection<AgreementRow>
+      heading="Ad Hoc Agreements"
+      fetchUrl="/api/adhoc/agreements"
+      deleteUrlFor={(id) => `/api/adhoc/agreements/${id}`}
+      singularNoun="agreement"
+      pluralNoun="agreements"
+      columns={[
+        { label: "Title", render: (r) => <span className="text-gray-100 font-medium">{r.title}</span> },
+        { label: "Status", render: (r) => <span className="text-gray-400">{AGREEMENT_STATUS_LABEL[r.status] ?? r.status}</span> },
+        {
+          label: "Work Pkgs", align: "right",
+          render: (r) => r.deliverables.length > 0
+            ? <span className="text-amber-400 font-medium">{r.deliverables.length}</span>
+            : <span className="text-gray-500">0</span>,
+        },
+        { label: "Created By", render: (r) => <span className="text-gray-400">{r.createdBy.name}</span> },
+        { label: "Date", render: (r) => <span className="text-gray-400">{formatDate(r.createdAt)}</span> },
+      ]}
+      renderDialogWarning={(selectedRows, selectedCount) => {
+        const totalWorkPackages = selectedRows.reduce((sum, r) => sum + r.deliverables.length, 0)
+        const noun = selectedCount === 1 ? "agreement" : "agreements"
+        if (totalWorkPackages === 0) return null
+        return (
           <div className="flex gap-3 px-4 py-3 bg-amber-900/20 border border-amber-700 rounded-lg">
             <span className="text-amber-500 mt-0.5 shrink-0">⚠</span>
             <p className="text-sm text-amber-300">
@@ -289,105 +334,34 @@ function DeleteAgreements() {
               that will also be permanently deleted along with all their line items and documents.
             </p>
           </div>
-        )}
-      </DeleteConfirmDialog>
-    </div>
+        )
+      }}
+    />
   )
 }
 
 // ─── Work packages section ─────────────────────────────────────────────────────
 
 function DeleteWorkPackages() {
-  const {
-    rows, loading, selected, confirmOpen, deleting, deleteError, deleteSuccess,
-    allSelected, someSelected, toggleRow, selectAll, deselectAll, handleDelete, openConfirm, closeConfirm,
-  } = useDeleteSection<DeliverableRow>("/api/adhoc/deliverables", (id) => `/api/adhoc/deliverables/${id}`)
-
-  const selectedCount = selected.size
-  const noun = selectedCount === 1 ? "work package" : "work packages"
-
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">
-          Ad Hoc Work Packages
-        </h3>
-        {selectedCount > 0 && (
-          <button
-            type="button"
-            onClick={openConfirm}
-            className="flex items-center gap-2 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors"
-          >
-            <Trash2 size={13} />
-            Delete {selectedCount} selected
-          </button>
-        )}
-      </div>
-
-      {deleteSuccess && (
-        <div className="px-4 py-3 bg-green-900/20 border border-green-800 rounded-lg text-sm text-green-300">
-          {deleteSuccess}
-        </div>
-      )}
-
-      <div className="border border-gray-700 rounded-lg overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-800/50">
-            <tr>
-              <th className="px-4 py-2.5 w-10">
-                <input
-                  type="checkbox"
-                  checked={allSelected}
-                  ref={(el) => { if (el) el.indeterminate = someSelected && !allSelected }}
-                  onChange={allSelected ? deselectAll : selectAll}
-                  className="rounded border-gray-600"
-                  aria-label="Select all work packages"
-                />
-              </th>
-              <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-400 uppercase tracking-wide">Title</th>
-              <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-400 uppercase tracking-wide">Agreement</th>
-              <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-400 uppercase tracking-wide">Status</th>
-              <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-400 uppercase tracking-wide">Date</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-700">
-            {loading && <TablePlaceholder colSpan={5} message="Loading…" />}
-            {!loading && rows.length === 0 && <TablePlaceholder colSpan={5} message="No work packages found." />}
-            {!loading && rows.map((r) => (
-              <tr key={r.id} className="bg-gray-800 hover:bg-gray-700/50 transition-colors">
-                <td className="px-4 py-3">
-                  <input
-                    type="checkbox"
-                    checked={selected.has(r.id)}
-                    onChange={() => toggleRow(r.id)}
-                    className="rounded border-gray-600"
-                    aria-label={`Select ${r.title}`}
-                  />
-                </td>
-                <td className="px-4 py-3 text-gray-100 font-medium">{r.title}</td>
-                <td className="px-4 py-3 text-gray-400">{r.agreement.title}</td>
-                <td className="px-4 py-3 text-gray-400">{DELIVERABLE_STATUS_LABEL[r.status] ?? r.status}</td>
-                <td className="px-4 py-3 text-gray-400">{formatDate(r.createdAt)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <DeleteConfirmDialog
-        open={confirmOpen}
-        onClose={closeConfirm}
-        onConfirm={() => handleDelete(`${selectedCount} ${noun} deleted.`)}
-        deleting={deleting}
-        selectedCount={selectedCount}
-        noun={noun}
-        error={deleteError}
-      >
+    <DeleteSection<DeliverableRow>
+      heading="Ad Hoc Work Packages"
+      fetchUrl="/api/adhoc/deliverables"
+      deleteUrlFor={(id) => `/api/adhoc/deliverables/${id}`}
+      singularNoun="work package"
+      pluralNoun="work packages"
+      columns={[
+        { label: "Title", render: (r) => <span className="text-gray-100 font-medium">{r.title}</span> },
+        { label: "Agreement", render: (r) => <span className="text-gray-400">{r.agreement.title}</span> },
+        { label: "Status", render: (r) => <span className="text-gray-400">{DELIVERABLE_STATUS_LABEL[r.status] ?? r.status}</span> },
+        { label: "Date", render: (r) => <span className="text-gray-400">{formatDate(r.createdAt)}</span> },
+      ]}
+      renderDialogWarning={() => (
         <p className="text-sm text-gray-400">
           All associated line items and documents will also be permanently deleted.
         </p>
-      </DeleteConfirmDialog>
-    </div>
+      )}
+    />
   )
 }
 

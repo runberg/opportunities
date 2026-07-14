@@ -312,73 +312,53 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
   const [counterSignSaving, setCounterSignSaving] = useState(false)
   const [counterSignError, setCounterSignError] = useState("")
 
-  async function handleSkipToEL() {
-    setSkipSaving(true)
-    setSkipError("")
+  async function patchTransition(
+    payload: Record<string, unknown>,
+    setSaving: (v: boolean) => void,
+    setError: (v: string) => void,
+    onSuccess: () => void,
+  ) {
+    setSaving(true)
+    setError("")
     try {
       const res = await fetch(`/api/opportunities/${data.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "EL_REQUEST_RECEIVED", elRequestedDate: skipElDate }),
+        body: JSON.stringify(payload),
       })
       if (res.ok) {
-        setSkippingToEL(false)
+        onSuccess()
         onRefresh()
       } else {
         const d = await res.json().catch(() => ({}))
-        setSkipError(d.error ?? "Failed to save. Please try again.")
+        setError(d.error ?? "Failed to save. Please try again.")
       }
     } catch {
-      setSkipError("Network error. Please try again.")
+      setError("Network error. Please try again.")
     } finally {
-      setSkipSaving(false)
+      setSaving(false)
     }
   }
 
-  async function handleAcceptQuote() {
-    setAccepting(true)
-    setAcceptError("")
-    try {
-      const res = await fetch(`/api/opportunities/${data.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "EL_REQUEST_RECEIVED", elRequestedDate: elDate }),
-      })
-      if (res.ok) {
-        setAcceptingQuote(false)
-        onRefresh()
-      } else {
-        const d = await res.json().catch(() => ({}))
-        setAcceptError(d.error ?? "Failed to save. Please try again.")
-      }
-    } catch {
-      setAcceptError("Network error. Please try again.")
-    } finally {
-      setAccepting(false)
-    }
+  function handleSkipToEL() {
+    return patchTransition(
+      { status: "EL_REQUEST_RECEIVED", elRequestedDate: skipElDate },
+      setSkipSaving, setSkipError, () => setSkippingToEL(false),
+    )
   }
 
-  async function handleCounterSigned() {
-    setCounterSignSaving(true)
-    setCounterSignError("")
-    try {
-      const res = await fetch(`/api/opportunities/${data.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "PENDING_ADVANCE_PAYMENT", elCountersignedDate: counterSignDate }),
-      })
-      if (res.ok) {
-        setCounterSigning(false)
-        onRefresh()
-      } else {
-        const d = await res.json().catch(() => ({}))
-        setCounterSignError(d.error ?? "Failed to save. Please try again.")
-      }
-    } catch {
-      setCounterSignError("Network error. Please try again.")
-    } finally {
-      setCounterSignSaving(false)
-    }
+  function handleAcceptQuote() {
+    return patchTransition(
+      { status: "EL_REQUEST_RECEIVED", elRequestedDate: elDate },
+      setAccepting, setAcceptError, () => setAcceptingQuote(false),
+    )
+  }
+
+  function handleCounterSigned() {
+    return patchTransition(
+      { status: "PENDING_ADVANCE_PAYMENT", elCountersignedDate: counterSignDate },
+      setCounterSignSaving, setCounterSignError, () => setCounterSigning(false),
+    )
   }
 
   // Status options for production (only stage where status is a free dropdown)
@@ -439,82 +419,47 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
         </label>
       </div>
 
-      {/* Skip to EL panel */}
       {skippingToEL && (
-        <div className="mb-5 flex flex-wrap items-end gap-3 p-4 bg-amber-900/20 border border-amber-700 rounded-xl">
-          <div>
-            <p className="text-xs font-semibold text-amber-300 mb-1">Skip Quote — Move to EL Stage</p>
-            <p className="text-xs text-amber-400 mb-3">The quote will not be shared. This moves the opportunity directly to the EL stage.</p>
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-amber-400">EL Requested</span>
-              <input type="date" value={skipElDate} onChange={(e) => setSkipElDate(e.target.value)}
-                className="text-xs border border-amber-700 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-amber-500 bg-gray-800 text-amber-300" />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button type="button" onClick={handleSkipToEL} disabled={skipSaving || !skipElDate}
-              className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-medium rounded-lg disabled:opacity-50 transition-colors">
-              {skipSaving ? "Saving…" : "Confirm"}
-            </button>
-            <button type="button" onClick={() => { setSkippingToEL(false); setSkipError("") }}
-              className="px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-gray-300">
-              Cancel
-            </button>
-          </div>
-          {skipError && <p className="w-full text-xs text-red-400">{skipError}</p>}
-        </div>
+        <TransitionPanel
+          colorScheme="amber"
+          title="Skip Quote — Move to EL Stage"
+          description="The quote will not be shared. This moves the opportunity directly to the EL stage."
+          dateLabel="EL Requested"
+          date={skipElDate}
+          onDateChange={setSkipElDate}
+          onConfirm={handleSkipToEL}
+          saving={skipSaving}
+          onCancel={() => { setSkippingToEL(false); setSkipError("") }}
+          error={skipError}
+        />
       )}
 
-      {/* Quote accepted panel */}
       {acceptingQuote && (
-        <div className="mb-5 flex flex-wrap items-end gap-3 p-4 bg-green-900/20 border border-green-800 rounded-xl">
-          <div>
-            <p className="text-xs font-semibold text-green-300 mb-1">Transition to Engagement Letter</p>
-            <p className="text-xs text-green-400 mb-3">This will move the opportunity to the EL stage.</p>
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-green-400">EL Requested</span>
-              <input type="date" value={elDate} onChange={(e) => setElDate(e.target.value)}
-                className="text-xs border border-green-800 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-green-600 bg-gray-800 text-green-300" />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button type="button" onClick={handleAcceptQuote} disabled={accepting || !elDate}
-              className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg disabled:opacity-50 transition-colors">
-              {accepting ? "Saving…" : "Confirm"}
-            </button>
-            <button type="button" onClick={() => { setAcceptingQuote(false); setAcceptError("") }}
-              className="px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-gray-300">
-              Cancel
-            </button>
-          </div>
-          {acceptError && <p className="w-full text-xs text-red-400">{acceptError}</p>}
-        </div>
+        <TransitionPanel
+          title="Transition to Engagement Letter"
+          description="This will move the opportunity to the EL stage."
+          dateLabel="EL Requested"
+          date={elDate}
+          onDateChange={setElDate}
+          onConfirm={handleAcceptQuote}
+          saving={accepting}
+          onCancel={() => { setAcceptingQuote(false); setAcceptError("") }}
+          error={acceptError}
+        />
       )}
 
-      {/* Counter-sign panel */}
       {counterSigning && (
-        <div className="mb-5 flex flex-wrap items-end gap-3 p-4 bg-green-900/20 border border-green-800 rounded-xl">
-          <div>
-            <p className="text-xs font-semibold text-green-300 mb-1">EL Countersigned — Transition to Production</p>
-            <p className="text-xs text-green-400 mb-3">Records the countersigned date and moves the opportunity to Production.</p>
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-green-400">Countersigned date</span>
-              <input type="date" value={counterSignDate} onChange={(e) => setCounterSignDate(e.target.value)}
-                className="text-xs border border-green-800 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-green-600 bg-gray-800 text-green-300" />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button type="button" onClick={handleCounterSigned} disabled={counterSignSaving || !counterSignDate}
-              className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg disabled:opacity-50 transition-colors">
-              {counterSignSaving ? "Saving…" : "Confirm"}
-            </button>
-            <button type="button" onClick={() => { setCounterSigning(false); setCounterSignError("") }}
-              className="px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-gray-300">
-              Cancel
-            </button>
-          </div>
-          {counterSignError && <p className="w-full text-xs text-red-400">{counterSignError}</p>}
-        </div>
+        <TransitionPanel
+          title="EL Countersigned — Transition to Production"
+          description="Records the countersigned date and moves the opportunity to Production."
+          dateLabel="Countersigned date"
+          date={counterSignDate}
+          onDateChange={setCounterSignDate}
+          onConfirm={handleCounterSigned}
+          saving={counterSignSaving}
+          onCancel={() => { setCounterSigning(false); setCounterSignError("") }}
+          error={counterSignError}
+        />
       )}
 
       {/* Info section */}
@@ -569,6 +514,52 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
 
       <LogSection opportunityId={data.id} entries={data.comments}
         currentUser={{ id: currentUserId, name: "" }} onRefresh={onRefresh} />
+    </div>
+  )
+}
+
+// ─── Transition panel ────────────────────────────────────────────────────────
+
+function TransitionPanel({
+  title, description, dateLabel, date, onDateChange,
+  onConfirm, saving, onCancel, error, colorScheme = "green",
+}: {
+  readonly title: string
+  readonly description: string
+  readonly dateLabel: string
+  readonly date: string
+  readonly onDateChange: (v: string) => void
+  readonly onConfirm: () => void
+  readonly saving: boolean
+  readonly onCancel: () => void
+  readonly error: string
+  readonly colorScheme?: "green" | "amber"
+}) {
+  const c = colorScheme === "amber"
+    ? { bg: "bg-amber-900/20", border: "border-amber-700", heading: "text-amber-300", body: "text-amber-400", input: "border-amber-700 focus:ring-amber-500 text-amber-300", btn: "bg-amber-500 hover:bg-amber-600" }
+    : { bg: "bg-green-900/20", border: "border-green-800", heading: "text-green-300", body: "text-green-400", input: "border-green-800 focus:ring-green-600 text-green-300", btn: "bg-green-600 hover:bg-green-700" }
+  return (
+    <div className={`mb-5 flex flex-wrap items-end gap-3 p-4 ${c.bg} border ${c.border} rounded-xl`}>
+      <div>
+        <p className={`text-xs font-semibold ${c.heading} mb-1`}>{title}</p>
+        <p className={`text-xs ${c.body} mb-3`}>{description}</p>
+        <div className="flex items-center gap-1.5">
+          <span className={`text-xs ${c.body}`}>{dateLabel}</span>
+          <input type="date" value={date} onChange={(e) => onDateChange(e.target.value)}
+            className={`text-xs border ${c.input} rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 bg-gray-800`} />
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <button type="button" onClick={onConfirm} disabled={saving || !date}
+          className={`px-3 py-1.5 ${c.btn} text-white text-xs font-medium rounded-lg disabled:opacity-50 transition-colors`}>
+          {saving ? "Saving…" : "Confirm"}
+        </button>
+        <button type="button" onClick={onCancel}
+          className="px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-gray-300">
+          Cancel
+        </button>
+      </div>
+      {error && <p className="w-full text-xs text-red-400">{error}</p>}
     </div>
   )
 }
