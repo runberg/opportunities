@@ -4,6 +4,7 @@ import { useState } from "react"
 import { X } from "lucide-react"
 import { QUOTE_STATUSES, STATUS_LABELS, todayISO } from "@/shared/lib/utils"
 import { Button } from "@/shared/components/ui/button"
+import { FormField } from "@/shared/components/ui/form-field"
 
 interface NewOpportunityModalProps {
   readonly onClose: () => void
@@ -204,23 +205,3 @@ const inputCls =
 
 const textareaCls =
   "w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-400 resize-none transition-colors"
-
-function FormField({
-  label,
-  children,
-  required = false,
-}: {
-  readonly label: string
-  readonly children: React.ReactNode
-  readonly required?: boolean
-}) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <p className="text-xs font-medium text-gray-500">
-        {label}
-        {required && <span className="text-red-400 ml-0.5">*</span>}
-      </p>
-      {children}
-    </div>
-  )
-}

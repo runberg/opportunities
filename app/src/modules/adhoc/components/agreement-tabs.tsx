@@ -1,14 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Download, Trash2, Upload } from "lucide-react"
+import { Upload } from "lucide-react"
 import type { AgreementRow, AgreementDocument } from "./adhoc-client"
 import { DeliverablesTable } from "./deliverables-table"
 import { AgreementForm } from "./agreement-form"
+import { AdhocDocList } from "./adhoc-doc-list"
 import { Button } from "@/shared/components/ui/button"
-import { FileTypeIcon } from "@/shared/components/ui/file-type-icon"
 import { PdfViewerModal } from "@/shared/components/ui/pdf-viewer-modal"
-import { formatDate, formatBytes, truncateFilename, todayISO, formatAmount, nameFromFile } from "@/shared/lib/utils"
+import { todayISO, formatAmount, formatDate, nameFromFile } from "@/shared/lib/utils"
 import { useDropZone, useWindowDragExpand } from "@/shared/lib/use-drop-zone"
 import { FileDropZone } from "@/shared/components/ui/file-drop-zone"
 
@@ -29,81 +29,6 @@ const STATUS_LABEL: Record<string, string> = {
 function defaultTabIndex(agreements: AgreementRow[]) {
   const idx = agreements.findIndex((a) => a.status === "SIGNED" || a.status === "ACTIVE")
   return Math.max(0, idx)
-}
-
-// ─── Document list ────────────────────────────────────────────────────────────
-
-type DocListProps = {
-  readonly docs: AgreementDocument[]
-  readonly label: string
-  readonly currentUserId: string
-  readonly isAdmin: boolean
-  readonly onDelete: (docId: string) => void
-  readonly onView: (doc: AgreementDocument) => void
-}
-
-function DocList({ docs, label, currentUserId, isAdmin, onDelete, onView }: DocListProps) {
-  if (docs.length === 0) return null
-  return (
-    <div className="mb-3">
-      <p className="text-xs font-medium text-gray-500 uppercase mb-1.5">{label}</p>
-      <div className="border border-gray-200 rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
-          <tbody className="divide-y divide-gray-100">
-            {docs.map((doc) => (
-              <tr key={doc.id} className="hover:bg-gray-50">
-                <td className="px-3 py-2.5 max-w-xs">
-                  <div className="flex items-start gap-2 min-w-0">
-                    <FileTypeIcon mimeType={doc.mimeType} />
-                    <div className="min-w-0">
-                      {doc.mimeType === "application/pdf" ? (
-                        <button
-                          type="button"
-                          onClick={() => onView(doc)}
-                          title="Click to view PDF"
-                          className="font-medium text-gray-900 truncate block text-left w-full cursor-pointer hover:underline"
-                        >
-                          {doc.displayName}
-                        </button>
-                      ) : (
-                        <div className="font-medium text-gray-900 truncate">{doc.displayName}</div>
-                      )}
-                      <div className="text-xs text-gray-400">{truncateFilename(doc.originalName)}</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-3 py-2.5 text-xs text-gray-400 whitespace-nowrap hidden md:table-cell">
-                  {formatBytes(doc.size)} · {doc.uploadedBy.name} · {formatDate(doc.uploadedAt)}
-                </td>
-                <td className="px-3 py-2.5">
-                  <div className="flex items-center gap-1 justify-end">
-                    <a
-                      href={`/api/adhoc/agreement-documents/${doc.id}`}
-                      download={doc.originalName}
-                      className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
-                      title="Download"
-                    >
-                      <Download size={15} />
-                    </a>
-                    {(isAdmin || doc.uploadedBy.id === currentUserId) && (
-                      <button
-                        type="button"
-                        onClick={() => onDelete(doc.id)}
-                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                        title="Delete"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  )
 }
 
 // ─── Agreement documents panel ────────────────────────────────────────────────
@@ -180,19 +105,19 @@ function AgreementDocs({ agreement, currentUserId, isAdmin, onRefresh }: Agreeme
         )}
       </div>
 
-      <DocList
+      <AdhocDocList
         docs={drafts}
         label="Draft Agreement"
-        currentUserId={currentUserId}
-        isAdmin={isAdmin}
+        downloadUrl={(id) => `/api/adhoc/agreement-documents/${id}`}
+        canDelete={(doc) => isAdmin || doc.uploadedBy.id === currentUserId}
         onDelete={handleDelete}
         onView={(doc) => setPdfViewer({ id: doc.id, name: doc.displayName })}
       />
-      <DocList
+      <AdhocDocList
         docs={countersigned}
         label="Counter-signed"
-        currentUserId={currentUserId}
-        isAdmin={isAdmin}
+        downloadUrl={(id) => `/api/adhoc/agreement-documents/${id}`}
+        canDelete={(doc) => isAdmin || doc.uploadedBy.id === currentUserId}
         onDelete={handleDelete}
         onView={(doc) => setPdfViewer({ id: doc.id, name: doc.displayName })}
       />
@@ -254,6 +179,7 @@ function AgreementDocs({ agreement, currentUserId, isAdmin, onRefresh }: Agreeme
               onDragLeave={onDragLeave}
               onDrop={onDrop}
               onFile={applyFile}
+              accept=".pdf,.xlsx,.xls,.docx,.doc,.pptx,.ppt,.png,.jpg,.jpeg"
             />
           </div>
           {uploadError && <p className="text-xs text-red-600 mt-2">{uploadError}</p>}
@@ -307,11 +233,12 @@ function SignDialog({ agreementId, onDone, onCancel }: SignDialogProps) {
         const upRes = await fetch(`/api/adhoc/agreements/${agreementId}/documents`, { method: "POST", body: fd })
         if (!upRes.ok) { setError((await upRes.json() as { error?: string }).error ?? "Upload failed"); return }
       }
-      await fetch(`/api/adhoc/agreements/${agreementId}`, {
+      const res = await fetch(`/api/adhoc/agreements/${agreementId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "SIGNED", signedDate }),
       })
+      if (!res.ok) { setError((await res.json() as { error?: string }).error ?? "Failed to save"); return }
       onDone()
     } finally {
       setSaving(false)

@@ -13,6 +13,7 @@ import { QuoteSection } from "@/modules/opportunities/components/quote-section"
 import { ProductionSection } from "@/modules/opportunities/components/production-section"
 import { LogSection, type LogEntry } from "@/modules/opportunities/components/log-section"
 import { Button } from "@/shared/components/ui/button"
+import { FormField } from "@/shared/components/ui/form-field"
 
 const STATUS_DATE_REQUIRED: Record<string, { field: string; label: string }> = {
   RFQ_RECEIVED:        { field: "rfqDate",           label: "RFQ Date" },
@@ -179,19 +180,6 @@ function makeForm(data: OpportunityFull) {
   }
 }
 type OppForm = ReturnType<typeof makeForm>
-
-function FormField({ label, children, required = false }: {
-  readonly label: string; readonly children: React.ReactNode; readonly required?: boolean
-}) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <p className="text-xs font-medium text-gray-500">
-        {label}{required && <span className="text-red-400 ml-0.5">*</span>}
-      </p>
-      {children}
-    </div>
-  )
-}
 
 // ─── View mode ────────────────────────────────────────────────────────────────
 
@@ -539,7 +527,7 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
           <input value={form.product} onChange={(e) => set("product", e.target.value)}
             placeholder="Requested product or service" className={inputCls} />
         </FormField>
-        <DateSection data={data} form={form} setForm={setForm} onRefresh={onRefresh} onDirectPatch={directPatch} />
+        <DateSection data={data} form={form} onSetDate={(key, value) => set(key, value)} onRefresh={onRefresh} onDirectPatch={directPatch} />
         <FormField label="Details">
           <textarea value={form.description} onChange={(e) => set("description", e.target.value)}
             rows={3} placeholder="Additional context, requirements, or background…" className={textareaCls} />
@@ -728,19 +716,17 @@ function ELDatePanel({ data, form, setDate, setRevertTarget, onDirectPatch, onRe
   )
 }
 
-function DateSection({ data, form, setForm, onRefresh, onDirectPatch }: {
+function DateSection({ data, form, onSetDate, onRefresh, onDirectPatch }: {
   readonly data: OpportunityFull
   readonly form: OppForm
-  readonly setForm: React.Dispatch<React.SetStateAction<OppForm>>
+  readonly onSetDate: (key: keyof OppForm, value: string) => void
   readonly onRefresh: () => void
   readonly onDirectPatch: (payload: Record<string, unknown>) => Promise<string | null>
 }) {
   const isEL = (EL_STATUSES as readonly string[]).includes(data.status)
   const isQuote = (QUOTE_STATUSES as readonly string[]).includes(data.status)
 
-  function setDate(key: keyof OppForm, value: string) {
-    setForm(f => ({ ...f, [key]: value }))
-  }
+  const setDate: SetDate = onSetDate
 
   const [revertTarget, setRevertTarget] = useState<RevertTarget | null>(null)
   const [reverting, setReverting] = useState(false)

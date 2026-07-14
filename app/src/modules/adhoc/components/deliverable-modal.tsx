@@ -1,13 +1,14 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Download, Trash2, Upload } from "lucide-react"
+import { Upload } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
-import { FileTypeIcon } from "@/shared/components/ui/file-type-icon"
 import { PdfViewerModal } from "@/shared/components/ui/pdf-viewer-modal"
-import { cn, formatDate, formatDateTime, formatBytes, truncateFilename, formatAmount, nameFromFile } from "@/shared/lib/utils"
+import { formatDateTime, formatAmount, nameFromFile } from "@/shared/lib/utils"
 import { useDropZone, useWindowDragExpand } from "@/shared/lib/use-drop-zone"
 import { FileDropZone } from "@/shared/components/ui/file-drop-zone"
+import { AdhocDocList } from "./adhoc-doc-list"
+import { DELIVERABLE_STATUS_BADGE as STATUS_BADGE } from "../constants"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -60,15 +61,17 @@ const STATUS_LABEL: Record<string, string> = {
   DELIVERED: "Delivered",
 }
 
-const STATUS_BADGE: Record<string, string> = {
-  NOT_APPROVED: "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300",
-  PARTIALLY_APPROVED: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
-  APPROVED: "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300",
-  DELIVERED: "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-}
-
 function lineItemTotal(items: LineItem[]) {
   return items.reduce((s, li) => s + Number(li.amount), 0)
+}
+
+function PartialApprovalWarning({ show, lineTotal }: { readonly show: boolean; readonly lineTotal: number }) {
+  if (!show) return null
+  return (
+    <p className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 rounded-md">
+      Approved amount is less than the line item total ({formatAmount(lineTotal)}) — this will be set to <strong>Partially Approved</strong>.
+    </p>
+  )
 }
 
 // ─── Approve form (initial approval — NOT_APPROVED only) ─────────────────────
@@ -186,11 +189,7 @@ function ApproveForm({
         </div>
       </div>
 
-      {willBePartial && (
-        <p className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 rounded-md">
-          Approved amount is less than the line item total ({formatAmount(lineTotal)}) — this will be set to <strong>Partially Approved</strong>.
-        </p>
-      )}
+      <PartialApprovalWarning show={willBePartial} lineTotal={lineTotal} />
       {error && <p className="text-xs text-red-600">{error}</p>}
 
       <div className="flex gap-2">
@@ -277,11 +276,7 @@ function ApprovalEditPanel({
         />
       </div>
 
-      {willBePartial && (
-        <p className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 rounded-md">
-          Approved amount is less than the line item total ({formatAmount(lineTotal)}) — this will be set to <strong>Partially Approved</strong>.
-        </p>
-      )}
+      <PartialApprovalWarning show={willBePartial} lineTotal={lineTotal} />
       {error && <p className="text-xs text-red-600">{error}</p>}
 
       <div className="flex items-center justify-between">
@@ -498,84 +493,6 @@ function LineItemsTab({
 
 // ─── Documents ────────────────────────────────────────────────────────────────
 
-function DocList({ docs, label, isLocked, isAdmin, currentUserId, onDelete, onView }: {
-  readonly docs: AdhocDoc[]
-  readonly label: string
-  readonly isLocked: boolean
-  readonly isAdmin: boolean
-  readonly currentUserId: string
-  readonly onDelete: (id: string) => void
-  readonly onView: (doc: AdhocDoc) => void
-}) {
-  if (docs.length === 0) {
-    return (
-      <div className="mb-4">
-        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-2">{label}</p>
-        <p className="text-xs text-gray-400 italic">None uploaded</p>
-      </div>
-    )
-  }
-  return (
-    <div className="mb-4">
-      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-2">{label}</p>
-      <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
-          <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-            {docs.map((doc) => (
-              <tr key={doc.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                <td className="px-3 py-2.5 max-w-xs">
-                  <div className="flex items-start gap-2 min-w-0">
-                    <FileTypeIcon mimeType={doc.mimeType} />
-                    <div className="min-w-0">
-                      {doc.mimeType === "application/pdf" ? (
-                        <button
-                          type="button"
-                          onClick={() => onView(doc)}
-                          title="Click to view PDF"
-                          className="font-medium text-gray-900 dark:text-gray-100 truncate block text-left w-full cursor-pointer hover:underline"
-                        >
-                          {doc.displayName}
-                        </button>
-                      ) : (
-                        <div className="font-medium text-gray-900 dark:text-gray-100 truncate">{doc.displayName}</div>
-                      )}
-                      <div className="text-xs text-gray-400">{truncateFilename(doc.originalName)}</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-3 py-2.5 text-xs text-gray-400 whitespace-nowrap hidden md:table-cell">
-                  {formatBytes(doc.size)} · {doc.uploadedBy.name} · {formatDate(doc.uploadedAt)}
-                </td>
-                <td className="px-3 py-2.5">
-                  <div className="flex items-center gap-1 justify-end">
-                    <a
-                      href={`/api/adhoc/documents/${doc.id}`}
-                      download={doc.originalName}
-                      className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-                      title="Download"
-                    >
-                      <Download size={15} />
-                    </a>
-                    {(!isLocked || isAdmin) && (doc.uploadedBy.id === currentUserId || isAdmin) && (
-                      <button
-                        type="button"
-                        onClick={() => onDelete(doc.id)}
-                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                        title="Delete"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  )
-}
 
 function DocumentsTab({
   deliverable,
@@ -651,23 +568,23 @@ function DocumentsTab({
         </div>
       )}
 
-      <DocList
+      <AdhocDocList
         docs={budget}
         label="Budget"
-        isLocked={isLocked}
-        isAdmin={isAdmin}
-        currentUserId={currentUserId}
+        downloadUrl={(id) => `/api/adhoc/documents/${id}`}
+        canDelete={(doc) => (!isLocked || isAdmin) && (doc.uploadedBy.id === currentUserId || isAdmin)}
         onDelete={handleDelete}
         onView={(doc) => setPdfViewer({ id: doc.id, name: doc.displayName })}
+        emptyText="None uploaded"
       />
-      <DocList
+      <AdhocDocList
         docs={approval}
         label="Approval"
-        isLocked={isLocked}
-        isAdmin={isAdmin}
-        currentUserId={currentUserId}
+        downloadUrl={(id) => `/api/adhoc/documents/${id}`}
+        canDelete={(doc) => (!isLocked || isAdmin) && (doc.uploadedBy.id === currentUserId || isAdmin)}
         onDelete={handleDelete}
         onView={(doc) => setPdfViewer({ id: doc.id, name: doc.displayName })}
+        emptyText="None uploaded"
       />
 
       {showUpload && !isLocked && (
@@ -812,24 +729,24 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
 
   async function saveField(title: string, description: string | null) {
     if (!deliverable) return
-    await fetch(`/api/adhoc/deliverables/${deliverable.id}`, {
+    const res = await fetch(`/api/adhoc/deliverables/${deliverable.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title, description }),
     })
-    await refresh()
+    if (res.ok) await refresh()
   }
 
   function handleTitleBlur() {
     const trimmed = titleDraft.trim()
     if (!trimmed) { setTitleDraft(deliverable?.title ?? ""); return }
-    if (trimmed !== deliverable?.title) saveField(trimmed, deliverable?.description ?? null)
+    if (trimmed !== deliverable?.title) void saveField(trimmed, deliverable?.description ?? null)
   }
 
   function handleDescBlur() {
     const trimmed = descDraft.trim()
     const current = deliverable?.description ?? ""
-    if (trimmed !== current) saveField(deliverable?.title ?? titleDraft, trimmed || null)
+    if (trimmed !== current) void saveField(deliverable?.title ?? titleDraft, trimmed || null)
   }
 
   async function handleTransition(nextStatus: string) {

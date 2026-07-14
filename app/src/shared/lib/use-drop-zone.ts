@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useCallback, useEffect, useRef } from "react"
+import { useState, useCallback, useEffect, useLayoutEffect, useRef } from "react"
 
 export function useWindowDragExpand(onEnter: () => void) {
   const onEnterRef = useRef(onEnter)
-  onEnterRef.current = onEnter
+  useLayoutEffect(() => { onEnterRef.current = onEnter })
   useEffect(() => {
     function handleEnter(e: DragEvent) {
       if (e.dataTransfer?.types.includes("Files")) onEnterRef.current()

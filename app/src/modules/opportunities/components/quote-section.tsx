@@ -4,9 +4,9 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Upload, Download, Trash2 } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
-import { FileTypeIcon } from "@/shared/components/ui/file-type-icon"
 import { PdfViewerModal } from "@/shared/components/ui/pdf-viewer-modal"
-import { formatBytes, formatDate, truncateFilename, nameFromFile } from "@/shared/lib/utils"
+import { DocNameCell } from "@/shared/components/ui/doc-name-cell"
+import { formatBytes, formatDate, nameFromFile } from "@/shared/lib/utils"
 import { useDropZone, useWindowDragExpand } from "@/shared/lib/use-drop-zone"
 import { FileDropZone } from "@/shared/components/ui/file-drop-zone"
 
@@ -75,25 +75,25 @@ export function QuoteSection({
     formData.set("type", docType)
     setUploading(true)
     setUploadError("")
-
-    const res = await fetch(`/api/opportunities/${opportunityId}/documents`, {
-      method: "POST",
-      body: formData,
-    })
-
-    setUploading(false)
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}))
-      setUploadError(data.error ?? "Upload failed.")
-      return
+    try {
+      const res = await fetch(`/api/opportunities/${opportunityId}/documents`, {
+        method: "POST",
+        body: formData,
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setUploadError(data.error ?? "Upload failed.")
+        return
+      }
+      setShowUpload(false)
+      setDisplayName("")
+      setDocStatus("DRAFT")
+      setFile(null)
+      onRefresh?.()
+      router.refresh()
+    } finally {
+      setUploading(false)
     }
-
-    setShowUpload(false)
-    setDisplayName("")
-    setDocStatus("DRAFT")
-    setFile(null)
-    onRefresh?.()
-    router.refresh()
   }
 
   async function handleDelete(docId: string, docName: string) {
@@ -211,26 +211,10 @@ export function QuoteSection({
               <tbody className="divide-y divide-gray-100">
                 {documents.map((doc) => (
                   <tr key={doc.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 max-w-xs">
-                      <div className="flex items-start gap-2 min-w-0">
-                        <FileTypeIcon mimeType={doc.mimeType} />
-                        <div className="min-w-0">
-                          {doc.mimeType === "application/pdf" ? (
-                            <button
-                              type="button"
-                              onClick={() => setPdfViewer({ id: doc.id, name: doc.displayName })}
-                              title="Click to view PDF"
-                              className="font-medium text-gray-900 truncate block text-left w-full cursor-pointer hover:underline"
-                            >
-                              {doc.displayName}
-                            </button>
-                          ) : (
-                            <div className="font-medium text-gray-900 truncate">{doc.displayName}</div>
-                          )}
-                          <div className="text-xs text-gray-400 font-normal">{truncateFilename(doc.originalName)}</div>
-                        </div>
-                      </div>
-                    </td>
+                    <DocNameCell
+                      doc={doc}
+                      onViewPdf={() => setPdfViewer({ id: doc.id, name: doc.displayName })}
+                    />
                     <td className="px-4 py-3">
                       <span
                         className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
