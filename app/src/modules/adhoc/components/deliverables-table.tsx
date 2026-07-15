@@ -1,12 +1,14 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { MessageSquarePlus, Search, ChevronLeft, ChevronRight } from "lucide-react"
+import { MessageSquarePlus, Download } from "lucide-react"
 import type { AgreementRow } from "./adhoc-client"
 import { DeliverableModal } from "./deliverable-modal"
 import { CommentDialog } from "@/shared/components/ui/comment-dialog"
 import { Button } from "@/shared/components/ui/button"
-import { formatAmount, cn } from "@/shared/lib/utils"
+import { TableFilterBar, type FilterStatusGroup } from "@/shared/components/ui/table-filter-bar"
+import { ClientPagination } from "@/shared/components/ui/client-pagination"
+import { formatAmount } from "@/shared/lib/utils"
 import { DELIVERABLE_STATUS_BADGE as STATUS_BADGE } from "../constants"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -24,13 +26,119 @@ const STATUS_LABEL: Record<string, string> = {
 }
 
 const ALL_STATUSES: DeliverableStatus[] = ["NOT_APPROVED", "PARTIALLY_APPROVED", "APPROVED", "DELIVERED"]
-const PAGE_SIZE = 10
+
+const STATUS_GROUPS: FilterStatusGroup[] = [
+  { label: "", statuses: ALL_STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s] })) },
+]
+
+// ─── Module-level helpers ─────────────────────────────────────────────────────
 
 function compareDeliverables(a: DeliverableRow, b: DeliverableRow): number {
   if (a.internalId === null && b.internalId === null) return b.createdAt.localeCompare(a.createdAt)
   if (a.internalId === null) return -1
   if (b.internalId === null) return 1
   return b.internalId.localeCompare(a.internalId)
+}
+
+function filterDeliverables(
+  deliverables: DeliverableRow[],
+  query: string,
+  statusFilter: Set<DeliverableStatus>
+): DeliverableRow[] {
+  const q = query.trim().toLowerCase()
+  return deliverables
+    .filter((d) => {
+      if (statusFilter.size > 0 && !statusFilter.has(d.status)) return false
+      if (q && !d.title.toLowerCase().includes(q) && !d.internalId?.toLowerCase().includes(q)) return false
+      return true
+    })
+    .sort(compareDeliverables)
+}
+
+function buildCsvRow(d: DeliverableRow): string[] {
+  const approved = Number(d.approvedAmount)
+  const lineTotal = d.lineItems.reduce((s, li) => s + Number(li.amount), 0)
+  return [
+    d.internalId?.slice(6) ?? "",
+    d.title,
+    STATUS_LABEL[d.status] ?? d.status,
+    approved > 0 ? approved.toFixed(2) : "",
+    lineTotal > 0 ? lineTotal.toFixed(2) : "",
+    approved > 0 ? (approved - lineTotal).toFixed(2) : "",
+    d.documents.length.toString(),
+  ]
+}
+
+function exportToCsv(agreementTitle: string, deliverables: DeliverableRow[]) {
+  const header = ["ID", "Title", "Status", "Approved", "Line Items", "Balance", "Documents"]
+  const csv = [header, ...deliverables.map(buildCsvRow)]
+    .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
+    .join("\n")
+  const blob = new Blob([csv], { type: "text/csv" })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = `${agreementTitle.replace(/[^a-z0-9]/gi, "-").toLowerCase()}-work-packages.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+// ─── Row component ────────────────────────────────────────────────────────────
+
+type RowProps = {
+  readonly d: DeliverableRow
+  readonly onOpen: (id: string) => void
+  readonly onComment: (d: DeliverableRow) => void
+}
+
+function DeliverableTableRow({ d, onOpen, onComment }: RowProps) {
+  const lineTotal = d.lineItems.reduce((s, li) => s + Number(li.amount), 0)
+  const approved = Number(d.approvedAmount)
+  const balance = approved - lineTotal
+  const over = lineTotal > approved && approved > 0
+  return (
+    <tr
+      className="hover:bg-gray-50 transition-colors cursor-pointer"
+      onClick={() => onOpen(d.id)}
+    >
+      <td className="px-4 py-3 w-28">
+        {d.internalId
+          ? <span className="text-xs font-mono text-gray-500">{d.internalId.slice(6)}</span>
+          : <span className="text-xs text-gray-300">—</span>
+        }
+      </td>
+      <td className="px-4 py-3 max-w-0">
+        <p className="text-gray-900 font-medium truncate">{d.title}</p>
+      </td>
+      <td className="px-4 py-3">
+        <span className={`inline-flex px-2 py-0.5 text-xs rounded-full font-medium ${STATUS_BADGE[d.status]}`}>
+          {STATUS_LABEL[d.status]}
+        </span>
+      </td>
+      <td className="px-4 py-3 text-right text-gray-600 tabular-nums">
+        {approved > 0 ? formatAmount(approved) : "—"}
+      </td>
+      <td className="px-4 py-3 text-right text-gray-600 tabular-nums">
+        {lineTotal > 0 ? formatAmount(lineTotal) : "—"}
+      </td>
+      <td className={`px-4 py-3 text-right tabular-nums font-medium ${over ? "text-red-600" : "text-gray-600"}`}>
+        {approved > 0 ? formatAmount(balance) : "—"}
+      </td>
+      <td className="px-4 py-3 text-right text-gray-500">
+        {d.documents.length}
+      </td>
+      <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+        <button
+          type="button"
+          onClick={() => onComment(d)}
+          className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+          title="Add comment"
+        >
+          <MessageSquarePlus size={15} />
+        </button>
+      </td>
+    </tr>
+  )
 }
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -42,7 +150,7 @@ type Props = {
   readonly onRefresh: () => Promise<void>
 }
 
-// ─── Component ───────────────────────────────────────────────────────────────
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh }: Props) {
   const [openDeliverableId, setOpenDeliverableId] = useState<string | null>(null)
@@ -53,31 +161,27 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<Set<DeliverableStatus>>(new Set())
-  const [page, setPage] = useState(0)
+  const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState(10)
 
   const canAdd = agreement.status === "SIGNED" || agreement.status === "ACTIVE"
 
-  function toggleStatus(s: DeliverableStatus) {
+  const filtered = useMemo(
+    () => filterDeliverables(agreement.deliverables, search, statusFilter),
+    [agreement.deliverables, search, statusFilter]
+  )
+
+  const paginated = filtered.slice((page - 1) * perPage, page * perPage)
+
+  function handleToggleStatus(s: string) {
+    const val = s as DeliverableStatus
     setStatusFilter((prev) => {
       const next = new Set(prev)
-      next.has(s) ? next.delete(s) : next.add(s)
+      next.has(val) ? next.delete(val) : next.add(val)
       return next
     })
-    setPage(0)
+    setPage(1)
   }
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    const matches = agreement.deliverables.filter((d) => {
-      if (statusFilter.size > 0 && !statusFilter.has(d.status)) return false
-      if (q && !d.title.toLowerCase().includes(q) && !(d.internalId?.toLowerCase().includes(q))) return false
-      return true
-    })
-    return matches.sort(compareDeliverables)
-  }, [agreement.deliverables, search, statusFilter])
-
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
-  const paginated = filtered.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE)
 
   async function handleAdd() {
     if (!newTitle.trim()) return
@@ -102,9 +206,20 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
     }
   }
 
+  const exportNode = (
+    <button
+      type="button"
+      onClick={() => exportToCsv(agreement.title, filtered)}
+      className="flex items-center gap-1.5 px-3 py-2 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 rounded-lg text-sm transition-colors ml-auto"
+    >
+      <Download size={14} />
+      Export CSV
+    </button>
+  )
+
   return (
     <div>
-      {/* Header row */}
+      {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-medium text-gray-700">
           Work Packages ({agreement.deliverables.length})
@@ -146,47 +261,18 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
         </p>
       ) : (
         <>
-          {/* Search + status filters */}
-          <div className="flex flex-wrap gap-3 mb-4">
-            <div className="relative min-w-48">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-              <input
-                type="search"
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setPage(0) }}
-                placeholder="Search…"
-                className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
-              />
-            </div>
-            <div className="flex gap-1">
-              {ALL_STATUSES.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => toggleStatus(s)}
-                  className={cn(
-                    "px-3 py-2 text-sm rounded-lg border transition-colors",
-                    statusFilter.has(s)
-                      ? "bg-[#006fff] border-[#006fff] text-white"
-                      : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-                  )}
-                >
-                  {STATUS_LABEL[s]}
-                </button>
-              ))}
-            </div>
-            {(search || statusFilter.size > 0) && (
-              <button
-                type="button"
-                className="px-4 py-2 text-gray-500 text-sm rounded-lg hover:bg-gray-100 transition-colors"
-                onClick={() => { setSearch(""); setStatusFilter(new Set()); setPage(0) }}
-              >
-                Clear all
-              </button>
-            )}
-          </div>
+          <TableFilterBar
+            search={search}
+            onSearchChange={(q) => { setSearch(q); setPage(1) }}
+            placeholder="Search by title or ID…"
+            selectedStatuses={[...statusFilter]}
+            onToggleStatus={handleToggleStatus}
+            onClearStatuses={() => { setStatusFilter(new Set()); setPage(1) }}
+            onClearAll={() => { setSearch(""); setStatusFilter(new Set()); setPage(1) }}
+            statusGroups={STATUS_GROUPS}
+            exportNode={exportNode}
+          />
 
-          {/* Table */}
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
@@ -204,98 +290,29 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
               <tbody className="divide-y divide-gray-100">
                 {paginated.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-8 text-center text-sm text-gray-400">
+                    <td colSpan={8} className="px-4 py-10 text-center text-gray-400">
                       No work packages match your filters.
                     </td>
                   </tr>
-                ) : paginated.map((d) => {
-                  const lineTotal = d.lineItems.reduce((s, li) => s + Number(li.amount), 0)
-                  const approved = Number(d.approvedAmount)
-                  const balance = approved - lineTotal
-                  const over = lineTotal > approved && approved > 0
-                  return (
-                    <tr
-                      key={d.id}
-                      className="hover:bg-gray-50 transition-colors cursor-pointer"
-                      onClick={() => setOpenDeliverableId(d.id)}
-                    >
-                      <td className="px-4 py-3 w-28">
-                        {d.internalId
-                          ? <span className="text-xs font-mono text-gray-500">{d.internalId.slice(6)}</span>
-                          : <span className="text-xs text-gray-300">—</span>
-                        }
-                      </td>
-                      <td className="px-4 py-3 max-w-0">
-                        <p className="text-gray-900 font-medium truncate">{d.title}</p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex px-2 py-0.5 text-xs rounded-full font-medium ${STATUS_BADGE[d.status]}`}>
-                          {STATUS_LABEL[d.status]}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right text-gray-600 tabular-nums">
-                        {approved > 0 ? formatAmount(approved) : "—"}
-                      </td>
-                      <td className="px-4 py-3 text-right text-gray-600 tabular-nums">
-                        {lineTotal > 0 ? formatAmount(lineTotal) : "—"}
-                      </td>
-                      <td className={`px-4 py-3 text-right tabular-nums font-medium ${over ? "text-red-600" : "text-gray-600"}`}>
-                        {approved > 0 ? formatAmount(balance) : "—"}
-                      </td>
-                      <td className="px-4 py-3 text-right text-gray-500">
-                        {d.documents.length}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); setCommentTarget(d) }}
-                          className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                          title="Add comment"
-                        >
-                          <MessageSquarePlus size={15} />
-                        </button>
-                      </td>
-                    </tr>
-                  )
-                })}
+                ) : paginated.map((d) => (
+                  <DeliverableTableRow
+                    key={d.id}
+                    d={d}
+                    onOpen={setOpenDeliverableId}
+                    onComment={setCommentTarget}
+                  />
+                ))}
               </tbody>
             </table>
           </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4 px-1">
-              <span className="text-sm text-gray-500">
-                {filtered.length} work package{filtered.length !== 1 ? "s" : ""}
-                {(search || statusFilter.size > 0) ? " (filtered)" : ""}
-              </span>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  disabled={page === 0}
-                  onClick={() => setPage((p) => p - 1)}
-                  className={cn(
-                    "p-1.5 rounded-lg border border-gray-300 transition-colors",
-                    page === 0 ? "opacity-40 cursor-not-allowed" : "hover:bg-gray-50"
-                  )}
-                >
-                  <ChevronLeft size={14} />
-                </button>
-                <span className="text-sm text-gray-500 px-1">{page + 1} / {totalPages}</span>
-                <button
-                  type="button"
-                  disabled={page >= totalPages - 1}
-                  onClick={() => setPage((p) => p + 1)}
-                  className={cn(
-                    "p-1.5 rounded-lg border border-gray-300 transition-colors",
-                    page >= totalPages - 1 ? "opacity-40 cursor-not-allowed" : "hover:bg-gray-50"
-                  )}
-                >
-                  <ChevronRight size={14} />
-                </button>
-              </div>
-            </div>
-          )}
+          <ClientPagination
+            page={page}
+            total={filtered.length}
+            perPage={perPage}
+            onPageChange={setPage}
+            onPerPageChange={(n) => { setPerPage(n); setPage(1) }}
+          />
         </>
       )}
 

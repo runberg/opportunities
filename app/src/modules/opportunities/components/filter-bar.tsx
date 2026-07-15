@@ -1,56 +1,44 @@
 "use client"
 
 import { useRouter, useSearchParams } from "next/navigation"
-import { useState, useRef, useEffect } from "react"
-import { Search, ChevronDown, Check, X, Download } from "lucide-react"
-import { cn, STATUS_GROUPS, STATUS_LABELS } from "@/shared/lib/utils"
+import { useState, useEffect } from "react"
+import { Download } from "lucide-react"
+import { STATUS_GROUPS, STATUS_LABELS } from "@/shared/lib/utils"
+import { TableFilterBar, type FilterStatusGroup } from "@/shared/components/ui/table-filter-bar"
 
-type StatusGroup = { label: string; statuses: string[] }
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type RawStatusGroup = { label: string; statuses: string[] }
+
+// ─── Component ───────────────────────────────────────────────────────────────
 
 export function FilterBar({
   basePath = "/opportunities",
-  statusGroups = STATUS_GROUPS,
+  statusGroups = STATUS_GROUPS as RawStatusGroup[],
   exportType,
 }: {
   readonly basePath?: string
-  readonly statusGroups?: StatusGroup[]
+  readonly statusGroups?: RawStatusGroup[]
   readonly exportType?: "quotes" | "els" | "production"
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [statusOpen, setStatusOpen] = useState(false)
-  const statusRef = useRef<HTMLDivElement>(null)
 
   const query = searchParams.get("q") ?? ""
   const statusParam = searchParams.get("status") ?? ""
-
   const selectedStatuses = statusParam ? statusParam.split(",").filter(Boolean) : []
 
   const [inputValue, setInputValue] = useState(query)
 
-  // Sync when query changes externally (e.g. "Clear all")
-  useEffect(() => {
-    setInputValue(query)
-  }, [query])
+  useEffect(() => { setInputValue(query) }, [query])
 
-  // Debounced dynamic search: fire when empty or ≥3 chars
+  // Debounce: fire when empty or ≥3 chars
   useEffect(() => {
     if (inputValue.length > 0 && inputValue.length < 3) return
-    const timer = setTimeout(() => {
-      updateParams({ q: inputValue || null })
-    }, 350)
+    const timer = setTimeout(() => { updateParams({ q: inputValue || null }) }, 350)
     return () => clearTimeout(timer)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inputValue])
-
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      const target = e.target as Node
-      if (statusRef.current && !statusRef.current.contains(target)) setStatusOpen(false)
-    }
-    document.addEventListener("mousedown", handleClick)
-    return () => document.removeEventListener("mousedown", handleClick)
-  }, [])
 
   function updateParams(updates: Record<string, string | null>) {
     const params = new URLSearchParams(searchParams.toString())
@@ -58,130 +46,50 @@ export function FilterBar({
       if (value === null) params.delete(key)
       else params.set(key, value)
     }
-    // Reset to page 1 whenever a filter (not page navigation) changes
     if (!("page" in updates)) params.delete("page")
     const qs = params.toString()
-    const queryString = qs ? `?${qs}` : ""
-    router.push(`${basePath}${queryString}`)
+    router.push(qs ? `${basePath}?${qs}` : basePath)
   }
 
-  function toggleStatus(s: string) {
-    const next = selectedStatuses.includes(s)
-      ? selectedStatuses.filter((x) => x !== s)
-      : [...selectedStatuses, s]
-    updateParams({ status: next.length > 0 ? next.join(",") : null })
-  }
+  // Transform raw status groups (string[]) into the shape TableFilterBar expects
+  const groups: FilterStatusGroup[] = statusGroups.map((g) => ({
+    label: g.label,
+    statuses: g.statuses.map((s) => ({ value: s, label: STATUS_LABELS[s] ?? s })),
+  }))
 
-  let statusLabel: string
-  if (selectedStatuses.length === 0) {
-    statusLabel = "All Statuses"
-  } else if (selectedStatuses.length === 1) {
-    statusLabel = STATUS_LABELS[selectedStatuses[0]] ?? selectedStatuses[0]
-  } else {
-    statusLabel = `${selectedStatuses.length} statuses`
-  }
+  const exportUrl = exportType
+    ? `/api/export?type=${exportType}` +
+      (query ? `&q=${encodeURIComponent(query)}` : "") +
+      (statusParam ? `&status=${encodeURIComponent(statusParam)}` : "")
+    : null
 
-  const hasFilters = query || statusParam
+  const exportNode = exportUrl ? (
+    <a
+      href={exportUrl}
+      download
+      className="flex items-center gap-1.5 px-3 py-2 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 rounded-lg text-sm transition-colors ml-auto"
+    >
+      <Download size={14} />
+      Export CSV
+    </a>
+  ) : undefined
 
   return (
-    <div className="flex flex-wrap gap-3 mb-6">
-      {/* Search */}
-      <div className="flex-1 min-w-48 relative">
-        <Search
-          size={14}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-        />
-        <input
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          placeholder="Search by title, customer, ID, reference…"
-          className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
-        />
-      </div>
-
-      {/* Status multi-select */}
-      <div ref={statusRef} className="relative">
-        <button
-          type="button"
-          onClick={() => setStatusOpen((o) => !o)}
-          className={cn(
-            "flex items-center gap-2 px-3 py-2 border rounded-lg text-sm transition-colors focus:outline-none",
-            selectedStatuses.length > 0
-              ? "border-[#006fff] bg-[#006fff] text-white"
-              : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-          )}
-        >
-          {statusLabel}
-          <ChevronDown
-            size={14}
-            className={cn("transition-transform flex-shrink-0", statusOpen && "rotate-180")}
-          />
-        </button>
-
-        {statusOpen && (
-          <div className="absolute top-full left-0 mt-1 w-56 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-1.5">
-            {selectedStatuses.length > 0 && (
-              <button
-                type="button"
-                onClick={() => updateParams({ status: null })}
-                className="w-full text-left px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-50 flex items-center gap-2"
-              >
-                <X size={12} />
-                Clear selection
-              </button>
-            )}
-            {statusGroups.map((group) => (
-              <div key={group.label}>
-                <div className="px-3 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                  {group.label}
-                </div>
-                {group.statuses.map((s) => {
-                  const checked = selectedStatuses.includes(s)
-                  return (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => toggleStatus(s)}
-                      className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2.5"
-                    >
-                      <span
-                        className={cn(
-                          "w-4 h-4 rounded border flex items-center justify-center flex-shrink-0",
-                          checked ? "bg-gray-900 border-gray-900" : "border-gray-300"
-                        )}
-                      >
-                        {checked && <Check size={10} className="text-white" />}
-                      </span>
-                      {STATUS_LABELS[s]}
-                    </button>
-                  )
-                })}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {hasFilters && (
-        <button
-          type="button"
-          onClick={() => router.push(basePath)}
-          className="px-4 py-2 text-gray-500 text-sm rounded-lg hover:bg-gray-100 transition-colors"
-        >
-          Clear all
-        </button>
-      )}
-
-      {exportType && (
-        <a
-          href={`/api/export?type=${exportType}` + (query ? `&q=${encodeURIComponent(query)}` : "") + (statusParam ? `&status=${encodeURIComponent(statusParam)}` : "")}
-          download
-          className="flex items-center gap-1.5 px-3 py-2 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 rounded-lg text-sm transition-colors ml-auto"
-        >
-          <Download size={14} />
-          Export CSV
-        </a>
-      )}
-    </div>
+    <TableFilterBar
+      search={inputValue}
+      onSearchChange={setInputValue}
+      placeholder="Search by title, customer, ID, reference…"
+      selectedStatuses={selectedStatuses}
+      onToggleStatus={(s) => {
+        const next = selectedStatuses.includes(s)
+          ? selectedStatuses.filter((x) => x !== s)
+          : [...selectedStatuses, s]
+        updateParams({ status: next.length > 0 ? next.join(",") : null })
+      }}
+      onClearStatuses={() => updateParams({ status: null })}
+      onClearAll={() => router.push(basePath)}
+      statusGroups={groups}
+      exportNode={exportNode}
+    />
   )
 }
