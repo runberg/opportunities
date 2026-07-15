@@ -41,6 +41,7 @@ export default async function ProductionPage({
   const rows = opportunities.map((opp) => ({
     id: opp.id,
     internalId: opp.internalId,
+    createdAt: opp.createdAt.toISOString(),
     title: opp.title,
     customer: opp.customer,
     reference: opp.reference,

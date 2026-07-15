@@ -10,6 +10,7 @@ export function findAllAgreements() {
         select: {
           id: true,
           internalId: true,
+          createdAt: true,
           title: true,
           status: true,
           approvedAmount: true,

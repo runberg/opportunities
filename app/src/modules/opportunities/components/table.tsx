@@ -29,7 +29,10 @@ export function OppTableView({
   const [sortKey, setSortKey] = useState(initialSortKey)
   const [sortDir, setSortDir] = useState<SortDir>("desc")
 
-  const sorted = useMemo(() => sortRows(opportunities, sortKey, sortDir), [opportunities, sortKey, sortDir])
+  const sorted = useMemo(
+    () => sortRows(opportunities, sortKey, sortDir, sortKey === "internalId" ? "createdAt" : undefined),
+    [opportunities, sortKey, sortDir]
+  )
 
   return (
     <>
@@ -81,7 +84,7 @@ export function OpportunitiesTable({
       opportunities={opportunities}
       currentUserId={currentUserId}
       isAdmin={isAdmin}
-      initialSortKey="rfqDate"
+      initialSortKey="internalId"
       dateColumn={{ label: "RFQ Date", sortKey: "rfqDate", getValue: (r) => r.rfqDate }}
       emptyMessage="No opportunities found."
     />

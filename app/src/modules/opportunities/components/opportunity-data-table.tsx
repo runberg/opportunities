@@ -11,6 +11,7 @@ import { SortableHeader, type SortDir } from "@/shared/components/ui/sortable-he
 export interface OppTableRow {
   id: string
   internalId: string | null
+  createdAt?: string | null
   title: string
   customer: string
   reference: string | null
@@ -97,7 +98,7 @@ export function OpportunityDataTable({
   }, [someSelected, allSelected])
 
   const colCount =
-    (selectable ? 1 : 0) + 3 /* title, customer, product */ +
+    (selectable ? 1 : 0) + 4 /* id, title, customer, product */ +
     (dateColumn ? 1 : 0) + (showPhases ? 3 : 0) + 1 /* status */ +
     (renderAction ? 1 : 0)
 
@@ -122,6 +123,7 @@ export function OpportunityDataTable({
                 />
               </th>
             )}
+            <SortableHeader label="ID" sortKey="internalId" currentSort={sortKey} currentDir={sortDir} onSort={onSort} className="hidden sm:table-cell w-28" />
             <SortableHeader label="Title" sortKey="title" currentSort={sortKey} currentDir={sortDir} onSort={onSort} />
             <SortableHeader label="Customer" sortKey="customer" currentSort={sortKey} currentDir={sortDir} onSort={onSort} className="hidden sm:table-cell" />
             <SortableHeader label="Product" sortKey="product" currentSort={sortKey} currentDir={sortDir} onSort={onSort} className={productClass} />
@@ -173,12 +175,17 @@ export function OpportunityDataTable({
                     />
                   </td>
                 )}
+                <td className="px-4 py-3 hidden sm:table-cell w-28">
+                  {row.internalId
+                    ? <span className="text-xs font-mono text-gray-500">{row.internalId}</span>
+                    : <span className="text-xs text-gray-300">—</span>
+                  }
+                </td>
                 <td className="px-4 py-3">
                   <span className="font-medium text-gray-900">{row.title}</span>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    {row.internalId && <span className="text-xs text-gray-400">{row.internalId}</span>}
-                    {row.reference && <span className="text-xs text-gray-400">{row.reference}</span>}
-                  </div>
+                  {row.reference && (
+                    <div className="text-xs text-gray-400 mt-0.5">{row.reference}</div>
+                  )}
                   {row.lastChange && (
                     <div className="text-xs text-gray-400 italic mt-0.5 truncate max-w-xs">{row.lastChange}</div>
                   )}

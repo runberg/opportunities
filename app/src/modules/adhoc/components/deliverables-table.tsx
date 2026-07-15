@@ -61,10 +61,18 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return agreement.deliverables.filter((d) => {
+    const matches = agreement.deliverables.filter((d) => {
       if (statusFilter.size > 0 && !statusFilter.has(d.status)) return false
       if (q && !d.title.toLowerCase().includes(q) && !(d.internalId?.toLowerCase().includes(q))) return false
       return true
+    })
+    return matches.sort((a, b) => {
+      if (a.internalId === null && b.internalId === null) {
+        return b.createdAt.localeCompare(a.createdAt)
+      }
+      if (a.internalId === null) return -1
+      if (b.internalId === null) return 1
+      return b.internalId.localeCompare(a.internalId)
     })
   }, [agreement.deliverables, search, statusFilter])
 
@@ -180,7 +188,8 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
             <table className="w-full text-sm">
               <thead className="bg-gray-800/50">
                 <tr>
-                  <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-400 uppercase tracking-wide">ID / Title</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-400 uppercase tracking-wide w-32">ID</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-400 uppercase tracking-wide">Title</th>
                   <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-400 uppercase tracking-wide">Status</th>
                   <th className="px-4 py-2.5 text-right text-xs font-medium text-gray-400 uppercase tracking-wide">Approved</th>
                   <th className="px-4 py-2.5 text-right text-xs font-medium text-gray-400 uppercase tracking-wide">Line Items</th>
@@ -192,7 +201,7 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
               <tbody className="divide-y divide-gray-700">
                 {paginated.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-400">
+                    <td colSpan={8} className="px-4 py-8 text-center text-sm text-gray-400">
                       No work packages match your filters.
                     </td>
                   </tr>
@@ -207,11 +216,14 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
                       className="bg-gray-800 hover:bg-gray-700/50 transition-colors cursor-pointer"
                       onClick={() => setOpenDeliverableId(d.id)}
                     >
+                      <td className="px-4 py-3 w-32">
+                        {d.internalId
+                          ? <span className="text-xs font-mono text-gray-400">{d.internalId}</span>
+                          : <span className="text-xs text-gray-600">—</span>
+                        }
+                      </td>
                       <td className="px-4 py-3">
                         <p className="text-gray-100 font-medium">{d.title}</p>
-                        {d.internalId && (
-                          <p className="text-xs font-mono text-gray-500 mt-0.5">{d.internalId}</p>
-                        )}
                       </td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex px-2 py-0.5 text-xs rounded-full font-medium ${STATUS_BADGE[d.status]}`}>

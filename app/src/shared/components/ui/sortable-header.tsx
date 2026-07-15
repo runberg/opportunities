@@ -49,10 +49,16 @@ function compareValues(av: unknown, bv: unknown, dir: SortDir): number {
   return av < bv ? 1 : -1
 }
 
-export function sortRows<T>(data: T[], key: string, dir: SortDir): T[] {
+export function sortRows<T>(data: T[], key: string, dir: SortDir, nullTiebreakKey?: string): T[] {
   return [...data].sort((a, b) => {
     const av = (a as Record<string, unknown>)[key]
     const bv = (b as Record<string, unknown>)[key]
-    return compareValues(av, bv, dir)
+    const primary = compareValues(av, bv, dir)
+    if (primary !== 0 || !nullTiebreakKey || av != null || bv != null) return primary
+    return compareValues(
+      (a as Record<string, unknown>)[nullTiebreakKey],
+      (b as Record<string, unknown>)[nullTiebreakKey],
+      "desc"
+    )
   })
 }

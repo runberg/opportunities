@@ -29,6 +29,7 @@ export type AgreementRow = {
   deliverables: {
     id: string
     internalId: string | null
+    createdAt: string
     title: string
     status: string
     approvedAmount: string

@@ -16,6 +16,7 @@ export default async function AdHocPage() {
     updatedAt: a.updatedAt.toISOString(),
     deliverables: a.deliverables.map((d) => ({
       ...d,
+      createdAt: d.createdAt.toISOString(),
       approvedAmount: d.approvedAmount.toString(),
       lineItems: d.lineItems.map((li) => ({ amount: li.amount.toString() })),
     })),
