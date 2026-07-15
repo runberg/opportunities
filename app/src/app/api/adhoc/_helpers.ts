@@ -9,6 +9,7 @@ export function findAllAgreements() {
       deliverables: {
         select: {
           id: true,
+          internalId: true,
           title: true,
           status: true,
           approvedAmount: true,

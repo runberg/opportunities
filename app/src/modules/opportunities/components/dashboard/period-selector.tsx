@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { cn, todayISO, daysAgoISO } from "@/shared/lib/utils"
+import { DatePicker } from "@/shared/components/ui/date-picker"
 
 const PERIODS = [
   { key: "7d", label: "7 days" },
@@ -70,23 +71,21 @@ export function PeriodSelector({
         <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-3 shadow-sm">
           <div className="flex items-center gap-1.5">
             <span className="text-xs text-gray-400">From</span>
-            <input
-              type="date"
+            <DatePicker
               value={from}
               max={to}
-              onChange={(e) => setFrom(e.target.value)}
-              className="text-xs text-gray-900 border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-gray-400"
+              onChange={setFrom}
+              triggerClassName="text-xs text-gray-900 border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-gray-400 flex items-center min-w-[100px]"
             />
           </div>
           <div className="flex items-center gap-1.5">
             <span className="text-xs text-gray-400">To</span>
-            <input
-              type="date"
+            <DatePicker
               value={to}
               min={from}
               max={todayISO()}
-              onChange={(e) => setTo(e.target.value)}
-              className="text-xs text-gray-900 border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-gray-400"
+              onChange={setTo}
+              triggerClassName="text-xs text-gray-900 border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-gray-400 flex items-center min-w-[100px]"
             />
           </div>
           <button

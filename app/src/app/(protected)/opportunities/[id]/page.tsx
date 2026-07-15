@@ -110,7 +110,7 @@ export default async function OpportunityDetailPage({
 
       {/* Log */}
       <LogSection
-        opportunityId={opportunity.id}
+        commentEndpoint={`/api/opportunities/${opportunity.id}/comments`}
         entries={opportunity.comments as never}
         currentUser={{ id: session!.user.id, name: session!.user.name ?? "User" }}
       />

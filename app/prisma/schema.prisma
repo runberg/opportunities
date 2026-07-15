@@ -113,8 +113,11 @@ model Comment {
   authorId      String?     // null for system events
   author        User?       @relation(fields: [authorId], references: [id])
 
-  opportunityId String
-  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  opportunityId      String?
+  opportunity        Opportunity?      @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  adhocDeliverableId String?
+  adhocDeliverable   AdhocDeliverable? @relation(fields: [adhocDeliverableId], references: [id], onDelete: Cascade)
 }
 
 model Document {
@@ -213,13 +216,17 @@ enum AdhocAgreementStatus {
 }
 
 model AdhocDeliverable {
-  id             String                 @id @default(cuid())
-  title          String
-  description    String?
-  approvedAmount Decimal                @default(0) @db.Decimal(10, 2)
-  status         AdhocDeliverableStatus @default(NOT_APPROVED)
-  createdAt      DateTime               @default(now())
-  updatedAt      DateTime               @updatedAt
+  id                  String                 @id @default(cuid())
+  internalId          String?                @unique
+  title               String
+  description         String?
+  approvedAmount      Decimal                @default(0) @db.Decimal(10, 2)
+  status              AdhocDeliverableStatus @default(NOT_APPROVED)
+  partiallyApprovedAt DateTime?
+  approvedAt          DateTime?
+  deliveredAt         DateTime?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
 
   agreementId  String
   agreement    AdhocAgreement @relation(fields: [agreementId], references: [id])
@@ -230,6 +237,7 @@ model AdhocDeliverable {
   lineItems    AdhocLineItem[]
   documents    AdhocDocument[]
   systemLogs   SystemLog[]
+  comments     Comment[]
 }
 
 enum AdhocDeliverableStatus {
@@ -271,6 +279,8 @@ model AdhocDocument {
 enum AdhocDocumentType {
   BUDGET
   APPROVAL
+  DELIVERY_NOTE
+  OTHER
 }
 
 model AdhocAgreementDocument {

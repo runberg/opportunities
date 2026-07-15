@@ -14,6 +14,7 @@ import { ProductionSection } from "@/modules/opportunities/components/production
 import { LogSection, type LogEntry } from "@/modules/opportunities/components/log-section"
 import { Button } from "@/shared/components/ui/button"
 import { FormField } from "@/shared/components/ui/form-field"
+import { DatePicker } from "@/shared/components/ui/date-picker"
 
 const STATUS_DATE_REQUIRED: Record<string, { field: string; label: string }> = {
   RFQ_RECEIVED:        { field: "rfqDate",           label: "RFQ Date" },
@@ -496,23 +497,28 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
       )}
 
       {/* Documents, Production, Log */}
-      <QuoteSection opportunityId={data.id}
-        documents={data.documents.filter((d) => d.type === "QUOTE")}
-        currentUserId={currentUserId} isAdmin={isAdmin} onRefresh={onRefresh} docType="QUOTE" />
-
-      {(isEL || isProduction) && (
-        <div className="mt-4">
+      {isEL || isProduction ? (
+        <>
           <QuoteSection opportunityId={data.id}
             documents={data.documents.filter((d) => d.type === "EL")}
             currentUserId={currentUserId} isAdmin={isAdmin} onRefresh={onRefresh} docType="EL" />
-        </div>
+          <div className="mt-4">
+            <QuoteSection opportunityId={data.id}
+              documents={data.documents.filter((d) => d.type === "QUOTE")}
+              currentUserId={currentUserId} isAdmin={isAdmin} onRefresh={onRefresh} docType="QUOTE" />
+          </div>
+        </>
+      ) : (
+        <QuoteSection opportunityId={data.id}
+          documents={data.documents.filter((d) => d.type === "QUOTE")}
+          currentUserId={currentUserId} isAdmin={isAdmin} onRefresh={onRefresh} docType="QUOTE" />
       )}
 
       {isProduction && (
         <ProductionSection data={data} deliveries={data.deliveries} currentUserId={currentUserId} isAdmin={isAdmin} onRefresh={onRefresh} />
       )}
 
-      <LogSection opportunityId={data.id} entries={data.comments}
+      <LogSection commentEndpoint={`/api/opportunities/${data.id}/comments`} entries={data.comments}
         currentUser={{ id: currentUserId, name: "" }} onRefresh={onRefresh} />
     </div>
   )
@@ -545,8 +551,11 @@ function TransitionPanel({
         <p className={`text-xs ${c.body} mb-3`}>{description}</p>
         <div className="flex items-center gap-1.5">
           <span className={`text-xs ${c.body}`}>{dateLabel}</span>
-          <input type="date" value={date} onChange={(e) => onDateChange(e.target.value)}
-            className={`text-xs border ${c.input} rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 bg-gray-800`} />
+          <DatePicker
+            value={date}
+            onChange={onDateChange}
+            triggerClassName={`text-xs border ${c.input} rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 bg-gray-800 flex items-center`}
+          />
         </div>
       </div>
       <div className="flex gap-2">
@@ -579,7 +588,7 @@ function ShareActionCard({ label, date, onDateChange, docCount, docLabel, saving
   return (
     <div className="border border-gray-600 bg-gray-700 rounded-xl p-4 flex flex-col gap-2">
       <p className="text-xs font-medium text-gray-400">{label}</p>
-      <input type="date" value={date} onChange={(e) => onDateChange(e.target.value)} className={dateInputCls} />
+      <DatePicker value={date} onChange={onDateChange} triggerClassName={dateInputCls + " flex items-center"} />
       {docCount === 0 && <p className="text-xs text-red-500">No {docLabel} attached</p>}
       <button type="button" onClick={onShare} disabled={saving || !date}
         className="mt-1 w-full px-3 py-1.5 bg-[#006fff] hover:bg-blue-700 text-white text-xs font-medium rounded-lg disabled:opacity-50 transition-colors">
@@ -776,8 +785,11 @@ function DateCard({ label, formValue, onChange, onRevert }: {
   return (
     <div className={cn("border border-green-800 bg-green-900/20 rounded-xl p-4 flex flex-col gap-2", onRevert && "group/card")}>
       <p className="text-xs font-medium text-green-400">{label}</p>
-      <input type="date" value={formValue} onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-md border border-green-800 bg-gray-800 px-2 py-1.5 text-xs text-green-300 focus:outline-none focus:border-[#006fff] transition-colors" />
+      <DatePicker
+        value={formValue}
+        onChange={onChange}
+        triggerClassName="w-full rounded-md border border-green-800 bg-gray-800 px-2 py-1.5 text-xs text-green-300 focus:outline-none focus:border-[#006fff] transition-colors flex items-center"
+      />
       {onRevert && (
         <button type="button" onClick={onRevert}
           className="opacity-0 group-hover/card:opacity-100 w-full px-2 py-1 bg-gray-800 hover:bg-red-900/20 text-red-400 border border-red-800 text-xs font-medium rounded-lg transition-all">

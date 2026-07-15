@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Check, Pencil, Plus, Trash2, X } from "lucide-react"
 import { cn, formatDate, todayISO, toDateString } from "@/shared/lib/utils"
 import { QuoteSection } from "@/modules/opportunities/components/quote-section"
+import { DatePicker } from "@/shared/components/ui/date-picker"
 
 interface DeliveryLine {
   id: string
@@ -201,20 +202,26 @@ function ProductionEditPanel({ data, onRefresh, onCancel }: {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <EditDateCard label="Advance Payment">
           <DateLabel text="Date received" />
-          <input type="date" value={editForm.advancePaymentDate}
-            onChange={(e) => setEditForm((f) => ({ ...f, advancePaymentDate: e.target.value }))}
-            className={inputCls} />
+          <DatePicker
+            value={editForm.advancePaymentDate}
+            onChange={(v) => setEditForm((f) => ({ ...f, advancePaymentDate: v }))}
+            triggerClassName={inputCls + " flex items-center"}
+          />
         </EditDateCard>
 
         <EditDateCard label="FAT">
           <DateLabel text="Scheduled" />
-          <input type="date" value={editForm.fatDate}
-            onChange={(e) => setEditForm((f) => ({ ...f, fatDate: e.target.value }))}
-            className={inputCls} />
+          <DatePicker
+            value={editForm.fatDate}
+            onChange={(v) => setEditForm((f) => ({ ...f, fatDate: v }))}
+            triggerClassName={inputCls + " flex items-center"}
+          />
           <DateLabel text="Passed" className="mt-2" />
-          <input type="date" value={editForm.fatPassedDate}
-            onChange={(e) => setEditForm((f) => ({ ...f, fatPassedDate: e.target.value }))}
-            className={inputCls} />
+          <DatePicker
+            value={editForm.fatPassedDate}
+            onChange={(v) => setEditForm((f) => ({ ...f, fatPassedDate: v }))}
+            triggerClassName={inputCls + " flex items-center"}
+          />
         </EditDateCard>
 
         <EditDateCard label="SAT">
@@ -230,22 +237,28 @@ function ProductionEditPanel({ data, onRefresh, onCancel }: {
             <span className="text-xs text-gray-600">Not applicable (N/A)</span>
           </label>
           <DateLabel text="Scheduled" />
-          <input type="date" value={editForm.satDate}
+          <DatePicker
+            value={editForm.satDate}
             disabled={!editForm.satApplicable}
-            onChange={(e) => setEditForm((f) => ({ ...f, satDate: e.target.value }))}
-            className={cn(inputCls, !editForm.satApplicable && "opacity-40 cursor-not-allowed")} />
+            onChange={(v) => setEditForm((f) => ({ ...f, satDate: v }))}
+            triggerClassName={cn(inputCls, "flex items-center", !editForm.satApplicable && "opacity-40 cursor-not-allowed")}
+          />
           <DateLabel text="Passed" className="mt-2" />
-          <input type="date" value={editForm.satPassedDate}
+          <DatePicker
+            value={editForm.satPassedDate}
             disabled={!editForm.satApplicable}
-            onChange={(e) => setEditForm((f) => ({ ...f, satPassedDate: e.target.value }))}
-            className={cn(inputCls, !editForm.satApplicable && "opacity-40 cursor-not-allowed")} />
+            onChange={(v) => setEditForm((f) => ({ ...f, satPassedDate: v }))}
+            triggerClassName={cn(inputCls, "flex items-center", !editForm.satApplicable && "opacity-40 cursor-not-allowed")}
+          />
         </EditDateCard>
 
         <EditDateCard label="Delivered">
           <DateLabel text="Date delivered" />
-          <input type="date" value={editForm.deliveredDate}
-            onChange={(e) => setEditForm((f) => ({ ...f, deliveredDate: e.target.value }))}
-            className={inputCls} />
+          <DatePicker
+            value={editForm.deliveredDate}
+            onChange={(v) => setEditForm((f) => ({ ...f, deliveredDate: v }))}
+            triggerClassName={inputCls + " flex items-center"}
+          />
         </EditDateCard>
       </div>
       <p className="mt-3 text-xs text-gray-400">Clear a date to undo that milestone. Status will be recalculated on save.</p>
@@ -304,7 +317,11 @@ function ProductionViewPanel({ data, deliveries, currentUserId, isAdmin, onRefre
         <DateCard label="Advance Payment" done={advancePaid}
           doneValue={advancePaid ? formatDate(data.advancePaymentDate ?? "") : null}
           onRevert={onRevertIf(advancePaid, { field: "advancePaymentDate", status: "PENDING_ADVANCE_PAYMENT", label: "Pending Advance Payment" }, setRevertTarget)}>
-          <input type="date" value={advanceDate} onChange={(e) => setAdvanceDate(e.target.value)} className={inputCls} />
+          <DatePicker
+            value={advanceDate}
+            onChange={setAdvanceDate}
+            triggerClassName={inputCls + " flex items-center"}
+          />
           <ActionButton label="Received" savingKey="advance" saving={saving}
             disabled={!advanceDate} onClick={() => patch({ advancePaymentDate: advanceDate }, "advance")} />
         </DateCard>
@@ -313,8 +330,11 @@ function ProductionViewPanel({ data, deliveries, currentUserId, isAdmin, onRefre
           doneValue={fatPassed ? formatDate(data.fatPassedDate ?? "") : null}
           locked={!advancePaid}
           onRevert={onRevertIf(fatPassed, { field: "fatPassedDate", status: "IN_PRODUCTION", label: "In Production" }, setRevertTarget)}>
-          <input type="date" value={fatDate} onChange={(e) => setFatDate(e.target.value)}
-            onBlur={() => fatDate && patch({ fatDate }, "fatDate")} className={inputCls} />
+          <DatePicker
+            value={fatDate}
+            onChange={(v) => { setFatDate(v); if (v) void patch({ fatDate: v }, "fatDate") }}
+            triggerClassName={inputCls + " flex items-center"}
+          />
           <ActionButton label="Passed" savingKey="fat" saving={saving}
             onClick={() => patch({ fatPassedDate: todayISO(), fatDate: fatDate || undefined }, "fat")} />
         </DateCard>
@@ -327,9 +347,12 @@ function ProductionViewPanel({ data, deliveries, currentUserId, isAdmin, onRefre
           onNaToggle={() => patch({ satApplicable: satNA }, "satNA")}
           naToggleSaving={saving === "satNA"}
           onRevert={onRevertIf(satPassed, { field: "satPassedDate", status: "IN_PRODUCTION", label: "In Production" }, setRevertTarget)}>
-          <input type="date" value={satDate} onChange={(e) => setSatDate(e.target.value)}
-            onBlur={() => satDate && patch({ satDate }, "satDate")}
-            disabled={satNA} className={cn(inputCls, satNA && "opacity-40 cursor-not-allowed")} />
+          <DatePicker
+            value={satDate}
+            disabled={satNA}
+            onChange={(v) => { setSatDate(v); if (v) void patch({ satDate: v }, "satDate") }}
+            triggerClassName={cn(inputCls, "flex items-center", satNA && "opacity-40 cursor-not-allowed")}
+          />
           <ActionButton label="Passed" savingKey="sat" saving={saving} disabled={satNA}
             onClick={() => patch({ satPassedDate: todayISO(), satDate: satDate || undefined }, "sat")} />
         </DateCard>

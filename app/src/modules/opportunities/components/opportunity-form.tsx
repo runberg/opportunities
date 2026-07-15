@@ -7,6 +7,7 @@ import { Input } from "@/shared/components/ui/input"
 import { Label } from "@/shared/components/ui/label"
 import { Select } from "@/shared/components/ui/select"
 import { Textarea } from "@/shared/components/ui/textarea"
+import { DatePicker } from "@/shared/components/ui/date-picker"
 import { QUOTE_STATUSES, STATUS_LABELS, todayISO } from "@/shared/lib/utils"
 
 interface OpportunityFormProps {
@@ -139,11 +140,10 @@ export function OpportunityForm({ mode, initialData = {} }: OpportunityFormProps
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label htmlFor="rfqDate">RFQ Date</Label>
-          <Input
-            id="rfqDate"
-            type="date"
+          <DatePicker
             value={form.rfqDate}
-            onChange={(e) => set("rfqDate", e.target.value)}
+            onChange={(v) => set("rfqDate", v)}
+            triggerClassName="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-900 flex items-center focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
           />
         </div>
         <div>

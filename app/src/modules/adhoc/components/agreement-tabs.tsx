@@ -8,6 +8,7 @@ import { AgreementForm } from "./agreement-form"
 import { AdhocDocList } from "./adhoc-doc-list"
 import { Button } from "@/shared/components/ui/button"
 import { PdfViewerModal } from "@/shared/components/ui/pdf-viewer-modal"
+import { DatePicker } from "@/shared/components/ui/date-picker"
 import { todayISO, formatAmount, formatDate, nameFromFile } from "@/shared/lib/utils"
 import { useDropZone, useWindowDragExpand } from "@/shared/lib/use-drop-zone"
 import { FileDropZone } from "@/shared/components/ui/file-drop-zone"
@@ -254,12 +255,10 @@ function SignDialog({ agreementId, onDone, onCancel }: SignDialogProps) {
         <div className="space-y-4">
           <div>
             <label htmlFor="sign-date" className="block text-xs font-medium text-gray-700 mb-1">Signed Date</label>
-            <input
-              id="sign-date"
-              type="date"
-              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            <DatePicker
               value={signedDate}
-              onChange={(e) => setSignedDate(e.target.value)}
+              onChange={setSignedDate}
+              triggerClassName="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center"
             />
           </div>
 

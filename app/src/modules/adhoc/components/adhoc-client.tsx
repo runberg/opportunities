@@ -28,6 +28,7 @@ export type AgreementRow = {
   createdBy: { id: string; name: string }
   deliverables: {
     id: string
+    internalId: string | null
     title: string
     status: string
     approvedAmount: string

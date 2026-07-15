@@ -5,6 +5,7 @@ import { X } from "lucide-react"
 import { QUOTE_STATUSES, STATUS_LABELS, todayISO } from "@/shared/lib/utils"
 import { Button } from "@/shared/components/ui/button"
 import { FormField } from "@/shared/components/ui/form-field"
+import { DatePicker } from "@/shared/components/ui/date-picker"
 
 interface NewOpportunityModalProps {
   readonly onClose: () => void
@@ -155,11 +156,10 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
               </FormField>
 
               <FormField label="RFQ Date">
-                <input
-                  type="date"
+                <DatePicker
                   value={form.rfqDate}
-                  onChange={(e) => setField("rfqDate", e.target.value)}
-                  className={inputCls}
+                  onChange={(v) => setField("rfqDate", v)}
+                  triggerClassName={inputCls + " flex items-center"}
                 />
               </FormField>
 

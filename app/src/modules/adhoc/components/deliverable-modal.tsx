@@ -4,7 +4,9 @@ import { useState, useEffect, useCallback } from "react"
 import { Upload } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
 import { PdfViewerModal } from "@/shared/components/ui/pdf-viewer-modal"
-import { formatDateTime, formatAmount, nameFromFile } from "@/shared/lib/utils"
+import { LogSection, type LogEntry } from "@/shared/components/ui/log-section"
+import { DatePicker } from "@/shared/components/ui/date-picker"
+import { formatAmount, nameFromFile } from "@/shared/lib/utils"
 import { useDropZone, useWindowDragExpand } from "@/shared/lib/use-drop-zone"
 import { FileDropZone } from "@/shared/components/ui/file-drop-zone"
 import { AdhocDocList } from "./adhoc-doc-list"
@@ -24,13 +26,13 @@ type AdhocDoc = {
   originalName: string
   mimeType: string
   size: number
-  type: "BUDGET" | "APPROVAL"
+  type: "BUDGET" | "APPROVAL" | "DELIVERY_NOTE" | "OTHER"
   notes: string | null
   uploadedAt: string
   uploadedBy: { id: string; name: string }
 }
 
-type LogEntry = {
+type SystemLogEntry = {
   id: string
   type: string
   message: string
@@ -38,18 +40,31 @@ type LogEntry = {
   user: { id: string; name: string } | null
 }
 
+type CommentEntry = {
+  id: string
+  content: string
+  system: boolean
+  createdAt: string
+  author: { id: string; name: string } | null
+}
+
 type Deliverable = {
   id: string
+  internalId: string | null
   title: string
   description: string | null
   approvedAmount: string
   status: "NOT_APPROVED" | "PARTIALLY_APPROVED" | "APPROVED" | "DELIVERED"
+  partiallyApprovedAt: string | null
+  approvedAt: string | null
+  deliveredAt: string | null
   createdAt: string
   createdBy: { id: string; name: string }
   agreement: { id: string; title: string; status: string }
   lineItems: LineItem[]
   documents: AdhocDoc[]
-  systemLogs: LogEntry[]
+  systemLogs: SystemLogEntry[]
+  comments: CommentEntry[]
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -164,8 +179,21 @@ function ApproveForm({
           />
         </div>
         <div className="flex-1 min-w-60">
+          {deliverable.documents.some((d) => d.type === "APPROVAL") && (
+            <div className="mb-2 px-2.5 py-2 bg-green-900/20 border border-green-800/60 rounded-lg">
+              <p className="text-xs font-medium text-green-400 mb-1">Approval document already uploaded</p>
+              <ul className="space-y-0.5">
+                {deliverable.documents.filter((d) => d.type === "APPROVAL").map((doc) => (
+                  <li key={doc.id} className="text-xs text-green-300">✓ {doc.displayName}</li>
+                ))}
+              </ul>
+            </div>
+          )}
           <p className="text-xs text-gray-400 mb-1">
-            Approval Document <span className="font-normal text-gray-500">(optional)</span>
+            {deliverable.documents.some((d) => d.type === "APPROVAL")
+              ? "Upload additional approval document"
+              : <>Approval Document <span className="font-normal text-gray-500">(optional)</span></>
+            }
           </p>
           <div className="flex gap-2 mb-2">
             <input
@@ -512,7 +540,7 @@ function DocumentsTab({
   readonly onRefresh: () => Promise<void>
 }) {
   const [uploading, setUploading] = useState(false)
-  const [docType, setDocType] = useState<"BUDGET" | "APPROVAL">("BUDGET")
+  const [docType, setDocType] = useState<"BUDGET" | "APPROVAL" | "DELIVERY_NOTE" | "OTHER">("BUDGET")
   const [displayName, setDisplayName] = useState("")
   const [file, setFile] = useState<File | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
@@ -556,6 +584,8 @@ function DocumentsTab({
 
   const budget = deliverable.documents.filter((d) => d.type === "BUDGET")
   const approval = deliverable.documents.filter((d) => d.type === "APPROVAL")
+  const deliveryNote = deliverable.documents.filter((d) => d.type === "DELIVERY_NOTE")
+  const other = deliverable.documents.filter((d) => d.type === "OTHER")
 
   return (
     <div>
@@ -586,6 +616,22 @@ function DocumentsTab({
         onView={(doc) => setPdfViewer({ id: doc.id, name: doc.displayName })}
         emptyText="None uploaded"
       />
+      <AdhocDocList
+        docs={deliveryNote}
+        label="Delivery Note"
+        downloadUrl={(id) => `/api/adhoc/documents/${id}`}
+        canDelete={(doc) => (!isLocked || isAdmin) && (doc.uploadedBy.id === currentUserId || isAdmin)}
+        onDelete={handleDelete}
+        onView={(doc) => setPdfViewer({ id: doc.id, name: doc.displayName })}
+      />
+      <AdhocDocList
+        docs={other}
+        label="Other"
+        downloadUrl={(id) => `/api/adhoc/documents/${id}`}
+        canDelete={(doc) => (!isLocked || isAdmin) && (doc.uploadedBy.id === currentUserId || isAdmin)}
+        onDelete={handleDelete}
+        onView={(doc) => setPdfViewer({ id: doc.id, name: doc.displayName })}
+      />
 
       {showUpload && !isLocked && (
         <form
@@ -600,10 +646,12 @@ function DocumentsTab({
                   id="dm-doc-type"
                   className="w-full rounded border border-gray-600 bg-gray-800 px-2 py-1.5 text-sm text-gray-100"
                   value={docType}
-                  onChange={(e) => setDocType(e.target.value as "BUDGET" | "APPROVAL")}
+                  onChange={(e) => setDocType(e.target.value as "BUDGET" | "APPROVAL" | "DELIVERY_NOTE" | "OTHER")}
                 >
                   <option value="BUDGET">Budget</option>
                   <option value="APPROVAL">Approval</option>
+                  <option value="DELIVERY_NOTE">Delivery Note</option>
+                  <option value="OTHER">Other</option>
                 </select>
               </div>
               <div>
@@ -657,26 +705,82 @@ function DocumentsTab({
   )
 }
 
-// ─── Change Log ───────────────────────────────────────────────────────────────
+// ─── Milestone date field ─────────────────────────────────────────────────────
 
-function ChangeLogTab({ logs }: { readonly logs: LogEntry[] }) {
-  if (logs.length === 0)
-    return <p className="text-sm text-gray-400 py-4 text-center">No activity yet.</p>
+function DateField({
+  label,
+  value,
+  deliverableId,
+  field,
+  nullable = true,
+  onSaved,
+}: {
+  readonly label: string
+  readonly value: string | null
+  readonly deliverableId: string
+  readonly field: "createdAt" | "partiallyApprovedAt" | "approvedAt" | "deliveredAt"
+  readonly nullable?: boolean
+  readonly onSaved: () => Promise<void>
+}) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(value ? value.slice(0, 10) : "")
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => { setDraft(value ? value.slice(0, 10) : "") }, [value])
+
+  async function save() {
+    if (!draft && !nullable) return
+    setSaving(true)
+    try {
+      await fetch(`/api/adhoc/deliverables/${deliverableId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: draft || null }),
+      })
+      setEditing(false)
+      await onSaved()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const formatted = value
+    ? new Date(value).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+    : "—"
 
   return (
-    <ul className="space-y-3">
-      {logs.map((entry) => (
-        <li key={entry.id} className="flex gap-3 text-sm">
-          <div className="mt-2 w-1.5 h-1.5 rounded-full bg-gray-600 shrink-0" />
-          <div>
-            <p className="text-gray-200">{entry.message}</p>
-            <p className="text-xs text-gray-400 mt-0.5">
-              {entry.user?.name ?? "System"} · {formatDateTime(entry.createdAt)}
-            </p>
-          </div>
-        </li>
-      ))}
-    </ul>
+    <div>
+      <p className="text-xs text-gray-500 mb-0.5">{label}</p>
+      {editing ? (
+        <div className="flex items-center gap-1">
+          <DatePicker
+            value={draft}
+            onChange={setDraft}
+            clearable={nullable}
+            triggerClassName="text-xs border border-gray-600 bg-gray-800 text-gray-100 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500 flex items-center min-w-[110px]"
+          />
+          <button type="button" onClick={save} disabled={saving} className="text-xs text-blue-400 hover:text-blue-300 px-1">
+            {saving ? "…" : "Save"}
+          </button>
+          <button
+            type="button"
+            onClick={() => { setDraft(value ? value.slice(0, 10) : ""); setEditing(false) }}
+            className="text-xs text-gray-500 hover:text-gray-400"
+          >
+            Cancel
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => { setDraft(value ? value.slice(0, 10) : ""); setEditing(true) }}
+          className="text-sm text-gray-200 hover:text-blue-400 transition-colors tabular-nums"
+          title="Click to edit"
+        >
+          {formatted}
+        </button>
+      )}
+    </div>
   )
 }
 
@@ -779,7 +883,7 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
   const tabs = [
     { key: "items" as const, label: itemsLabel },
     { key: "documents" as const, label: docsLabel },
-    { key: "log" as const, label: "Change Log" },
+    { key: "log" as const, label: "Log" },
   ]
 
   let tabContent: React.ReactNode
@@ -808,7 +912,21 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
             onRefresh={refresh}
           />
         )}
-        {activeTab === "log" && <ChangeLogTab logs={deliverable.systemLogs} />}
+        {activeTab === "log" && (
+          <LogSection
+            commentEndpoint={`/api/adhoc/deliverables/${deliverable.id}/comments`}
+            entries={[
+              ...deliverable.comments.map((c): LogEntry => ({
+                id: c.id, content: c.content, system: c.system, createdAt: c.createdAt, author: c.author,
+              })),
+              ...deliverable.systemLogs.map((l): LogEntry => ({
+                id: l.id, content: l.message, system: true, createdAt: l.createdAt, author: l.user,
+              })),
+            ]}
+            currentUser={{ id: currentUserId, name: "" }}
+            onRefresh={refresh}
+          />
+        )}
       </>
     )
   } else {
@@ -836,6 +954,9 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
                   onBlur={handleTitleBlur}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLTextAreaElement).blur() } }}
                 />
+                {deliverable?.internalId && (
+                  <p className="text-xs font-mono text-gray-500 mt-0.5">{deliverable.internalId}</p>
+                )}
                 <textarea
                   className="w-full mt-2 appearance-none bg-gray-900 focus:bg-gray-800 border border-transparent hover:border-gray-600 focus:border-blue-500 focus:outline-none text-sm text-gray-400 rounded px-1 resize-none transition-colors disabled:opacity-50"
                   rows={2}
@@ -890,6 +1011,14 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
                   </Button>
                 )}
               </div>
+            </div>
+
+            {/* Milestone dates */}
+            <div className="flex flex-wrap gap-6 mt-3 pt-3 border-t border-gray-700/60">
+              <DateField label="Created" value={deliverable.createdAt} deliverableId={deliverable.id} field="createdAt" nullable={false} onSaved={refresh} />
+              <DateField label="Partially Approved" value={deliverable.partiallyApprovedAt} deliverableId={deliverable.id} field="partiallyApprovedAt" onSaved={refresh} />
+              <DateField label="Approved" value={deliverable.approvedAt} deliverableId={deliverable.id} field="approvedAt" onSaved={refresh} />
+              <DateField label="Delivered" value={deliverable.deliveredAt} deliverableId={deliverable.id} field="deliveredAt" onSaved={refresh} />
             </div>
 
             {missingApprovalDoc && !editingApproval && (

@@ -60,7 +60,11 @@ export function OppTableView({
         isAdmin={isAdmin}
       />
 
-      <CommentDialog target={commentTarget} onClose={() => setCommentTarget(null)} />
+      <CommentDialog
+        target={commentTarget}
+        commentEndpoint={commentTarget ? `/api/opportunities/${commentTarget.id}/comments` : ""}
+        onClose={() => setCommentTarget(null)}
+      />
     </>
   )
 }

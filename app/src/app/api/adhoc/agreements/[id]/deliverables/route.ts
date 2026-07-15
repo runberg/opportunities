@@ -3,6 +3,22 @@ import { db } from "@/shared/lib/db"
 import { requireSession } from "@/shared/lib/api"
 import { writeLog } from "@/shared/lib/system-log"
 
+async function generateInternalId(): Promise<string> {
+  const now = new Date()
+  const yr = now.getFullYear().toString()
+  const mo = (now.getMonth() + 1).toString().padStart(2, "0")
+  const prefix = `BT-AH-${yr}${mo}`
+
+  const latest = await db.adhocDeliverable.findFirst({
+    where: { internalId: { startsWith: prefix } },
+    orderBy: { internalId: "desc" },
+    select: { internalId: true },
+  })
+
+  const seq = latest?.internalId ? Number.parseInt(latest.internalId.slice(-4), 10) + 1 : 1
+  return `${prefix}${seq.toString().padStart(4, "0")}`
+}
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -52,8 +68,11 @@ export async function POST(
   if (approvedAmount !== undefined && (Number.isNaN(Number(approvedAmount)) || Number(approvedAmount) < 0))
     return NextResponse.json({ error: "Approved amount must be zero or positive" }, { status: 400 })
 
+  const internalId = await generateInternalId()
+
   const deliverable = await db.adhocDeliverable.create({
     data: {
+      internalId,
       title: title.trim(),
       description: typeof description === "string" ? description.trim() || null : null,
       approvedAmount: Number(approvedAmount ?? 0),
