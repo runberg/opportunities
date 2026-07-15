@@ -72,7 +72,7 @@ function buildCsvRow(d: DeliverableRow): string[] {
 function exportToCsv(agreementTitle: string, deliverables: DeliverableRow[]) {
   const header = ["ID", "Title", "Status", "Approved", "Line Items", "Balance", "Documents"]
   const csv = [header, ...deliverables.map(buildCsvRow)]
-    .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
+    .map((r) => r.map((c) => `"${String(c).replaceAll(/"/g, '""')}"`).join(","))
     .join("\n")
   const blob = new Blob([csv], { type: "text/csv" })
   const url = URL.createObjectURL(blob)
@@ -279,7 +279,7 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-32">ID</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Title</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-28">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-36">Status</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide w-32">Approved</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide w-28">Line Items</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide w-28">Balance</th>
