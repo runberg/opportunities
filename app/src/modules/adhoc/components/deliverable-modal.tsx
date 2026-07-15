@@ -1039,7 +1039,7 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
                   <Button size="sm" variant="ghost" onClick={() => setEditingApproval(true)}>Edit Approval</Button>
                 )}
                 {canEditApproval && !editingApproval && (
-                  <Button size="sm" variant="danger" onClick={handleRevoke} disabled={revoking}>
+                  <Button size="sm" variant="ghost" onClick={handleRevoke} disabled={revoking}>
                     {revoking ? "Revoking…" : "Revoke Approval"}
                   </Button>
                 )}
