@@ -46,7 +46,7 @@ export function AdhocDocList({
     <div className="mb-3">
       <p className="text-xs font-medium text-gray-400 uppercase mb-1.5">{label}</p>
       <div className="border border-gray-700 rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm table-fixed">
           <tbody className="divide-y divide-gray-700">
             {docs.map((doc) => (
               <tr key={doc.id} className="hover:bg-gray-800/50">
@@ -54,13 +54,14 @@ export function AdhocDocList({
                   doc={doc}
                   onViewPdf={() => onView(doc)}
                 />
-                <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap hidden md:table-cell">
+                <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap hidden md:table-cell w-64">
                   {formatBytes(doc.size)} · {doc.uploadedBy?.name ?? "Unknown"} · {formatDate(doc.uploadedAt)}
                 </td>
                 <DocActionCell
                   downloadHref={downloadUrl(doc.id)}
                   originalName={doc.originalName}
                   onDelete={canDelete(doc) ? () => onDelete(doc.id) : null}
+                  className="px-4 py-3 w-24"
                 />
               </tr>
             ))}
