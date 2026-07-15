@@ -800,6 +800,7 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
   const [activeTab, setActiveTab] = useState<"items" | "documents" | "log">("items")
   const [showUpload, setShowUpload] = useState(false)
   const [transitioning, setTransitioning] = useState(false)
+  const [revoking, setRevoking] = useState(false)
   const [editingApproval, setEditingApproval] = useState(false)
   const [approvePanelOpen, setApprovePanelOpen] = useState(false)
 
@@ -867,6 +868,22 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
       await refresh()
     } finally {
       setTransitioning(false)
+    }
+  }
+
+  async function handleRevoke() {
+    if (!deliverable) return
+    setRevoking(true)
+    setEditingApproval(false)
+    try {
+      await fetch(`/api/adhoc/deliverables/${deliverable.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ removeApproval: true }),
+      })
+      await refresh()
+    } finally {
+      setRevoking(false)
     }
   }
 
@@ -1004,6 +1021,11 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
                 )}
                 {canEditApproval && !editingApproval && (
                   <Button size="sm" variant="ghost" onClick={() => setEditingApproval(true)}>Edit Approval</Button>
+                )}
+                {canEditApproval && !editingApproval && (
+                  <Button size="sm" variant="danger" onClick={handleRevoke} disabled={revoking}>
+                    {revoking ? "Revoking…" : "Revoke Approval"}
+                  </Button>
                 )}
                 {canDeliver && (
                   <Button size="sm" variant="outline" onClick={() => handleTransition("DELIVERED")} disabled={transitioning}>
