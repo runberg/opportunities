@@ -16,7 +16,8 @@ Built for small teams on a private network. All data stays on your own server.
 - **Always-editable fields** — click any field to edit it; an "Apply Changes" bar appears when there are unsaved changes
 - **One-click status transitions** — Quote Accepted promotes to EL flow; EL Countersigned promotes to Production
 - **Skip to EL** — on RFQ Received opportunities, skip the quoting step entirely and move directly to the EL stage; the Quote Shared column shows N/A in the EL view
-- **Document management** — upload and download quote, EL, FAT, and SAT documents per opportunity
+- **Document management** — upload and download Quote, EL, FAT, and SAT documents per opportunity; on EL and Production opportunities the EL Documents section is shown above Quote Documents
+- **Opportunity IDs** — each opportunity is assigned a unique internal ID; the ID column is the default sort on all list views (highest first; opportunities without an ID sort to the top, newest first)
 
 ### Dashboard
 - **Pipeline snapshot** — live counts per status across all three pipeline stages; click any number to drill into that cohort
@@ -35,18 +36,20 @@ Built for small teams on a private network. All data stays on your own server.
 - **Status + pending filters** — multi-select status filter and waiting-on filter on all list views
 - **CSV export** — export filtered results from any list view or drill-down modal
 
-### Ad Hoc Agreements ⚠️ Beta
-
-> **This module is in active development.** Functionality and data model may change between releases.
+### Ad Hoc Agreements
 
 Manage agreements that fall outside the main sales pipeline — retainers, one-off work orders, or any engagement that needs its own budget and deliverable tracking.
 
 - **Agreement lifecycle** — DRAFT → SIGNED → CLOSED; the signed state is the active state (no separate activation step)
 - **Budget tracking** — set a total agreement amount; committed and remaining amounts update live as work packages are approved
-- **Work packages** — add deliverables once an agreement is signed; each work package has an approval amount and its own line items and documents
+- **Work packages** — add deliverables once an agreement is signed; each work package has an approval amount, its own line items, and document attachments; documents support Delivery Note, Other, and generic types
+- **Work package IDs** — each work package is assigned a unique internal ID (`YYYYMMNNNN` format) once created; IDs are shown in the table and are the default sort key (highest first; packages without an ID sort to the top, newest first)
+- **Editable dates** — the Created date and all milestone dates (Partially Approved, Approved, Delivered) are directly editable on each work package
+- **Comments and changelog** — each work package has a combined activity feed showing system events alongside user comments; comments can also be added directly from the table without opening the work package
+- **Search, filter, and pagination** — filter work packages by status badge and free-text search; results are paginated at 10 per page
 - **Agreement documents** — upload draft agreements on DRAFT agreements; upload counter-signed copies when marking as signed or at any time afterwards
 - **Signed date** — required when marking an agreement as signed; defaults to today
-- **Audit log** — all agreement and document events appear in the system log under the Ad Hoc filter
+- **Audit log** — all agreement, work package, and document events appear in the system log under the Ad Hoc filter
 
 ### Email notifications
 - Users can opt in to email notifications from their profile page (only visible when an admin has configured and enabled SMTP)
@@ -56,6 +59,8 @@ Manage agreements that fall outside the main sales pipeline — retainers, one-o
 ### UI
 - **Dark theme by default** — deep navy palette; first-time visitors see the dark login page without any flash
 - **Light / Dark toggle** — in the Profile page
+- **Custom date picker** — all date inputs use a bespoke calendar component with prev/next month navigation; works consistently across all browsers and avoids native date-picker quirks
+- **Favicon** — 🎯 emoji favicon displayed in the browser tab
 
 ## Tech stack
 
@@ -299,6 +304,34 @@ The Nginx config includes a commented-out HTTPS block. To enable it:
    ```bash
    docker compose restart nginx
    ```
+
+---
+
+## Backup
+
+Run this from the directory that contains your `docker-compose.yml` to create a timestamped zip of everything you need to restore the app on a new server: the compose file, env config, nginx config, uploaded files, and a dump of the database.
+
+```bash
+# Stop is not required — Postgres is safe to dump while running
+docker compose exec postgres pg_dump -U opportunities opportunities > opportunities-db.sql
+
+zip -r "opportunities-backup-$(date +%Y%m%d).zip" \
+  docker-compose.yml \
+  .env \
+  nginx/ \
+  data/uploads/ \
+  opportunities-db.sql
+
+rm opportunities-db.sql
+```
+
+To restore on a new server, follow the standard deployment steps, start the stack, then load the database dump:
+
+```bash
+docker compose exec -T postgres psql -U opportunities opportunities < opportunities-db.sql
+```
+
+> The `data/postgres/` directory is managed by the Postgres container and should not be zipped directly — always use `pg_dump` for a portable, version-independent backup.
 
 ---
 
