@@ -887,10 +887,26 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
     }
   }
 
+  async function handleRevertDelivered() {
+    if (!deliverable) return
+    setTransitioning(true)
+    try {
+      await fetch(`/api/adhoc/deliverables/${deliverable.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "APPROVED", deliveredAt: null }),
+      })
+      await refresh()
+    } finally {
+      setTransitioning(false)
+    }
+  }
+
   const isLocked = deliverable?.status === "DELIVERED" && !isAdmin
   const canApprove = deliverable?.status === "NOT_APPROVED"
   const canEditApproval = deliverable?.status === "PARTIALLY_APPROVED" || deliverable?.status === "APPROVED"
   const canDeliver = deliverable?.status === "APPROVED"
+  const canRevertDelivered = deliverable?.status === "DELIVERED"
   const missingApprovalDoc =
     canEditApproval &&
     (deliverable?.documents.filter((d) => d.type === "APPROVAL").length ?? 0) === 0
@@ -1030,6 +1046,11 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
                 {canDeliver && (
                   <Button size="sm" variant="outline" onClick={() => handleTransition("DELIVERED")} disabled={transitioning}>
                     {transitioning ? "Saving…" : "Mark Delivered"}
+                  </Button>
+                )}
+                {canRevertDelivered && (
+                  <Button size="sm" variant="danger" onClick={handleRevertDelivered} disabled={transitioning}>
+                    {transitioning ? "Saving…" : "Revert to Approved"}
                   </Button>
                 )}
               </div>

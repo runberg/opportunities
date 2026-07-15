@@ -219,10 +219,11 @@ export async function PATCH(
   })
   if (!deliverable) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
-  if (deliverable.status === "DELIVERED" && session.user.role !== "ADMIN")
-    return NextResponse.json({ error: "Only admins can edit a delivered work package" }, { status: 403 })
-
   const body = await req.json() as Record<string, unknown>
+
+  const isRevertingDelivered = deliverable.status === "DELIVERED" && body.status === "APPROVED"
+  if (deliverable.status === "DELIVERED" && session.user.role !== "ADMIN" && !isRevertingDelivered)
+    return NextResponse.json({ error: "Only admins can edit a delivered work package" }, { status: 403 })
 
   if (body.approve === true)
     return handleApprove(id, body.approvedAmount, session.user.id, deliverable.lineItems, deliverable)
