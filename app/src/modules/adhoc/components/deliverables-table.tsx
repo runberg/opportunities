@@ -106,7 +106,7 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
     <div>
       {/* Header row */}
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-medium text-gray-300">
+        <h3 className="text-sm font-medium text-gray-700">
           Work Packages ({agreement.deliverables.length})
         </h3>
         {canAdd && !adding && (
@@ -121,7 +121,7 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
         <div className="flex gap-2 mb-3">
           <input
             autoFocus
-            className="flex-1 rounded-md border border-gray-600 bg-gray-800 px-3 py-1.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Work package title"
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
@@ -153,7 +153,7 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(0) }}
               placeholder="Search…"
-              className="rounded-md border border-gray-600 bg-gray-800 px-3 py-1.5 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 w-48"
+              className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 w-48"
             />
             <div className="flex gap-1">
               {ALL_STATUSES.map((s) => (
@@ -165,7 +165,7 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
                     "px-2.5 py-1 text-xs rounded-full border transition-colors",
                     statusFilter.has(s)
                       ? "bg-blue-600 border-blue-500 text-white"
-                      : "border-gray-600 text-gray-400 hover:border-gray-500 hover:text-gray-300",
+                      : "border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-700",
                   ].join(" ")}
                 >
                   {STATUS_LABEL[s]}
@@ -175,7 +175,7 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
             {(search || statusFilter.size > 0) && (
               <button
                 type="button"
-                className="text-xs text-gray-500 hover:text-gray-300"
+                className="text-xs text-gray-400 hover:text-gray-600"
                 onClick={() => { setSearch(""); setStatusFilter(new Set()); setPage(0) }}
               >
                 Clear
@@ -184,21 +184,21 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
           </div>
 
           {/* Table */}
-          <div className="border border-gray-700 rounded-lg overflow-hidden">
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-gray-800/50">
+              <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-400 uppercase tracking-wide w-32">ID</th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-400 uppercase tracking-wide">Title</th>
-                  <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-400 uppercase tracking-wide">Status</th>
-                  <th className="px-4 py-2.5 text-right text-xs font-medium text-gray-400 uppercase tracking-wide">Approved</th>
-                  <th className="px-4 py-2.5 text-right text-xs font-medium text-gray-400 uppercase tracking-wide">Line Items</th>
-                  <th className="px-4 py-2.5 text-right text-xs font-medium text-gray-400 uppercase tracking-wide">Balance</th>
-                  <th className="px-4 py-2.5 text-right text-xs font-medium text-gray-400 uppercase tracking-wide">Docs</th>
-                  <th className="px-4 py-2.5 w-10" />
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-32">ID</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Title</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Approved</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Line Items</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Balance</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Docs</th>
+                  <th className="px-4 py-3 w-10" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-700">
+              <tbody className="divide-y divide-gray-100">
                 {paginated.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="px-4 py-8 text-center text-sm text-gray-400">
@@ -213,40 +213,40 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
                   return (
                     <tr
                       key={d.id}
-                      className="bg-gray-800 hover:bg-gray-700/50 transition-colors cursor-pointer"
+                      className="hover:bg-gray-50 transition-colors cursor-pointer"
                       onClick={() => setOpenDeliverableId(d.id)}
                     >
                       <td className="px-4 py-3 w-28">
                         {d.internalId
-                          ? <span className="text-xs font-mono text-gray-400">{d.internalId.slice(6)}</span>
-                          : <span className="text-xs text-gray-600">—</span>
+                          ? <span className="text-xs font-mono text-gray-500">{d.internalId.slice(6)}</span>
+                          : <span className="text-xs text-gray-300">—</span>
                         }
                       </td>
-                      <td className="px-4 py-3">
-                        <p className="text-gray-100 font-medium">{d.title}</p>
+                      <td className="px-4 py-3 max-w-0">
+                        <p className="text-gray-900 font-medium truncate">{d.title}</p>
                       </td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex px-2 py-0.5 text-xs rounded-full font-medium ${STATUS_BADGE[d.status]}`}>
                           {STATUS_LABEL[d.status]}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right text-gray-300 tabular-nums">
+                      <td className="px-4 py-3 text-right text-gray-600 tabular-nums">
                         {approved > 0 ? formatAmount(approved) : "—"}
                       </td>
-                      <td className="px-4 py-3 text-right text-gray-300 tabular-nums">
+                      <td className="px-4 py-3 text-right text-gray-600 tabular-nums">
                         {lineTotal > 0 ? formatAmount(lineTotal) : "—"}
                       </td>
-                      <td className={`px-4 py-3 text-right tabular-nums font-medium ${over ? "text-red-400" : "text-gray-300"}`}>
+                      <td className={`px-4 py-3 text-right tabular-nums font-medium ${over ? "text-red-600" : "text-gray-600"}`}>
                         {approved > 0 ? formatAmount(balance) : "—"}
                       </td>
-                      <td className="px-4 py-3 text-right text-gray-400">
+                      <td className="px-4 py-3 text-right text-gray-500">
                         {d.documents.length}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); setCommentTarget(d) }}
-                          className="p-1 text-gray-500 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors"
+                          className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
                           title="Add comment"
                         >
                           <MessageSquarePlus size={15} />

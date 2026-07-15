@@ -19,7 +19,7 @@ export function ELTable({
       opportunities={opportunities}
       currentUserId={currentUserId}
       isAdmin={isAdmin}
-      initialSortKey="elRequestedDate"
+      initialSortKey="internalId"
       dateColumn={{ label: "EL Requested", sortKey: "elRequestedDate", getValue: (r) => r.elRequestedDate }}
       emptyMessage="No engagement letters found."
     />

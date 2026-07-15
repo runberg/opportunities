@@ -181,13 +181,13 @@ export function OpportunityDataTable({
                     : <span className="text-xs text-gray-300">—</span>
                   }
                 </td>
-                <td className="px-4 py-3">
-                  <span className="font-medium text-gray-900">{row.title}</span>
+                <td className="px-4 py-3 max-w-0">
+                  <span className="font-medium text-gray-900 truncate block">{row.title}</span>
                   {row.reference && (
-                    <div className="text-xs text-gray-400 mt-0.5">{row.reference}</div>
+                    <div className="text-xs text-gray-400 mt-0.5 truncate">{row.reference}</div>
                   )}
                   {row.lastChange && (
-                    <div className="text-xs text-gray-400 italic mt-0.5 truncate max-w-xs">{row.lastChange}</div>
+                    <div className="text-xs text-gray-400 italic mt-0.5 truncate">{row.lastChange}</div>
                   )}
                 </td>
                 <td className="px-4 py-3 text-gray-600 hidden sm:table-cell">{row.customer}</td>
