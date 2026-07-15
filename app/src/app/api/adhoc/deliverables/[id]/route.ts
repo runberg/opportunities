@@ -68,7 +68,7 @@ function validateBody(body: Record<string, unknown>): string | null {
   }
   for (const [field, value] of [["partiallyApprovedAt", partiallyApprovedAt], ["approvedAt", approvedAt], ["deliveredAt", deliveredAt]] as const) {
     if (value !== undefined && value !== null) {
-      if (typeof value !== "string" || isNaN(Date.parse(value as string)))
+      if (typeof value !== "string" || Number.isNaN(Date.parse(value as string)))
         return `${field} must be a valid date or null`
     }
   }
@@ -187,6 +187,21 @@ async function handleRemoveApproval(deliverableId: string, title: string, userId
   return NextResponse.json({ status: "NOT_APPROVED", approvedAmount: 0 })
 }
 
+function buildUpdateData(body: Record<string, unknown>, deliverable: { status: string }) {
+  const { title, description, status } = body
+  const newStatus = status as AdhocDeliverableStatus | undefined
+  return {
+    ...(title !== undefined && { title: (title as string).trim() }),
+    ...(description !== undefined && { description: (description as string | null)?.trim() || null }),
+    ...(newStatus !== undefined && { status: newStatus }),
+    ...(newStatus !== undefined && autoStatusDates(newStatus, deliverable, body)),
+    ...("createdAt" in body && body.createdAt !== null && { createdAt: new Date(body.createdAt as string) }),
+    ...("partiallyApprovedAt" in body && { partiallyApprovedAt: parseDateField(body.partiallyApprovedAt) }),
+    ...("approvedAt" in body && { approvedAt: parseDateField(body.approvedAt) }),
+    ...("deliveredAt" in body && { deliveredAt: parseDateField(body.deliveredAt) }),
+  }
+}
+
 // ─── PATCH ────────────────────────────────────────────────────────────────────
 
 export async function PATCH(
@@ -218,21 +233,9 @@ export async function PATCH(
   const validationError = validateBody(body)
   if (validationError) return NextResponse.json({ error: validationError }, { status: 400 })
 
-  const { title, description, status } = body
-  const newStatus = status as AdhocDeliverableStatus | undefined
-
   const updated = await db.adhocDeliverable.update({
     where: { id },
-    data: {
-      ...(title !== undefined && { title: (title as string).trim() }),
-      ...(description !== undefined && { description: (description as string | null)?.trim() || null }),
-      ...(newStatus !== undefined && { status: newStatus }),
-      ...(newStatus !== undefined && autoStatusDates(newStatus, deliverable, body)),
-      ...("createdAt" in body && body.createdAt !== null && { createdAt: new Date(body.createdAt as string) }),
-      ...("partiallyApprovedAt" in body && { partiallyApprovedAt: parseDateField(body.partiallyApprovedAt) }),
-      ...("approvedAt" in body && { approvedAt: parseDateField(body.approvedAt) }),
-      ...("deliveredAt" in body && { deliveredAt: parseDateField(body.deliveredAt) }),
-    },
+    data: buildUpdateData(body, deliverable),
     include: FULL_INCLUDE,
   })
 
