@@ -216,9 +216,9 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
                       className="bg-gray-800 hover:bg-gray-700/50 transition-colors cursor-pointer"
                       onClick={() => setOpenDeliverableId(d.id)}
                     >
-                      <td className="px-4 py-3 w-32">
+                      <td className="px-4 py-3 w-28">
                         {d.internalId
-                          ? <span className="text-xs font-mono text-gray-400">{d.internalId}</span>
+                          ? <span className="text-xs font-mono text-gray-400">{d.internalId.slice(6)}</span>
                           : <span className="text-xs text-gray-600">—</span>
                         }
                       </td>
