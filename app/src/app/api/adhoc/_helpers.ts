@@ -28,8 +28,12 @@ export function findAllAgreements() {
 
 /**
  * After a line item is added, updated, or deleted, check whether the deliverable
- * should be downgraded from APPROVED to PARTIALLY_APPROVED because line items
- * now exceed the approved amount. No-op if status is anything other than APPROVED.
+ * should be downgraded because line items now exceed the approved amount.
+ *
+ * Applies when status is APPROVED or DELIVERED:
+ *   - lineTotal > approvedAmount and approvedAmount > 0  → PARTIALLY_APPROVED
+ *   - lineTotal > approvedAmount and approvedAmount == 0 → NOT_APPROVED
+ * Also clears deliveredAt when downgrading from DELIVERED.
  */
 export async function recomputeApprovalStatus(
   deliverableId: string,
@@ -39,19 +43,30 @@ export async function recomputeApprovalStatus(
     where: { id: deliverableId },
     include: { lineItems: true },
   })
-  if (del?.status !== "APPROVED") return
+  if (del?.status !== "APPROVED" && del?.status !== "DELIVERED") return
 
   const lineTotal = del.lineItems.reduce((s, li) => s + Number(li.amount), 0)
-  if (lineTotal <= Number(del.approvedAmount)) return
+  const approvedAmount = Number(del.approvedAmount)
+  if (lineTotal <= approvedAmount) return
+
+  const newStatus = approvedAmount > 0 ? "PARTIALLY_APPROVED" : "NOT_APPROVED"
+  const wasDelivered = del.status === "DELIVERED"
 
   await db.adhocDeliverable.update({
     where: { id: deliverableId },
-    data: { status: "PARTIALLY_APPROVED" },
+    data: {
+      status: newStatus,
+      ...(wasDelivered && { deliveredAt: null }),
+    },
   })
 
+  const label = newStatus === "NOT_APPROVED" ? "Not Approved" : "Partially Approved"
+  const reason = approvedAmount > 0
+    ? `line items (${lineTotal.toFixed(2)}) exceed approved amount (${approvedAmount.toFixed(2)})`
+    : `line items (${lineTotal.toFixed(2)}) added with no approved amount`
   await writeLog({
     type: "ADHOC_DELIVERABLE_UPDATED",
-    message: `"${del.title}" downgraded to Partially Approved — line items (${lineTotal.toFixed(2)}) now exceed approved amount (${Number(del.approvedAmount).toFixed(2)})`,
+    message: `"${del.title}" downgraded to ${label} — ${reason}`,
     userId,
     adhocDeliverableId: deliverableId,
   })

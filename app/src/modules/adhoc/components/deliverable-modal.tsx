@@ -1049,7 +1049,7 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
                   </Button>
                 )}
                 {canRevertDelivered && (
-                  <Button size="sm" variant="danger" onClick={handleRevertDelivered} disabled={transitioning}>
+                  <Button size="sm" variant="ghost" onClick={handleRevertDelivered} disabled={transitioning}>
                     {transitioning ? "Saving…" : "Revert to Approved"}
                   </Button>
                 )}
