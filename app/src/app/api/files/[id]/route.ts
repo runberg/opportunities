@@ -49,10 +49,8 @@ export async function DELETE(
   const doc = await db.document.findUnique({ where: { id } })
   if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
-  // Only uploader or admin can delete
-  if (doc.uploadedById !== session.user.id && session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-  }
+  if (session.user.role !== "ADMIN")
+    return NextResponse.json({ error: "Only admins can delete documents" }, { status: 403 })
 
   await db.comment.create({
     data: {

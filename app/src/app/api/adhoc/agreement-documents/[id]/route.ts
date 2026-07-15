@@ -34,8 +34,8 @@ export async function DELETE(
   })
   if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
-  if (doc.uploadedById !== session.user.id && session.user.role !== "ADMIN")
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  if (session.user.role !== "ADMIN")
+    return NextResponse.json({ error: "Only admins can delete documents" }, { status: 403 })
 
   await deleteUploadedFile(doc.filename)
   await db.adhocAgreementDocument.delete({ where: { id } })

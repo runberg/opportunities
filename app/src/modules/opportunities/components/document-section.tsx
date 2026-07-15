@@ -269,7 +269,7 @@ export function DocumentSection({
                   <DocActionCell
                     downloadHref={`/api/files/${doc.id}`}
                     originalName={doc.originalName}
-                    onDelete={(isAdmin || doc.uploadedBy.id === currentUserId) ? () => handleDelete(doc.id, doc.displayName) : null}
+                    onDelete={isAdmin ? () => handleDelete(doc.id, doc.displayName) : null}
                   />
                 </tr>
               ))}

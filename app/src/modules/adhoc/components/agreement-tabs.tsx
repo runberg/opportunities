@@ -110,7 +110,7 @@ function AgreementDocs({ agreement, currentUserId, isAdmin, onRefresh }: Agreeme
         docs={drafts}
         label="Draft Agreement"
         downloadUrl={(id) => `/api/adhoc/agreement-documents/${id}`}
-        canDelete={(doc) => isAdmin || doc.uploadedBy.id === currentUserId}
+        canDelete={() => isAdmin}
         onDelete={handleDelete}
         onView={(doc) => setPdfViewer({ id: doc.id, name: doc.displayName })}
       />
@@ -118,7 +118,7 @@ function AgreementDocs({ agreement, currentUserId, isAdmin, onRefresh }: Agreeme
         docs={countersigned}
         label="Counter-signed"
         downloadUrl={(id) => `/api/adhoc/agreement-documents/${id}`}
-        canDelete={(doc) => isAdmin || doc.uploadedBy.id === currentUserId}
+        canDelete={() => isAdmin}
         onDelete={handleDelete}
         onView={(doc) => setPdfViewer({ id: doc.id, name: doc.displayName })}
       />

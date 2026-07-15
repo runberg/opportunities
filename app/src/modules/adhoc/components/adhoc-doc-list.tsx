@@ -55,7 +55,7 @@ export function AdhocDocList({
                   onViewPdf={() => onView(doc)}
                 />
                 <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap hidden md:table-cell">
-                  {formatBytes(doc.size)} · {doc.uploadedBy.name} · {formatDate(doc.uploadedAt)}
+                  {formatBytes(doc.size)} · {doc.uploadedBy?.name ?? "Unknown"} · {formatDate(doc.uploadedAt)}
                 </td>
                 <DocActionCell
                   downloadHref={downloadUrl(doc.id)}

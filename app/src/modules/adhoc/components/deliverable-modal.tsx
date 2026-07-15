@@ -613,7 +613,7 @@ function DocumentsTab({
         docs={budget}
         label="Budget"
         downloadUrl={(id) => `/api/adhoc/documents/${id}`}
-        canDelete={(doc) => (!isLocked || isAdmin) && (doc.uploadedBy.id === currentUserId || isAdmin)}
+        canDelete={() => isAdmin}
         onDelete={handleDelete}
         onView={(doc) => setPdfViewer({ id: doc.id, name: doc.displayName })}
         emptyText="None uploaded"
@@ -622,7 +622,7 @@ function DocumentsTab({
         docs={approval}
         label="Approval"
         downloadUrl={(id) => `/api/adhoc/documents/${id}`}
-        canDelete={(doc) => (!isLocked || isAdmin) && (doc.uploadedBy.id === currentUserId || isAdmin)}
+        canDelete={() => isAdmin}
         onDelete={handleDelete}
         onView={(doc) => setPdfViewer({ id: doc.id, name: doc.displayName })}
         emptyText="None uploaded"
@@ -631,7 +631,7 @@ function DocumentsTab({
         docs={deliveryNote}
         label="Delivery Note"
         downloadUrl={(id) => `/api/adhoc/documents/${id}`}
-        canDelete={(doc) => (!isLocked || isAdmin) && (doc.uploadedBy.id === currentUserId || isAdmin)}
+        canDelete={() => isAdmin}
         onDelete={handleDelete}
         onView={(doc) => setPdfViewer({ id: doc.id, name: doc.displayName })}
       />
@@ -639,7 +639,7 @@ function DocumentsTab({
         docs={other}
         label="Other"
         downloadUrl={(id) => `/api/adhoc/documents/${id}`}
-        canDelete={(doc) => (!isLocked || isAdmin) && (doc.uploadedBy.id === currentUserId || isAdmin)}
+        canDelete={() => isAdmin}
         onDelete={handleDelete}
         onView={(doc) => setPdfViewer({ id: doc.id, name: doc.displayName })}
       />
