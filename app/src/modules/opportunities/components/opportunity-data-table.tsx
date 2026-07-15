@@ -102,14 +102,14 @@ export function OpportunityDataTable({
     (dateColumn ? 1 : 0) + (showPhases ? 3 : 0) + 1 /* status */ +
     (renderAction ? 1 : 0)
 
-  const productClass = cn("hidden", showPhases ? "lg:table-cell" : "md:table-cell")
+  const productClass = cn("hidden w-36", showPhases ? "lg:table-cell" : "md:table-cell")
 
   return (
     <div className={cn(
       "overflow-x-auto",
       variant === "page" && "bg-white border border-gray-200 rounded-xl overflow-hidden"
     )}>
-      <table className="w-full text-sm">
+      <table className="w-full text-sm table-fixed">
         <thead className="bg-gray-50 border-b border-gray-200">
           <tr>
             {selectable && (
@@ -125,19 +125,19 @@ export function OpportunityDataTable({
             )}
             <SortableHeader label="ID" sortKey="internalId" currentSort={sortKey} currentDir={sortDir} onSort={onSort} className="hidden sm:table-cell w-28" />
             <SortableHeader label="Title" sortKey="title" currentSort={sortKey} currentDir={sortDir} onSort={onSort} />
-            <SortableHeader label="Customer" sortKey="customer" currentSort={sortKey} currentDir={sortDir} onSort={onSort} className="hidden sm:table-cell" />
+            <SortableHeader label="Customer" sortKey="customer" currentSort={sortKey} currentDir={sortDir} onSort={onSort} className="hidden sm:table-cell w-40" />
             <SortableHeader label="Product" sortKey="product" currentSort={sortKey} currentDir={sortDir} onSort={onSort} className={productClass} />
             {dateColumn && (
-              <SortableHeader label={dateColumn.label} sortKey={dateColumn.sortKey} currentSort={sortKey} currentDir={sortDir} onSort={onSort} className="hidden lg:table-cell" />
+              <SortableHeader label={dateColumn.label} sortKey={dateColumn.sortKey} currentSort={sortKey} currentDir={sortDir} onSort={onSort} className="hidden lg:table-cell w-32" />
             )}
             {showPhases && (
               <>
-                <th className="text-center px-3 py-3 text-xs font-semibold text-gray-500 hidden md:table-cell">Adv. Pay</th>
-                <th className="text-center px-3 py-3 text-xs font-semibold text-gray-500 hidden md:table-cell">FAT</th>
-                <th className="text-center px-3 py-3 text-xs font-semibold text-gray-500 hidden md:table-cell">SAT</th>
+                <th className="text-center px-3 py-3 text-xs font-semibold text-gray-500 hidden md:table-cell w-20">Adv. Pay</th>
+                <th className="text-center px-3 py-3 text-xs font-semibold text-gray-500 hidden md:table-cell w-16">FAT</th>
+                <th className="text-center px-3 py-3 text-xs font-semibold text-gray-500 hidden md:table-cell w-16">SAT</th>
               </>
             )}
-            <SortableHeader label="Status" sortKey="status" currentSort={sortKey} currentDir={sortDir} onSort={onSort} />
+            <SortableHeader label="Status" sortKey="status" currentSort={sortKey} currentDir={sortDir} onSort={onSort} className="w-32" />
             {renderAction && <th className="w-10 px-2 py-3" />}
           </tr>
         </thead>
@@ -181,7 +181,7 @@ export function OpportunityDataTable({
                     : <span className="text-xs text-gray-300">—</span>
                   }
                 </td>
-                <td className="px-4 py-3 max-w-0">
+                <td className="px-4 py-3">
                   <span className="font-medium text-gray-900 truncate block">{row.title}</span>
                   {row.reference && (
                     <div className="text-xs text-gray-400 mt-0.5 truncate">{row.reference}</div>

@@ -78,7 +78,7 @@ function exportToCsv(agreementTitle: string, deliverables: DeliverableRow[]) {
   const url = URL.createObjectURL(blob)
   const a = document.createElement("a")
   a.href = url
-  a.download = `${agreementTitle.replace(/[^a-z0-9]/gi, "-").toLowerCase()}-work-packages.csv`
+  a.download = `${agreementTitle.replaceAll(/[^a-z0-9]/gi, "-").toLowerCase()}-work-packages.csv`
   a.click()
   URL.revokeObjectURL(url)
 }
@@ -107,7 +107,7 @@ function DeliverableTableRow({ d, onOpen, onComment }: RowProps) {
           : <span className="text-xs text-gray-300">—</span>
         }
       </td>
-      <td className="px-4 py-3 max-w-0">
+      <td className="px-4 py-3">
         <p className="text-gray-900 font-medium truncate">{d.title}</p>
       </td>
       <td className="px-4 py-3">
@@ -274,16 +274,16 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
           />
 
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm table-fixed">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-32">ID</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Title</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Approved</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Line Items</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Balance</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Docs</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-28">Status</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide w-32">Approved</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide w-28">Line Items</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide w-28">Balance</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide w-14">Docs</th>
                   <th className="px-4 py-3 w-10" />
                 </tr>
               </thead>
