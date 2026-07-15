@@ -33,7 +33,7 @@ export function DocNameCell({
           ) : (
             <div className="font-medium text-gray-100 truncate">{doc.displayName}</div>
           )}
-          <div className="text-xs text-gray-400 font-normal">{truncateFilename(doc.originalName)}</div>
+          <div className="text-xs text-gray-400 font-normal truncate">{truncateFilename(doc.originalName)}</div>
         </div>
       </div>
     </td>

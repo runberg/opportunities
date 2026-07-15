@@ -127,7 +127,7 @@ function DeliverableTableRow({ d, onOpen, onComment }: RowProps) {
       <td className="px-4 py-3 text-right text-gray-500">
         {d.documents.length}
       </td>
-      <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+      <td className="px-2 py-3 text-right" onClick={(e) => e.stopPropagation()}>
         <button
           type="button"
           onClick={() => onComment(d)}
@@ -284,7 +284,7 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
                   <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide w-28">Line Items</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide w-28">Balance</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide w-14">Docs</th>
-                  <th className="px-4 py-3 w-10" />
+                  <th className="px-2 py-3 w-10" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
