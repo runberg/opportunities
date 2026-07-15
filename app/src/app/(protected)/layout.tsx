@@ -19,7 +19,7 @@ export default async function ProtectedLayout({
         currentUserId={session.user.id}
       />
       <main className="flex-1 ml-60 overflow-y-auto">
-        <div className="px-6 py-8">{children}</div>
+        <div className="max-w-[1600px] mx-auto px-6 py-8">{children}</div>
       </main>
     </div>
   )

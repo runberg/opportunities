@@ -1,12 +1,12 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { MessageSquarePlus } from "lucide-react"
+import { MessageSquarePlus, Search, ChevronLeft, ChevronRight } from "lucide-react"
 import type { AgreementRow } from "./adhoc-client"
 import { DeliverableModal } from "./deliverable-modal"
 import { CommentDialog } from "@/shared/components/ui/comment-dialog"
 import { Button } from "@/shared/components/ui/button"
-import { formatAmount } from "@/shared/lib/utils"
+import { formatAmount, cn } from "@/shared/lib/utils"
 import { DELIVERABLE_STATUS_BADGE as STATUS_BADGE } from "../constants"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -25,6 +25,13 @@ const STATUS_LABEL: Record<string, string> = {
 
 const ALL_STATUSES: DeliverableStatus[] = ["NOT_APPROVED", "PARTIALLY_APPROVED", "APPROVED", "DELIVERED"]
 const PAGE_SIZE = 10
+
+function compareDeliverables(a: DeliverableRow, b: DeliverableRow): number {
+  if (a.internalId === null && b.internalId === null) return b.createdAt.localeCompare(a.createdAt)
+  if (a.internalId === null) return -1
+  if (b.internalId === null) return 1
+  return b.internalId.localeCompare(a.internalId)
+}
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -66,14 +73,7 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
       if (q && !d.title.toLowerCase().includes(q) && !(d.internalId?.toLowerCase().includes(q))) return false
       return true
     })
-    return matches.sort((a, b) => {
-      if (a.internalId === null && b.internalId === null) {
-        return b.createdAt.localeCompare(a.createdAt)
-      }
-      if (a.internalId === null) return -1
-      if (b.internalId === null) return 1
-      return b.internalId.localeCompare(a.internalId)
-    })
+    return matches.sort(compareDeliverables)
   }, [agreement.deliverables, search, statusFilter])
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
@@ -147,26 +147,29 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
       ) : (
         <>
           {/* Search + status filters */}
-          <div className="flex flex-wrap items-center gap-2 mb-3">
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(0) }}
-              placeholder="Search…"
-              className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 w-48"
-            />
+          <div className="flex flex-wrap gap-3 mb-4">
+            <div className="relative min-w-48">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(0) }}
+                placeholder="Search…"
+                className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
+              />
+            </div>
             <div className="flex gap-1">
               {ALL_STATUSES.map((s) => (
                 <button
                   key={s}
                   type="button"
                   onClick={() => toggleStatus(s)}
-                  className={[
-                    "px-2.5 py-1 text-xs rounded-full border transition-colors",
+                  className={cn(
+                    "px-3 py-2 text-sm rounded-lg border transition-colors",
                     statusFilter.has(s)
-                      ? "bg-blue-600 border-blue-500 text-white"
-                      : "border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-700",
-                  ].join(" ")}
+                      ? "bg-[#006fff] border-[#006fff] text-white"
+                      : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                  )}
                 >
                   {STATUS_LABEL[s]}
                 </button>
@@ -175,10 +178,10 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
             {(search || statusFilter.size > 0) && (
               <button
                 type="button"
-                className="text-xs text-gray-400 hover:text-gray-600"
+                className="px-4 py-2 text-gray-500 text-sm rounded-lg hover:bg-gray-100 transition-colors"
                 onClick={() => { setSearch(""); setStatusFilter(new Set()); setPage(0) }}
               >
-                Clear
+                Clear all
               </button>
             )}
           </div>
@@ -261,19 +264,35 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-3">
-              <p className="text-xs text-gray-500">
+            <div className="flex items-center justify-between mt-4 px-1">
+              <span className="text-sm text-gray-500">
                 {filtered.length} work package{filtered.length !== 1 ? "s" : ""}
                 {(search || statusFilter.size > 0) ? " (filtered)" : ""}
-              </p>
+              </span>
               <div className="flex items-center gap-1">
-                <Button size="sm" variant="ghost" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
-                  ‹ Prev
-                </Button>
-                <span className="text-xs text-gray-400 px-2">{page + 1} / {totalPages}</span>
-                <Button size="sm" variant="ghost" disabled={page >= totalPages - 1} onClick={() => setPage((p) => p + 1)}>
-                  Next ›
-                </Button>
+                <button
+                  type="button"
+                  disabled={page === 0}
+                  onClick={() => setPage((p) => p - 1)}
+                  className={cn(
+                    "p-1.5 rounded-lg border border-gray-300 transition-colors",
+                    page === 0 ? "opacity-40 cursor-not-allowed" : "hover:bg-gray-50"
+                  )}
+                >
+                  <ChevronLeft size={14} />
+                </button>
+                <span className="text-sm text-gray-500 px-1">{page + 1} / {totalPages}</span>
+                <button
+                  type="button"
+                  disabled={page >= totalPages - 1}
+                  onClick={() => setPage((p) => p + 1)}
+                  className={cn(
+                    "p-1.5 rounded-lg border border-gray-300 transition-colors",
+                    page >= totalPages - 1 ? "opacity-40 cursor-not-allowed" : "hover:bg-gray-50"
+                  )}
+                >
+                  <ChevronRight size={14} />
+                </button>
               </div>
             </div>
           )}
