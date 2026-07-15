@@ -57,8 +57,7 @@ Manage agreements that fall outside the main sales pipeline — retainers, one-o
 - Template is editable by admin with placeholders: `{{title}}`, `{{internalId}}`, `{{customer}}`, `{{status}}`, `{{link}}`
 
 ### UI
-- **Dark theme by default** — deep navy palette; first-time visitors see the dark login page without any flash
-- **Light / Dark toggle** — in the Profile page
+- **Dark theme** — deep navy palette throughout; no light mode
 - **Custom date picker** — all date inputs use a bespoke calendar component with prev/next month navigation; works consistently across all browsers and avoids native date-picker quirks
 - **Favicon** — 🎯 emoji favicon displayed in the browser tab
 
