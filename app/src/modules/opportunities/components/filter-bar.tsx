@@ -57,11 +57,9 @@ export function FilterBar({
     statuses: g.statuses.map((s) => ({ value: s, label: STATUS_LABELS[s] ?? s })),
   }))
 
-  const exportUrl = exportType
-    ? `/api/export?type=${exportType}` +
-      (query ? `&q=${encodeURIComponent(query)}` : "") +
-      (statusParam ? `&status=${encodeURIComponent(statusParam)}` : "")
-    : null
+  const queryPart = query ? `&q=${encodeURIComponent(query)}` : ""
+  const statusPart = statusParam ? `&status=${encodeURIComponent(statusParam)}` : ""
+  const exportUrl = exportType ? `/api/export?type=${exportType}${queryPart}${statusPart}` : null
 
   const exportNode = exportUrl ? (
     <a

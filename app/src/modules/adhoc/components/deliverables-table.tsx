@@ -72,7 +72,7 @@ function buildCsvRow(d: DeliverableRow): string[] {
 function exportToCsv(agreementTitle: string, deliverables: DeliverableRow[]) {
   const header = ["ID", "Title", "Status", "Approved", "Line Items", "Balance", "Documents"]
   const csv = [header, ...deliverables.map(buildCsvRow)]
-    .map((r) => r.map((c) => `"${String(c).replaceAll(/"/g, '""')}"`).join(","))
+    .map((r) => r.map((c) => `"${String(c).replaceAll('"', '""')}"`).join(","))
     .join("\n")
   const blob = new Blob([csv], { type: "text/csv" })
   const url = URL.createObjectURL(blob)

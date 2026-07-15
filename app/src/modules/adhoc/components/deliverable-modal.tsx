@@ -544,6 +544,7 @@ function DocumentsTab({
   const [displayName, setDisplayName] = useState("")
   const [file, setFile] = useState<File | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const [pdfViewer, setPdfViewer] = useState<{ id: string; name: string } | null>(null)
 
   function applyFile(f: File) {
@@ -578,7 +579,13 @@ function DocumentsTab({
   }
 
   async function handleDelete(docId: string) {
-    await fetch(`/api/adhoc/documents/${docId}`, { method: "DELETE" })
+    setDeleteError(null)
+    const res = await fetch(`/api/adhoc/documents/${docId}`, { method: "DELETE" })
+    if (!res.ok) {
+      const data = await res.json() as { error?: string }
+      setDeleteError(data.error ?? "Failed to delete document")
+      return
+    }
     await onRefresh()
   }
 
@@ -596,6 +603,10 @@ function DocumentsTab({
             Upload
           </Button>
         </div>
+      )}
+
+      {deleteError && (
+        <p className="text-xs text-red-400 bg-red-900/20 px-3 py-1.5 rounded-md mb-3">{deleteError}</p>
       )}
 
       <AdhocDocList
