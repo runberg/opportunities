@@ -596,15 +596,6 @@ function DocumentsTab({
 
   return (
     <div>
-      {!isLocked && (
-        <div className="flex justify-end mb-3">
-          <Button variant="secondary" size="sm" onClick={() => onShowUpload(!showUpload)}>
-            <Upload size={13} className="mr-1.5" />
-            Upload
-          </Button>
-        </div>
-      )}
-
       {deleteError && (
         <p className="text-xs text-red-400 bg-red-900/20 px-3 py-1.5 rounded-md mb-3">{deleteError}</p>
       )}
@@ -643,6 +634,15 @@ function DocumentsTab({
         onDelete={handleDelete}
         onView={(doc) => setPdfViewer({ id: doc.id, name: doc.displayName })}
       />
+
+      {!isLocked && (
+        <div className="flex justify-end mt-2 mb-1">
+          <Button variant="secondary" size="sm" onClick={() => onShowUpload(!showUpload)}>
+            <Upload size={13} className="mr-1.5" />
+            Upload
+          </Button>
+        </div>
+      )}
 
       {showUpload && !isLocked && (
         <form
@@ -998,20 +998,13 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
                   onBlur={handleTitleBlur}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLTextAreaElement).blur() } }}
                 />
-                {deliverable?.internalId && (
-                  <p className="text-xs font-mono text-gray-500 mt-0.5">{deliverable.internalId}</p>
-                )}
-                <textarea
-                  className="w-full mt-2 appearance-none bg-gray-900 focus:bg-gray-800 border border-transparent hover:border-gray-600 focus:border-blue-500 focus:outline-none text-sm text-gray-400 rounded px-1 resize-none transition-colors disabled:opacity-50"
-                  rows={2}
-                  placeholder={isLocked ? "" : "Add description…"}
-                  value={descDraft}
-                  disabled={!!isLocked}
-                  onChange={(e) => setDescDraft(e.target.value)}
-                  onBlur={handleDescBlur}
-                  onKeyDown={(e) => { if (e.key === "Escape") setDescDraft(deliverable?.description ?? "") }}
-                />
-                <p className="text-xs text-gray-400 mt-0.5">Created by {deliverable?.createdBy.name}</p>
+                <div className="flex items-center justify-between mt-0.5">
+                  {deliverable?.internalId
+                    ? <p className="text-xs font-mono text-gray-500">{deliverable.internalId}</p>
+                    : <span />
+                  }
+                  <p className="text-xs text-gray-500">Created by {deliverable?.createdBy.name}</p>
+                </div>
               </>
             )}
           </div>
@@ -1092,6 +1085,22 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
                 onClose={() => setEditingApproval(false)}
               />
             )}
+          </div>
+        )}
+
+        {/* Description */}
+        {deliverable && (
+          <div className="px-6 py-3 border-b border-gray-700">
+            <textarea
+              className="w-full appearance-none bg-gray-900 focus:bg-gray-800 border border-transparent hover:border-gray-600 focus:border-blue-500 focus:outline-none text-sm text-gray-300 rounded px-1.5 py-1 resize-none transition-colors disabled:opacity-50 placeholder:text-gray-600"
+              rows={3}
+              placeholder={isLocked ? "" : "Add description…"}
+              value={descDraft}
+              disabled={!!isLocked}
+              onChange={(e) => setDescDraft(e.target.value)}
+              onBlur={handleDescBlur}
+              onKeyDown={(e) => { if (e.key === "Escape") setDescDraft(deliverable.description ?? "") }}
+            />
           </div>
         )}
 
