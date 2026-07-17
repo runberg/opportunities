@@ -3,10 +3,9 @@ import { db } from "@/shared/lib/db"
 import { requireSession } from "@/shared/lib/api"
 import { writeLog } from "@/shared/lib/system-log"
 
-async function generateInternalId(): Promise<string> {
-  const now = new Date()
-  const yr = now.getFullYear().toString()
-  const mo = (now.getMonth() + 1).toString().padStart(2, "0")
+async function generateInternalId(date: Date): Promise<string> {
+  const yr = date.getFullYear().toString()
+  const mo = (date.getMonth() + 1).toString().padStart(2, "0")
   const prefix = `BT-AH-${yr}${mo}`
 
   const latest = await db.adhocDeliverable.findFirst({
@@ -61,14 +60,17 @@ export async function POST(
     return NextResponse.json({ error: "Deliverables can only be added to a signed or active agreement" }, { status: 422 })
 
   const body = await req.json()
-  const { title, description, approvedAmount } = body
+  const { title, description, approvedAmount, createdAt } = body
 
   if (!title || typeof title !== "string" || title.trim() === "")
     return NextResponse.json({ error: "Title is required" }, { status: 400 })
   if (approvedAmount !== undefined && (Number.isNaN(Number(approvedAmount)) || Number(approvedAmount) < 0))
     return NextResponse.json({ error: "Approved amount must be zero or positive" }, { status: 400 })
+  if (createdAt !== undefined && (typeof createdAt !== "string" || Number.isNaN(Date.parse(createdAt))))
+    return NextResponse.json({ error: "createdAt must be a valid date" }, { status: 400 })
 
-  const internalId = await generateInternalId()
+  const createdAtDate = createdAt ? new Date(createdAt) : new Date()
+  const internalId = await generateInternalId(createdAtDate)
 
   const deliverable = await db.adhocDeliverable.create({
     data: {
@@ -76,6 +78,7 @@ export async function POST(
       title: title.trim(),
       description: typeof description === "string" ? description.trim() || null : null,
       approvedAmount: Number(approvedAmount ?? 0),
+      createdAt: createdAtDate,
       agreementId: id,
       createdById: session.user.id,
     },

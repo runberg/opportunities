@@ -157,6 +157,7 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
   const [commentTarget, setCommentTarget] = useState<DeliverableRow | null>(null)
   const [adding, setAdding] = useState(false)
   const [newTitle, setNewTitle] = useState("")
+  const [newDate, setNewDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
@@ -191,7 +192,7 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
       const res = await fetch(`/api/adhoc/agreements/${agreement.id}/deliverables`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: newTitle.trim() }),
+        body: JSON.stringify({ title: newTitle.trim(), createdAt: newDate }),
       })
       if (!res.ok) {
         const data = await res.json()
@@ -199,6 +200,7 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
         return
       }
       setNewTitle("")
+      setNewDate(new Date().toISOString().slice(0, 10))
       setAdding(false)
       await onRefresh()
     } finally {
@@ -245,10 +247,16 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
               if (e.key === "Escape") { setAdding(false); setNewTitle("") }
             }}
           />
+          <input
+            type="date"
+            className="rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={newDate}
+            onChange={(e) => setNewDate(e.target.value)}
+          />
           <Button variant="primary" size="sm" onClick={handleAdd} disabled={saving || !newTitle.trim()}>
             {saving ? "Saving…" : "Add"}
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => { setAdding(false); setNewTitle("") }}>
+          <Button variant="ghost" size="sm" onClick={() => { setAdding(false); setNewTitle(""); setNewDate(new Date().toISOString().slice(0, 10)) }}>
             Cancel
           </Button>
         </div>
