@@ -33,6 +33,10 @@ export type AgreementRow = {
     title: string
     status: string
     approvedAmount: string
+    approverName: string | null
+    approvedAt: string | null
+    deliveredAt: string | null
+    deliveryNoteRef: string | null
     lineItems: { amount: string }[]
     documents: { id: string }[]
   }[]

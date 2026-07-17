@@ -55,22 +55,31 @@ function filterDeliverables(
     .sort(compareDeliverables)
 }
 
+function isoDate(value: string | null): string {
+  return value ? value.slice(0, 10) : ""
+}
+
 function buildCsvRow(d: DeliverableRow): string[] {
   const approved = Number(d.approvedAmount)
   const lineTotal = d.lineItems.reduce((s, li) => s + Number(li.amount), 0)
   return [
-    d.internalId?.slice(6) ?? "",
+    d.internalId ?? "",
     d.title,
     STATUS_LABEL[d.status] ?? d.status,
     approved > 0 ? approved.toFixed(2) : "",
     lineTotal > 0 ? lineTotal.toFixed(2) : "",
     approved > 0 ? (approved - lineTotal).toFixed(2) : "",
     d.documents.length.toString(),
+    isoDate(d.createdAt),
+    isoDate(d.approvedAt),
+    isoDate(d.deliveredAt),
+    d.approverName ?? "",
+    d.deliveryNoteRef ?? "",
   ]
 }
 
 function exportToCsv(agreementTitle: string, deliverables: DeliverableRow[]) {
-  const header = ["ID", "Title", "Status", "Approved", "Line Items", "Balance", "Documents"]
+  const header = ["ID", "Title", "Status", "Approved", "Line Items", "Balance", "Documents", "Created", "Approved Date", "Delivered Date", "Approver", "DN Ref."]
   const csv = [header, ...deliverables.map(buildCsvRow)]
     .map((r) => r.map((c) => `"${String(c).replaceAll('"', '""')}"`).join(","))
     .join("\n")
