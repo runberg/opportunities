@@ -104,7 +104,7 @@ function ApproveForm({
 }) {
   const lineTotal = lineItemTotal(deliverable.lineItems)
   const [amount, setAmount] = useState(lineTotal > 0 ? String(lineTotal) : "")
-  const [approverName, setApproverName] = useState("")
+  const [approverName, setApproverName] = useState(deliverable.approverName ?? "")
   const [displayName, setDisplayName] = useState("")
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
