@@ -6,6 +6,7 @@ import type { AgreementRow } from "./adhoc-client"
 import { DeliverableModal } from "./deliverable-modal"
 import { CommentDialog } from "@/shared/components/ui/comment-dialog"
 import { Button } from "@/shared/components/ui/button"
+import { DatePicker } from "@/shared/components/ui/date-picker"
 import { TableFilterBar, type FilterStatusGroup } from "@/shared/components/ui/table-filter-bar"
 import { ClientPagination } from "@/shared/components/ui/client-pagination"
 import { formatAmount } from "@/shared/lib/utils"
@@ -244,11 +245,11 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
       {/* Add form */}
       {adding && (
         <div className="flex gap-2 mb-3">
-          <input
-            type="date"
-            className="rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          <DatePicker
             value={newDate}
-            onChange={(e) => setNewDate(e.target.value)}
+            onChange={(v) => { if (v) setNewDate(v) }}
+            clearable={false}
+            triggerClassName="rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-900 flex items-center focus:outline-none focus:ring-1 focus:ring-blue-500 w-36"
           />
           <input
             autoFocus

@@ -563,10 +563,13 @@ function DocumentsTab({
   const [docType, setDocType] = useState<"BUDGET" | "APPROVAL" | "DELIVERY_NOTE" | "OTHER">("BUDGET")
   const [displayName, setDisplayName] = useState("")
   const [dnRef, setDnRef] = useState("")
+  const [approverName, setApproverName] = useState(deliverable.approverName ?? "")
   const [file, setFile] = useState<File | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [pdfViewer, setPdfViewer] = useState<{ id: string; name: string } | null>(null)
+
+  useEffect(() => { setApproverName(deliverable.approverName ?? "") }, [deliverable.approverName])
 
   function applyFile(f: File) {
     setFile(f)
@@ -595,6 +598,13 @@ function DocumentsTab({
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ deliveryNoteRef: dnRef.trim() }),
+        })
+      }
+      if (docType === "APPROVAL" && approverName.trim()) {
+        await fetch(`/api/adhoc/deliverables/${deliverable.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ approverName: approverName.trim() }),
         })
       }
       setDisplayName("")
@@ -694,6 +704,20 @@ function DocumentsTab({
                   <option value="OTHER">Other</option>
                 </select>
               </div>
+              {docType === "APPROVAL" && (
+                <div>
+                  <label htmlFor="dm-approver" className="block text-xs font-medium text-gray-400 mb-1">
+                    Approver <span className="font-normal text-gray-500">(optional)</span>
+                  </label>
+                  <input
+                    id="dm-approver"
+                    value={approverName}
+                    onChange={(e) => setApproverName(e.target.value)}
+                    placeholder="Approver name"
+                    className="w-full px-3 py-2 border border-gray-600 rounded-lg text-sm bg-gray-800 text-gray-100 focus:outline-none focus:ring-1 focus:ring-gray-500"
+                  />
+                </div>
+              )}
               {docType === "DELIVERY_NOTE" && (
                 <div>
                   <label htmlFor="dm-dn-ref" className="block text-xs font-medium text-gray-400 mb-1">
@@ -727,7 +751,7 @@ function DocumentsTab({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => { onShowUpload(false); setFile(null); setDisplayName(""); setDnRef("") }}
+                  onClick={() => { onShowUpload(false); setFile(null); setDisplayName(""); setDnRef(""); setApproverName(deliverable.approverName ?? "") }}
                 >
                   Cancel
                 </Button>
