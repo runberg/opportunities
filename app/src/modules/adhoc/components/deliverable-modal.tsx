@@ -55,6 +55,7 @@ type Deliverable = {
   description: string | null
   approvedAmount: string
   approverName: string | null
+  deliveryNoteRef: string | null
   status: "NOT_APPROVED" | "PARTIALLY_APPROVED" | "APPROVED" | "DELIVERED"
   partiallyApprovedAt: string | null
   approvedAt: string | null
@@ -561,6 +562,7 @@ function DocumentsTab({
   const [uploading, setUploading] = useState(false)
   const [docType, setDocType] = useState<"BUDGET" | "APPROVAL" | "DELIVERY_NOTE" | "OTHER">("BUDGET")
   const [displayName, setDisplayName] = useState("")
+  const [dnRef, setDnRef] = useState("")
   const [file, setFile] = useState<File | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -588,7 +590,15 @@ function DocumentsTab({
         body: fd,
       })
       if (!res.ok) { setUploadError((await res.json() as { error?: string }).error ?? "Upload failed"); return }
+      if (docType === "DELIVERY_NOTE" && dnRef.trim()) {
+        await fetch(`/api/adhoc/deliverables/${deliverable.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ deliveryNoteRef: dnRef.trim() }),
+        })
+      }
       setDisplayName("")
+      setDnRef("")
       setFile(null)
       onShowUpload(false)
       await onRefresh()
@@ -684,6 +694,20 @@ function DocumentsTab({
                   <option value="OTHER">Other</option>
                 </select>
               </div>
+              {docType === "DELIVERY_NOTE" && (
+                <div>
+                  <label htmlFor="dm-dn-ref" className="block text-xs font-medium text-gray-400 mb-1">
+                    DN Ref. <span className="font-normal text-gray-500">(optional)</span>
+                  </label>
+                  <input
+                    id="dm-dn-ref"
+                    value={dnRef}
+                    onChange={(e) => setDnRef(e.target.value)}
+                    placeholder="e.g. DN-2026-001"
+                    className="w-full px-3 py-2 border border-gray-600 rounded-lg text-sm bg-gray-800 text-gray-100 focus:outline-none focus:ring-1 focus:ring-gray-500"
+                  />
+                </div>
+              )}
               <div>
                 <label htmlFor="dm-doc-name" className="block text-xs font-medium text-gray-400 mb-1">Name *</label>
                 <input
@@ -703,7 +727,7 @@ function DocumentsTab({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => { onShowUpload(false); setFile(null); setDisplayName("") }}
+                  onClick={() => { onShowUpload(false); setFile(null); setDisplayName(""); setDnRef("") }}
                 >
                   Cancel
                 </Button>
@@ -795,6 +819,193 @@ function ApproverNameField({
           {value ?? <span className="text-gray-600 italic text-xs">—</span>}
         </button>
       )}
+    </div>
+  )
+}
+
+// ─── Delivery Note Ref field ──────────────────────────────────────────────────
+
+function DeliveryNoteRefField({
+  value,
+  deliverableId,
+  onSaved,
+}: {
+  readonly value: string | null
+  readonly deliverableId: string
+  readonly onSaved: () => Promise<void>
+}) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(value ?? "")
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => { setDraft(value ?? "") }, [value])
+
+  async function save() {
+    setSaving(true)
+    try {
+      await fetch(`/api/adhoc/deliverables/${deliverableId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deliveryNoteRef: draft.trim() || null }),
+      })
+      setEditing(false)
+      await onSaved()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div>
+      <p className="text-xs text-gray-400">DN Ref.</p>
+      {editing ? (
+        <div className="flex items-center gap-1 mt-0.5">
+          <input
+            autoFocus
+            className="rounded border border-gray-600 bg-gray-800 px-1.5 py-0.5 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 w-36"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") { void save() }
+              if (e.key === "Escape") { setDraft(value ?? ""); setEditing(false) }
+            }}
+            onBlur={() => { void save() }}
+          />
+          {saving && <span className="text-xs text-gray-500">…</span>}
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="text-sm text-gray-200 hover:text-blue-400 transition-colors mt-0.5 block text-left"
+          title="Click to edit"
+        >
+          {value ?? <span className="text-gray-600 italic text-xs">—</span>}
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ─── Deliver panel ────────────────────────────────────────────────────────────
+
+function DeliverPanel({
+  deliverable,
+  onDone,
+  onClose,
+}: {
+  readonly deliverable: Deliverable
+  readonly onDone: () => Promise<void>
+  readonly onClose: () => void
+}) {
+  const hasDeliveryNote = deliverable.documents.some((d) => d.type === "DELIVERY_NOTE")
+  const [dnRef, setDnRef] = useState(deliverable.deliveryNoteRef ?? "")
+  const [displayName, setDisplayName] = useState("")
+  const [docFile, setDocFile] = useState<File | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  function applyFile(f: File) {
+    setDocFile(f)
+    setDisplayName((prev) => prev.trim() === "" ? nameFromFile(f) : prev)
+  }
+
+  const { dragging, onDragOver, onDragLeave, onDrop } = useDropZone(applyFile)
+
+  async function handleConfirm() {
+    setSaving(true)
+    setError(null)
+    try {
+      if (docFile) {
+        if (!displayName.trim()) { setError("Please enter a display name for the document"); setSaving(false); return }
+        setUploading(true)
+        const fd = new FormData()
+        fd.append("file", docFile)
+        fd.append("displayName", displayName.trim())
+        fd.append("type", "DELIVERY_NOTE")
+        const upRes = await fetch(`/api/adhoc/deliverables/${deliverable.id}/documents`, { method: "POST", body: fd })
+        setUploading(false)
+        if (!upRes.ok) { setError((await upRes.json() as { error?: string }).error ?? "Upload failed"); return }
+      }
+      const res = await fetch(`/api/adhoc/deliverables/${deliverable.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "DELIVERED", deliveryNoteRef: dnRef.trim() || null }),
+      })
+      if (!res.ok) { setError((await res.json() as { error?: string }).error ?? "Save failed"); return }
+      onClose()
+      await onDone()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="mt-3 pt-3 border-t border-gray-700 space-y-3">
+      <div className="flex flex-wrap gap-3 items-start">
+        <div>
+          <label htmlFor="deliver-dnref" className="block text-xs text-gray-400 mb-1">
+            DN Ref. <span className="text-gray-600">(optional)</span>
+          </label>
+          <input
+            id="deliver-dnref"
+            autoFocus
+            type="text"
+            className="w-44 rounded border border-gray-600 bg-gray-800 px-2 py-1.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="e.g. DN-2026-001"
+            value={dnRef}
+            onChange={(e) => setDnRef(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") void handleConfirm() }}
+          />
+        </div>
+        <div className="flex-1 min-w-60">
+          {hasDeliveryNote && (
+            <div className="mb-2 px-2.5 py-2 bg-green-900/20 border border-green-800/60 rounded-lg">
+              <p className="text-xs font-medium text-green-400 mb-1">Delivery note already uploaded</p>
+              <ul className="space-y-0.5">
+                {deliverable.documents.filter((d) => d.type === "DELIVERY_NOTE").map((doc) => (
+                  <li key={doc.id} className="text-xs text-green-300">✓ {doc.displayName}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <p className="text-xs text-gray-400 mb-1">
+            {hasDeliveryNote
+              ? "Upload additional delivery note"
+              : <>Delivery Note Document <span className="font-normal text-gray-500">(optional)</span></>
+            }
+          </p>
+          <div className="mb-2">
+            <input
+              className="w-full rounded border border-gray-600 bg-gray-800 px-2 py-1.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Display name"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+            />
+          </div>
+          <FileDropZone
+            file={docFile}
+            dragging={dragging}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onDrop={onDrop}
+            onFile={applyFile}
+            accept=".pdf,.xlsx,.xls,.docx,.doc,.pptx,.ppt,.png,.jpg,.jpeg"
+            compact
+          />
+          {uploading && <p className="text-xs text-gray-500 mt-0.5">Uploading…</p>}
+        </div>
+      </div>
+
+      {error && <p className="text-xs text-red-600">{error}</p>}
+
+      <div className="flex gap-2">
+        <Button size="sm" variant="primary" onClick={() => void handleConfirm()} disabled={saving || uploading}>
+          {saving ? "Saving…" : "Confirm Delivery"}
+        </Button>
+        <Button size="sm" variant="ghost" onClick={onClose}>Cancel</Button>
+      </div>
     </div>
   )
 }
@@ -897,6 +1108,7 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
   const [revoking, setRevoking] = useState(false)
   const [editingApproval, setEditingApproval] = useState(false)
   const [approvePanelOpen, setApprovePanelOpen] = useState(false)
+  const [deliverPanelOpen, setDeliverPanelOpen] = useState(false)
 
   const [titleDraft, setTitleDraft] = useState("")
   const [descDraft, setDescDraft] = useState("")
@@ -919,10 +1131,11 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
   useEffect(() => {
     setApprovePanelOpen(false)
     setEditingApproval(false)
+    setDeliverPanelOpen(false)
   }, [deliverable?.status])
 
   useWindowDragExpand(() => {
-    if (!approvePanelOpen) {
+    if (!approvePanelOpen && !deliverPanelOpen) {
       setActiveTab("documents")
       setShowUpload(true)
     }
@@ -953,21 +1166,6 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
     const trimmed = descDraft.trim()
     const current = deliverable?.description ?? ""
     if (trimmed !== current) void saveField(deliverable?.title ?? titleDraft, trimmed || null)
-  }
-
-  async function handleTransition(nextStatus: string) {
-    if (!deliverable) return
-    setTransitioning(true)
-    try {
-      await fetch(`/api/adhoc/deliverables/${deliverable.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: nextStatus }),
-      })
-      await refresh()
-    } finally {
-      setTransitioning(false)
-    }
   }
 
   async function handleRevoke() {
@@ -1129,6 +1327,13 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
                     onSaved={refresh}
                   />
                 )}
+                {(deliverable.status === "DELIVERED" || deliverable.deliveryNoteRef) && (
+                  <DeliveryNoteRefField
+                    value={deliverable.deliveryNoteRef}
+                    deliverableId={deliverable.id}
+                    onSaved={refresh}
+                  />
+                )}
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {canApprove && !approvePanelOpen && (
@@ -1142,9 +1347,9 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
                     {revoking ? "Revoking…" : "Revoke Approval"}
                   </Button>
                 )}
-                {canDeliver && (
-                  <Button size="sm" variant="outline" onClick={() => handleTransition("DELIVERED")} disabled={transitioning}>
-                    {transitioning ? "Saving…" : "Mark Delivered"}
+                {canDeliver && !deliverPanelOpen && (
+                  <Button size="sm" variant="outline" onClick={() => setDeliverPanelOpen(true)}>
+                    Mark Delivered
                   </Button>
                 )}
                 {canRevertDelivered && (
@@ -1178,6 +1383,14 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
                 deliverable={deliverable}
                 onDone={refresh}
                 onClose={() => setEditingApproval(false)}
+              />
+            )}
+
+            {canDeliver && deliverPanelOpen && (
+              <DeliverPanel
+                deliverable={deliverable}
+                onDone={refresh}
+                onClose={() => setDeliverPanelOpen(false)}
               />
             )}
           </div>

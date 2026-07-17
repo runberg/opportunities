@@ -197,6 +197,7 @@ function buildUpdateData(body: Record<string, unknown>, deliverable: { status: s
     ...(title !== undefined && { title: (title as string).trim() }),
     ...(description !== undefined && { description: (description as string | null)?.trim() || null }),
     ...("approverName" in body && { approverName: (body.approverName as string | null)?.trim() || null }),
+    ...("deliveryNoteRef" in body && { deliveryNoteRef: (body.deliveryNoteRef as string | null)?.trim() || null }),
     ...(newStatus !== undefined && { status: newStatus }),
     ...(newStatus !== undefined && autoStatusDates(newStatus, deliverable, body)),
     ...("createdAt" in body && body.createdAt !== null && { createdAt: new Date(body.createdAt as string) }),
