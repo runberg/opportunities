@@ -65,21 +65,20 @@ function buildCsvRow(d: DeliverableRow): string[] {
   return [
     d.internalId ?? "",
     d.title,
-    STATUS_LABEL[d.status] ?? d.status,
-    approved > 0 ? approved.toFixed(2) : "",
-    lineTotal > 0 ? lineTotal.toFixed(2) : "",
-    approved > 0 ? (approved - lineTotal).toFixed(2) : "",
-    d.documents.length.toString(),
     isoDate(d.createdAt),
+    STATUS_LABEL[d.status] ?? d.status,
+    lineTotal > 0 ? lineTotal.toFixed(2) : "",
+    approved > 0 ? approved.toFixed(2) : "",
+    approved > 0 ? (approved - lineTotal).toFixed(2) : "",
     isoDate(d.approvedAt),
-    isoDate(d.deliveredAt),
     d.approverName ?? "",
+    isoDate(d.deliveredAt),
     d.deliveryNoteRef ?? "",
   ]
 }
 
 function exportToCsv(agreementTitle: string, deliverables: DeliverableRow[]) {
-  const header = ["ID", "Title", "Status", "Approved", "Line Items", "Balance", "Documents", "Created", "Approved Date", "Delivered Date", "Approver", "DN Ref."]
+  const header = ["ID", "Title", "Created", "Status", "Line Items", "Approved", "Balance", "Approved Date", "Approver", "Delivered Date", "DN Ref."]
   const csv = [header, ...deliverables.map(buildCsvRow)]
     .map((r) => r.map((c) => `"${String(c).replaceAll('"', '""')}"`).join(","))
     .join("\n")
