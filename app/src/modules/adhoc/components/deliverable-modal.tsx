@@ -1306,36 +1306,36 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
         {/* Meta bar */}
         {deliverable && (
           <div className="px-6 py-3 bg-gray-800/50 border-b border-gray-700">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex gap-6">
-                <div>
-                  <p className="text-xs text-gray-400">Status</p>
-                  <span className={`inline-flex mt-0.5 px-2 py-0.5 text-xs rounded-full font-medium ${STATUS_BADGE[deliverable.status]}`}>
-                    {STATUS_LABEL[deliverable.status]}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-400">Approved Amount</p>
-                  <p className="text-sm font-semibold text-gray-100 mt-0.5">
-                    {Number(deliverable.approvedAmount) > 0 ? formatAmount(deliverable.approvedAmount) : "—"}
-                  </p>
-                </div>
-                {deliverable.status !== "NOT_APPROVED" && (
-                  <ApproverNameField
-                    value={deliverable.approverName}
-                    deliverableId={deliverable.id}
-                    onSaved={refresh}
-                  />
-                )}
-                {(deliverable.status === "DELIVERED" || deliverable.deliveryNoteRef) && (
-                  <DeliveryNoteRefField
-                    value={deliverable.deliveryNoteRef}
-                    deliverableId={deliverable.id}
-                    onSaved={refresh}
-                  />
-                )}
+            <div className="flex flex-wrap gap-x-6 gap-y-3">
+              <div>
+                <p className="text-xs text-gray-400">Status</p>
+                <span className={`inline-flex mt-0.5 px-2 py-0.5 text-xs rounded-full font-medium ${STATUS_BADGE[deliverable.status]}`}>
+                  {STATUS_LABEL[deliverable.status]}
+                </span>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
+              <div>
+                <p className="text-xs text-gray-400">Approved Amount</p>
+                <p className="text-sm font-semibold text-gray-100 mt-0.5">
+                  {Number(deliverable.approvedAmount) > 0 ? formatAmount(deliverable.approvedAmount) : "—"}
+                </p>
+              </div>
+              {deliverable.status !== "NOT_APPROVED" && (
+                <ApproverNameField
+                  value={deliverable.approverName}
+                  deliverableId={deliverable.id}
+                  onSaved={refresh}
+                />
+              )}
+              {(deliverable.status === "DELIVERED" || deliverable.deliveryNoteRef) && (
+                <DeliveryNoteRefField
+                  value={deliverable.deliveryNoteRef}
+                  deliverableId={deliverable.id}
+                  onSaved={refresh}
+                />
+              )}
+            </div>
+            {(canApprove || canEditApproval || canDeliver || canRevertDelivered) && (
+              <div className="flex items-center gap-2 mt-3">
                 {canApprove && !approvePanelOpen && (
                   <Button size="sm" variant="outline" onClick={() => setApprovePanelOpen(true)}>Approve</Button>
                 )}
@@ -1358,7 +1358,7 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
                   </Button>
                 )}
               </div>
-            </div>
+            )}
 
             {/* Milestone dates */}
             <div className="flex flex-wrap gap-6 mt-3 pt-3 border-t border-gray-700/60">

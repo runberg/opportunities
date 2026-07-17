@@ -246,6 +246,12 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
       {adding && (
         <div className="flex gap-2 mb-3">
           <input
+            type="date"
+            className="rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={newDate}
+            onChange={(e) => setNewDate(e.target.value)}
+          />
+          <input
             autoFocus
             className="flex-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Work package title"
@@ -255,12 +261,6 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
               if (e.key === "Enter") handleAdd()
               if (e.key === "Escape") { setAdding(false); setNewTitle("") }
             }}
-          />
-          <input
-            type="date"
-            className="rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={newDate}
-            onChange={(e) => setNewDate(e.target.value)}
           />
           <Button variant="primary" size="sm" onClick={handleAdd} disabled={saving || !newTitle.trim()}>
             {saving ? "Saving…" : "Add"}
