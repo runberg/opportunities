@@ -54,6 +54,7 @@ type Deliverable = {
   title: string
   description: string | null
   approvedAmount: string
+  approverName: string | null
   status: "NOT_APPROVED" | "PARTIALLY_APPROVED" | "APPROVED" | "DELIVERED"
   partiallyApprovedAt: string | null
   approvedAt: string | null
@@ -100,14 +101,15 @@ function ApproveForm({
   readonly onDone: () => Promise<void>
   readonly onClose: () => void
 }) {
-  const [amount, setAmount] = useState("")
+  const lineTotal = lineItemTotal(deliverable.lineItems)
+  const [amount, setAmount] = useState(lineTotal > 0 ? String(lineTotal) : "")
+  const [approverName, setApproverName] = useState("")
   const [displayName, setDisplayName] = useState("")
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [docFile, setDocFile] = useState<File | null>(null)
 
-  const lineTotal = lineItemTotal(deliverable.lineItems)
   const amtNum = Number(amount)
   const willBePartial = amount !== "" && !Number.isNaN(amtNum) && amtNum >= 0 && lineTotal > amtNum
 
@@ -121,6 +123,7 @@ function ApproveForm({
   function reset() {
     onClose()
     setAmount("")
+    setApproverName("")
     setDisplayName("")
     setDocFile(null)
     setError(null)
@@ -148,7 +151,7 @@ function ApproveForm({
       const res = await fetch(`/api/adhoc/deliverables/${deliverable.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ approve: true, approvedAmount: amtNum }),
+        body: JSON.stringify({ approve: true, approvedAmount: amtNum, approverName: approverName.trim() || null }),
       })
       if (!res.ok) { setError((await res.json() as { error?: string }).error ?? "Save failed"); return }
       reset()
@@ -161,22 +164,38 @@ function ApproveForm({
   return (
     <div className="mt-3 pt-3 border-t border-gray-700 space-y-3">
       <div className="flex flex-wrap gap-3 items-start">
-        <div>
-          <label htmlFor="approve-amount" className="block text-xs text-gray-400 mb-1">
-            Approved Amount <span className="text-red-500">*</span>
-          </label>
-          <input
-            id="approve-amount"
-            autoFocus
-            type="number"
-            min="0"
-            step="0.01"
-            className="w-36 rounded border border-gray-600 bg-gray-800 px-2 py-1.5 text-sm text-right text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="0.00"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") handleApprove() }}
-          />
+        <div className="flex gap-3 items-end">
+          <div>
+            <label htmlFor="approve-amount" className="block text-xs text-gray-400 mb-1">
+              Approved Amount <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="approve-amount"
+              autoFocus
+              type="number"
+              min="0"
+              step="0.01"
+              className="w-36 rounded border border-gray-600 bg-gray-800 px-2 py-1.5 text-sm text-right text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="0.00"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleApprove() }}
+            />
+          </div>
+          <div>
+            <label htmlFor="approve-approver" className="block text-xs text-gray-400 mb-1">
+              Approver <span className="text-gray-600">(optional)</span>
+            </label>
+            <input
+              id="approve-approver"
+              type="text"
+              className="w-44 rounded border border-gray-600 bg-gray-800 px-2 py-1.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Approver name"
+              value={approverName}
+              onChange={(e) => setApproverName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleApprove() }}
+            />
+          </div>
         </div>
         <div className="flex-1 min-w-60">
           {deliverable.documents.some((d) => d.type === "APPROVAL") && (
@@ -716,6 +735,70 @@ function DocumentsTab({
   )
 }
 
+// ─── Approver name field ──────────────────────────────────────────────────────
+
+function ApproverNameField({
+  value,
+  deliverableId,
+  onSaved,
+}: {
+  readonly value: string | null
+  readonly deliverableId: string
+  readonly onSaved: () => Promise<void>
+}) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(value ?? "")
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => { setDraft(value ?? "") }, [value])
+
+  async function save() {
+    setSaving(true)
+    try {
+      await fetch(`/api/adhoc/deliverables/${deliverableId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ approverName: draft.trim() || null }),
+      })
+      setEditing(false)
+      await onSaved()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div>
+      <p className="text-xs text-gray-400">Approver</p>
+      {editing ? (
+        <div className="flex items-center gap-1 mt-0.5">
+          <input
+            autoFocus
+            className="rounded border border-gray-600 bg-gray-800 px-1.5 py-0.5 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 w-36"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") { void save() }
+              if (e.key === "Escape") { setDraft(value ?? ""); setEditing(false) }
+            }}
+            onBlur={() => { void save() }}
+          />
+          {saving && <span className="text-xs text-gray-500">…</span>}
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="text-sm text-gray-200 hover:text-blue-400 transition-colors mt-0.5 block text-left"
+          title="Click to edit"
+        >
+          {value ?? <span className="text-gray-600 italic text-xs">—</span>}
+        </button>
+      )}
+    </div>
+  )
+}
+
 // ─── Milestone date field ─────────────────────────────────────────────────────
 
 function DateField({
@@ -838,7 +921,12 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
     setEditingApproval(false)
   }, [deliverable?.status])
 
-  useWindowDragExpand(() => { setActiveTab("documents"); setShowUpload(true) })
+  useWindowDragExpand(() => {
+    if (!approvePanelOpen) {
+      setActiveTab("documents")
+      setShowUpload(true)
+    }
+  })
 
   async function refresh() {
     await fetchDeliverable()
@@ -1034,6 +1122,13 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
                     {Number(deliverable.approvedAmount) > 0 ? formatAmount(deliverable.approvedAmount) : "—"}
                   </p>
                 </div>
+                {deliverable.status !== "NOT_APPROVED" && (
+                  <ApproverNameField
+                    value={deliverable.approverName}
+                    deliverableId={deliverable.id}
+                    onSaved={refresh}
+                  />
+                )}
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {canApprove && !approvePanelOpen && (

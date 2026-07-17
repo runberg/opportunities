@@ -109,6 +109,7 @@ function autoStatusDates(
 async function handleApprove(
   deliverableId: string,
   rawAmount: unknown,
+  approverName: unknown,
   userId: string,
   currentLineItems: { amount: unknown }[],
   deliverable: { title: string; partiallyApprovedAt: Date | null; approvedAt: Date | null }
@@ -119,6 +120,7 @@ async function handleApprove(
 
   const lineTotal = currentLineItems.reduce((s, li) => s + Number(li.amount), 0)
   const newStatus: AdhocDeliverableStatus = lineTotal > amt ? "PARTIALLY_APPROVED" : "APPROVED"
+  const parsedApproverName = typeof approverName === "string" ? approverName.trim() || null : undefined
 
   const now = new Date()
   await db.adhocDeliverable.update({
@@ -126,6 +128,7 @@ async function handleApprove(
     data: {
       approvedAmount: amt,
       status: newStatus,
+      ...(parsedApproverName !== undefined && { approverName: parsedApproverName }),
       partiallyApprovedAt: newStatus === "PARTIALLY_APPROVED" && !deliverable.partiallyApprovedAt ? now : undefined,
       approvedAt: newStatus === "APPROVED" && !deliverable.approvedAt ? now : undefined,
     },
@@ -193,6 +196,7 @@ function buildUpdateData(body: Record<string, unknown>, deliverable: { status: s
   return {
     ...(title !== undefined && { title: (title as string).trim() }),
     ...(description !== undefined && { description: (description as string | null)?.trim() || null }),
+    ...("approverName" in body && { approverName: (body.approverName as string | null)?.trim() || null }),
     ...(newStatus !== undefined && { status: newStatus }),
     ...(newStatus !== undefined && autoStatusDates(newStatus, deliverable, body)),
     ...("createdAt" in body && body.createdAt !== null && { createdAt: new Date(body.createdAt as string) }),
@@ -226,7 +230,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Only admins can edit a delivered work package" }, { status: 403 })
 
   if (body.approve === true)
-    return handleApprove(id, body.approvedAmount, session.user.id, deliverable.lineItems, deliverable)
+    return handleApprove(id, body.approvedAmount, body.approverName, session.user.id, deliverable.lineItems, deliverable)
 
   if (body.removeApproval === true)
     return handleRemoveApproval(id, deliverable.title, session.user.id)

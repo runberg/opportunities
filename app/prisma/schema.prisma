@@ -221,6 +221,7 @@ model AdhocDeliverable {
   title               String
   description         String?
   approvedAmount      Decimal                @default(0) @db.Decimal(10, 2)
+  approverName        String?
   status              AdhocDeliverableStatus @default(NOT_APPROVED)
   partiallyApprovedAt DateTime?
   approvedAt          DateTime?
