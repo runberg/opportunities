@@ -1,9 +1,10 @@
 "use client"
 
-import { useEffect } from "react"
-import { X, Search } from "lucide-react"
+import { useState, useEffect } from "react"
+import { X, Search, MessageSquarePlus } from "lucide-react"
 import { OpportunityModal } from "@/modules/opportunities/components/opportunity-modal"
-import { OpportunityDataTable, type DateColumn } from "@/modules/opportunities/components/opportunity-data-table"
+import { OpportunityDataTable, type DateColumn, type OppTableRow } from "@/modules/opportunities/components/opportunity-data-table"
+import { CommentDialog } from "@/modules/opportunities/components/comment-dialog"
 import { useDrillState, ModalPagination } from "./drill-shared"
 
 const DATE_COLUMNS: Record<string, DateColumn> = {
@@ -31,6 +32,7 @@ export function DateDrillModal({
   readonly isAdmin: boolean
   readonly onClose: () => void
 }) {
+  const [commentTarget, setCommentTarget] = useState<OppTableRow | null>(null)
   const {
     query, setQuery, debouncedQuery,
     page, setPage, perPage, setPerPage,
@@ -98,6 +100,16 @@ export function DateDrillModal({
             onSort={handleSort}
             dateColumn={DATE_COLUMNS[dateField]}
             onRowClick={setOpenId}
+            renderAction={(row) => (
+              <button
+                type="button"
+                onClick={() => setCommentTarget(row)}
+                className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                title="Add comment"
+              >
+                <MessageSquarePlus size={16} />
+              </button>
+            )}
           />
 
           <ModalPagination
@@ -115,6 +127,12 @@ export function DateDrillModal({
           isAdmin={isAdmin}
         />
       )}
+
+      <CommentDialog
+        target={commentTarget}
+        commentEndpoint={commentTarget ? `/api/opportunities/${commentTarget.id}/comments` : ""}
+        onClose={() => setCommentTarget(null)}
+      />
     </div>
   )
 }

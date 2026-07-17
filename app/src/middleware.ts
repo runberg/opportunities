@@ -8,5 +8,6 @@ export const config = {
     "/production/:path*",
     "/admin/:path*",
     "/profile/:path*",
+    "/adhoc/:path*",
   ],
 }

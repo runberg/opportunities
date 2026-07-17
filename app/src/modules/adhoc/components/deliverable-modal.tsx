@@ -759,13 +759,17 @@ function DocumentsTab({
   )
 }
 
-// ─── Approver name field ──────────────────────────────────────────────────────
+// ─── Editable text field ─────────────────────────────────────────────────────
 
-function ApproverNameField({
+function EditableTextField({
+  label,
+  fieldName,
   value,
   deliverableId,
   onSaved,
 }: {
+  readonly label: string
+  readonly fieldName: "approverName" | "deliveryNoteRef"
   readonly value: string | null
   readonly deliverableId: string
   readonly onSaved: () => Promise<void>
@@ -782,7 +786,7 @@ function ApproverNameField({
       await fetch(`/api/adhoc/deliverables/${deliverableId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ approverName: draft.trim() || null }),
+        body: JSON.stringify({ [fieldName]: draft.trim() || null }),
       })
       setEditing(false)
       await onSaved()
@@ -793,71 +797,7 @@ function ApproverNameField({
 
   return (
     <div>
-      <p className="text-xs text-gray-400">Approver</p>
-      {editing ? (
-        <div className="flex items-center gap-1 mt-0.5">
-          <input
-            autoFocus
-            className="rounded border border-gray-600 bg-gray-800 px-1.5 py-0.5 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 w-36"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") { void save() }
-              if (e.key === "Escape") { setDraft(value ?? ""); setEditing(false) }
-            }}
-            onBlur={() => { void save() }}
-          />
-          {saving && <span className="text-xs text-gray-500">…</span>}
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setEditing(true)}
-          className="text-sm text-gray-200 hover:text-blue-400 transition-colors mt-0.5 block text-left"
-          title="Click to edit"
-        >
-          {value ?? <span className="text-gray-600 italic text-xs">—</span>}
-        </button>
-      )}
-    </div>
-  )
-}
-
-// ─── Delivery Note Ref field ──────────────────────────────────────────────────
-
-function DeliveryNoteRefField({
-  value,
-  deliverableId,
-  onSaved,
-}: {
-  readonly value: string | null
-  readonly deliverableId: string
-  readonly onSaved: () => Promise<void>
-}) {
-  const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState(value ?? "")
-  const [saving, setSaving] = useState(false)
-
-  useEffect(() => { setDraft(value ?? "") }, [value])
-
-  async function save() {
-    setSaving(true)
-    try {
-      await fetch(`/api/adhoc/deliverables/${deliverableId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ deliveryNoteRef: draft.trim() || null }),
-      })
-      setEditing(false)
-      await onSaved()
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  return (
-    <div>
-      <p className="text-xs text-gray-400">DN Ref.</p>
+      <p className="text-xs text-gray-400">{label}</p>
       {editing ? (
         <div className="flex items-center gap-1 mt-0.5">
           <input
@@ -1089,6 +1029,66 @@ function DateField({
   )
 }
 
+// ─── Tab content ─────────────────────────────────────────────────────────────
+
+type TabContentProps = {
+  readonly loading: boolean
+  readonly deliverable: Deliverable | null
+  readonly activeTab: "items" | "documents" | "log"
+  readonly showUpload: boolean
+  readonly onShowUpload: (v: boolean) => void
+  readonly onRefresh: () => Promise<void>
+  readonly currentUserId: string
+  readonly isAdmin: boolean
+  readonly isLocked: boolean
+}
+
+function DeliverableTabContent({ loading, deliverable, activeTab, showUpload, onShowUpload, onRefresh, currentUserId, isAdmin, isLocked }: TabContentProps) {
+  if (loading) {
+    return (
+      <div className="space-y-2">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-4 bg-gray-700 rounded animate-pulse" />
+        ))}
+      </div>
+    )
+  }
+  if (!deliverable) return <p className="text-sm text-gray-400">Failed to load.</p>
+  return (
+    <>
+      {activeTab === "items" && (
+        <LineItemsTab deliverable={deliverable} isLocked={isLocked} onRefresh={onRefresh} />
+      )}
+      {activeTab === "documents" && (
+        <DocumentsTab
+          deliverable={deliverable}
+          currentUserId={currentUserId}
+          isAdmin={isAdmin}
+          isLocked={isLocked}
+          showUpload={showUpload}
+          onShowUpload={onShowUpload}
+          onRefresh={onRefresh}
+        />
+      )}
+      {activeTab === "log" && (
+        <LogSection
+          commentEndpoint={`/api/adhoc/deliverables/${deliverable.id}/comments`}
+          entries={[
+            ...deliverable.comments.map((c): LogEntry => ({
+              id: c.id, content: c.content, system: c.system, createdAt: c.createdAt, author: c.author,
+            })),
+            ...deliverable.systemLogs.map((l): LogEntry => ({
+              id: l.id, content: l.message, system: true, createdAt: l.createdAt, author: l.user,
+            })),
+          ]}
+          currentUser={{ id: currentUserId, name: "" }}
+          onRefresh={onRefresh}
+        />
+      )}
+    </>
+  )
+}
+
 // ─── Main Modal ───────────────────────────────────────────────────────────────
 
 type Props = {
@@ -1216,53 +1216,6 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
     { key: "log" as const, label: "Log" },
   ]
 
-  let tabContent: React.ReactNode
-  if (loading) {
-    tabContent = (
-      <div className="space-y-2">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="h-4 bg-gray-700 rounded animate-pulse" />
-        ))}
-      </div>
-    )
-  } else if (deliverable) {
-    tabContent = (
-      <>
-        {activeTab === "items" && (
-          <LineItemsTab deliverable={deliverable} isLocked={!!isLocked} onRefresh={refresh} />
-        )}
-        {activeTab === "documents" && (
-          <DocumentsTab
-            deliverable={deliverable}
-            currentUserId={currentUserId}
-            isAdmin={isAdmin}
-            isLocked={!!isLocked}
-            showUpload={showUpload}
-            onShowUpload={setShowUpload}
-            onRefresh={refresh}
-          />
-        )}
-        {activeTab === "log" && (
-          <LogSection
-            commentEndpoint={`/api/adhoc/deliverables/${deliverable.id}/comments`}
-            entries={[
-              ...deliverable.comments.map((c): LogEntry => ({
-                id: c.id, content: c.content, system: c.system, createdAt: c.createdAt, author: c.author,
-              })),
-              ...deliverable.systemLogs.map((l): LogEntry => ({
-                id: l.id, content: l.message, system: true, createdAt: l.createdAt, author: l.user,
-              })),
-            ]}
-            currentUser={{ id: currentUserId, name: "" }}
-            onRefresh={refresh}
-          />
-        )}
-      </>
-    )
-  } else {
-    tabContent = <p className="text-sm text-gray-400">Failed to load.</p>
-  }
-
   return (
     <div className="fixed inset-0 z-50 flex">
       <button type="button" aria-label="Close" className="fixed inset-0 bg-black/40 cursor-default" onClick={onClose} />
@@ -1320,14 +1273,18 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
                 </p>
               </div>
               {deliverable.status !== "NOT_APPROVED" && (
-                <ApproverNameField
+                <EditableTextField
+                  label="Approver"
+                  fieldName="approverName"
                   value={deliverable.approverName}
                   deliverableId={deliverable.id}
                   onSaved={refresh}
                 />
               )}
               {(deliverable.status === "DELIVERED" || deliverable.deliveryNoteRef) && (
-                <DeliveryNoteRefField
+                <EditableTextField
+                  label="DN Ref."
+                  fieldName="deliveryNoteRef"
                   value={deliverable.deliveryNoteRef}
                   deliverableId={deliverable.id}
                   onSaved={refresh}
@@ -1433,7 +1390,17 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
 
         {/* Tab content */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
-          {tabContent}
+          <DeliverableTabContent
+            loading={loading}
+            deliverable={deliverable}
+            activeTab={activeTab}
+            showUpload={showUpload}
+            onShowUpload={setShowUpload}
+            onRefresh={refresh}
+            currentUserId={currentUserId}
+            isAdmin={isAdmin}
+            isLocked={!!isLocked}
+          />
         </div>
       </div>
     </div>

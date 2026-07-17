@@ -1,10 +1,11 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ChevronRight, X, Search, Download } from "lucide-react"
+import { ChevronRight, X, Search, Download, MessageSquarePlus } from "lucide-react"
 import { cn } from "@/shared/lib/utils"
 import { OpportunityModal } from "@/modules/opportunities/components/opportunity-modal"
-import { OpportunityDataTable, type DateColumn } from "@/modules/opportunities/components/opportunity-data-table"
+import { OpportunityDataTable, type DateColumn, type OppTableRow } from "@/modules/opportunities/components/opportunity-data-table"
+import { CommentDialog } from "@/modules/opportunities/components/comment-dialog"
 import { useDrillState, ModalPagination } from "./drill-shared"
 
 const STATUS_DATE_COLUMN: Record<string, DateColumn> = {
@@ -146,6 +147,7 @@ function StatusDrillModal({
   readonly isAdmin: boolean
   readonly onClose: () => void
 }) {
+  const [commentTarget, setCommentTarget] = useState<OppTableRow | null>(null)
   const {
     query, setQuery, debouncedQuery,
     page, setPage, perPage, setPerPage,
@@ -218,6 +220,16 @@ function StatusDrillModal({
             onSort={handleSort}
             dateColumn={STATUS_DATE_COLUMN[status]}
             onRowClick={setOpenId}
+            renderAction={(row) => (
+              <button
+                type="button"
+                onClick={() => setCommentTarget(row)}
+                className="p-1.5 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded-md transition-colors"
+                title="Add comment"
+              >
+                <MessageSquarePlus size={16} />
+              </button>
+            )}
           />
 
           <ModalPagination
@@ -235,6 +247,12 @@ function StatusDrillModal({
           isAdmin={isAdmin}
         />
       )}
+
+      <CommentDialog
+        target={commentTarget}
+        commentEndpoint={commentTarget ? `/api/opportunities/${commentTarget.id}/comments` : ""}
+        onClose={() => setCommentTarget(null)}
+      />
     </div>
   )
 }

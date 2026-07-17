@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/shared/lib/auth"
 import { findAllAgreements } from "@/app/api/adhoc/_helpers"
@@ -5,6 +6,7 @@ import { AdhocClient } from "@/modules/adhoc/components/adhoc-client"
 
 export default async function AdHocPage() {
   const session = await getServerSession(authOptions)
+  if (!session) redirect("/login")
 
   const agreements = await findAllAgreements()
 
@@ -18,6 +20,8 @@ export default async function AdHocPage() {
       ...d,
       createdAt: d.createdAt.toISOString(),
       approvedAmount: d.approvedAmount.toString(),
+      approvedAt: d.approvedAt ? d.approvedAt.toISOString() : null,
+      deliveredAt: d.deliveredAt ? d.deliveredAt.toISOString() : null,
       lineItems: d.lineItems.map((li) => ({ amount: li.amount.toString() })),
     })),
     documents: a.documents.map((doc) => ({
