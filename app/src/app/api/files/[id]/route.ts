@@ -5,8 +5,8 @@ import { unlink } from "node:fs/promises"
 import { join, basename } from "node:path"
 import { DOC_TYPE_LABELS } from "@/shared/lib/utils"
 import { serveFile, readUploadedFile, UPLOAD_DIR } from "@/shared/lib/upload"
-import { EXCEL_MIMES } from "@/shared/lib/file-types"
-import { serveExcelPreview } from "@/shared/lib/excel-preview"
+import { EXCEL_MIMES, WORD_DOCX_MIME } from "@/shared/lib/file-types"
+import { serveExcelSheetList, serveExcelSheetPdf, serveWordPreview } from "@/shared/lib/excel-preview"
 
 export async function GET(
   req: NextRequest,
@@ -20,11 +20,15 @@ export async function GET(
   if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
   if (req.nextUrl.searchParams.get("preview") === "1") {
-    if (!EXCEL_MIMES.has(doc.mimeType))
-      return NextResponse.json({ error: "Not an Excel file" }, { status: 400 })
     const buffer = await readUploadedFile(doc.filename)
     if (!buffer) return NextResponse.json({ error: "File not found on disk" }, { status: 404 })
-    return serveExcelPreview(buffer)
+    if (doc.mimeType === WORD_DOCX_MIME) return serveWordPreview(doc.filename, buffer)
+    if (EXCEL_MIMES.has(doc.mimeType)) {
+      const sheet = req.nextUrl.searchParams.get("sheet")
+      if (sheet === null) return serveExcelSheetList(buffer)
+      return serveExcelSheetPdf(doc.filename, buffer, Number.parseInt(sheet, 10))
+    }
+    return NextResponse.json({ error: "Preview not available for this file type" }, { status: 400 })
   }
 
   const inline = req.nextUrl.searchParams.get("inline") === "1"

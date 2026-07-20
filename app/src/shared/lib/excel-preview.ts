@@ -1,161 +1,117 @@
 import ExcelJS from "exceljs"
 import { NextResponse } from "next/server"
+import { basename, extname } from "node:path"
+import { convertToPdf } from "@/shared/lib/gotenberg"
 
-export type SheetPreview = { name: string; html: string }
+export type SheetInfo = { name: string; index: number }
 
-/** Converts an Excel file buffer to an array of sheet previews (name + HTML table). */
-export async function excelToSheets(buffer: Buffer): Promise<SheetPreview[]> {
-  // Convert to plain ArrayBuffer to avoid Buffer<ArrayBufferLike> incompatibility with exceljs types
-  const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer
-  const workbook = new ExcelJS.Workbook()
-  await workbook.xlsx.load(arrayBuffer)
-  return workbook.worksheets.map((ws) => ({ name: ws.name, html: worksheetToHtml(ws) }))
+// ─── Sheet metadata ───────────────────────────────────────────────────────────
+
+/** Returns the name and index of every worksheet in the workbook. */
+export async function getSheetNames(buffer: Buffer): Promise<SheetInfo[]> {
+  const arrayBuffer = toArrayBuffer(buffer)
+  const wb = new ExcelJS.Workbook()
+  await wb.xlsx.load(arrayBuffer)
+  return wb.worksheets.map((ws, i) => ({ name: ws.name, index: i }))
 }
 
-/** Returns a JSON response with sheet previews, or a 422 on parse failure. */
-export async function serveExcelPreview(buffer: Buffer): Promise<NextResponse> {
+// ─── Single-sheet extraction ──────────────────────────────────────────────────
+
+/**
+ * Copies the target worksheet into a new single-sheet workbook and returns it
+ * as an xlsx buffer. LibreOffice then renders this with full fidelity.
+ */
+export async function extractSheetBuffer(buffer: Buffer, sheetIndex: number): Promise<Buffer> {
+  const arrayBuffer = toArrayBuffer(buffer)
+
+  const srcWb = new ExcelJS.Workbook()
+  await srcWb.xlsx.load(arrayBuffer)
+
+  const srcWs = srcWb.worksheets[sheetIndex]
+  if (!srcWs) throw new Error(`Sheet index ${sheetIndex} not found`)
+
+  const destWb = new ExcelJS.Workbook()
+  const destWs = destWb.addWorksheet(srcWs.name)
+
+  // Column widths and visibility
+  srcWs.columns.forEach((col, i) => {
+    const destCol = destWs.getColumn(i + 1)
+    if (col.width) destCol.width = col.width
+    if (col.hidden) destCol.hidden = col.hidden
+  })
+
+  // Rows: values, styles, heights
+  srcWs.eachRow({ includeEmpty: false }, (row, rowNum) => {
+    const destRow = destWs.getRow(rowNum)
+    if (row.height) destRow.height = row.height
+    if (row.hidden) destRow.hidden = row.hidden
+    row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+      const destCell = destRow.getCell(colNum)
+      destCell.value = cell.value
+      destCell.style = structuredClone(cell.style) as ExcelJS.Style
+    })
+    destRow.commit()
+  })
+
+  // Merged cell ranges
+  const merges = (srcWs.model as { merges?: string[] }).merges ?? []
+  for (const merge of merges) {
+    try { destWs.mergeCells(merge) } catch { /* skip malformed ranges */ }
+  }
+
+  return Buffer.from(await destWb.xlsx.writeBuffer())
+}
+
+// ─── Response helpers (called from API routes) ────────────────────────────────
+
+/** Returns JSON `{ sheets }` for the Excel tab bar. */
+export async function serveExcelSheetList(buffer: Buffer): Promise<NextResponse> {
   try {
-    const sheets = await excelToSheets(buffer)
+    const sheets = await getSheetNames(buffer)
     return NextResponse.json({ sheets })
   } catch {
-    return NextResponse.json({ error: "Failed to parse Excel file" }, { status: 422 })
+    return NextResponse.json({ error: "Failed to read Excel file" }, { status: 422 })
+  }
+}
+
+/** Extracts one sheet and converts it to PDF via Gotenberg. */
+export async function serveExcelSheetPdf(
+  filename: string,
+  buffer: Buffer,
+  sheetIndex: number,
+): Promise<NextResponse> {
+  try {
+    const sheetBuffer = await extractSheetBuffer(buffer, sheetIndex)
+    const ext = extname(basename(filename)) || ".xlsx"
+    const pdfBuffer = await convertToPdf(`sheet${ext}`, sheetBuffer)
+    return pdfResponse(pdfBuffer)
+  } catch {
+    return NextResponse.json({ error: "Failed to convert sheet to PDF" }, { status: 422 })
+  }
+}
+
+/** Converts a Word document to PDF via Gotenberg. */
+export async function serveWordPreview(filename: string, buffer: Buffer): Promise<NextResponse> {
+  try {
+    const pdfBuffer = await convertToPdf(basename(filename), buffer)
+    return pdfResponse(pdfBuffer)
+  } catch {
+    return NextResponse.json({ error: "Failed to convert document to PDF" }, { status: 422 })
   }
 }
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 
-function parseRef(ref: string): { row: number; col: number } {
-  const m = /^([A-Z]+)(\d+)$/.exec(ref.toUpperCase())
-  if (!m) return { row: 0, col: 0 }
-  let col = 0
-  for (const ch of m[1]) col = col * 26 + ((ch.codePointAt(0) ?? 64) - 64)
-  return { row: Number.parseInt(m[2], 10), col }
+function toArrayBuffer(buffer: Buffer): ArrayBuffer {
+  return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer
 }
 
-function argbToCss(argb?: string): string | undefined {
-  if (!argb || argb.length < 6) return undefined
-  const rgb = argb.length === 8 ? argb.slice(2) : argb
-  if (/^0+$/.test(rgb) || /^f+$/i.test(rgb)) return undefined  // skip default black / white
-  return `#${rgb}`
-}
-
-function cellStyle(cell: ExcelJS.Cell): string {
-  const parts: string[] = [
-    "padding:3px 6px",
-    "border:1px solid #d1d5db",
-    "vertical-align:middle",
-    "white-space:nowrap",
-  ]
-
-  const font = cell.style?.font
-  if (font?.bold) parts.push("font-weight:700")
-  if (font?.italic) parts.push("font-style:italic")
-  if (font?.size) parts.push(`font-size:${font.size}pt`)
-  const fontColor = argbToCss(font?.color?.argb)
-  if (fontColor) parts.push(`color:${fontColor}`)
-
-  const fill = cell.style?.fill
-  if (fill && "fgColor" in fill && fill.type === "pattern" && fill.pattern !== "none") {
-    const bg = argbToCss((fill as ExcelJS.FillPattern).fgColor?.argb)
-    if (bg) parts.push(`background:${bg}`)
-  }
-
-  const align = cell.style?.alignment
-  if (align?.horizontal) parts.push(`text-align:${align.horizontal}`)
-  if (align?.wrapText) parts.push("white-space:normal", "word-break:break-word")
-
-  return parts.join(";")
-}
-
-// ─── Merge map ────────────────────────────────────────────────────────────────
-
-type MergeData = {
-  spanMap: Map<string, { rowspan: number; colspan: number }>
-  skipSet: Set<string>
-}
-
-function buildMergeData(ws: ExcelJS.Worksheet): MergeData {
-  const spanMap = new Map<string, { rowspan: number; colspan: number }>()
-  const skipSet = new Set<string>()
-  const merges = (ws.model as { merges?: string[] }).merges ?? []
-
-  for (const range of merges) {
-    const [startStr, endStr] = range.split(":")
-    if (!startStr || !endStr) continue
-    const start = parseRef(startStr)
-    const end = parseRef(endStr)
-    spanMap.set(`${start.row},${start.col}`, {
-      rowspan: end.row - start.row + 1,
-      colspan: end.col - start.col + 1,
-    })
-    for (let r = start.row; r <= end.row; r++) {
-      for (let c = start.col; c <= end.col; c++) {
-        if (r !== start.row || c !== start.col) skipSet.add(`${r},${c}`)
-      }
-    }
-  }
-
-  return { spanMap, skipSet }
-}
-
-// ─── Row rendering ────────────────────────────────────────────────────────────
-
-function renderRows(
-  ws: ExcelJS.Worksheet,
-  rowCount: number,
-  colCount: number,
-  spanMap: Map<string, { rowspan: number; colspan: number }>,
-  skipSet: Set<string>,
-): string[] {
-  const parts: string[] = []
-
-  for (let r = 1; r <= rowCount; r++) {
-    const row = ws.getRow(r)
-    const rowStyle = row.height ? `height:${Math.round(row.height * 1.333)}px` : ""
-    const rowStyleAttr = rowStyle ? ` style="${rowStyle}"` : ""
-    parts.push(`<tr${rowStyleAttr}>`)
-
-    for (let c = 1; c <= colCount; c++) {
-      if (skipSet.has(`${r},${c}`)) continue
-      const cell = row.getCell(c)
-      const span = spanMap.get(`${r},${c}`)
-      const spanAttrs = span ? ` colspan="${span.colspan}" rowspan="${span.rowspan}"` : ""
-      parts.push(`<td${spanAttrs} style="${cellStyle(cell)}">${escapeHtml(cell.text ?? "")}</td>`)
-    }
-
-    parts.push("</tr>")
-  }
-
-  return parts
-}
-
-// ─── Sheet → HTML ─────────────────────────────────────────────────────────────
-
-function worksheetToHtml(ws: ExcelJS.Worksheet): string {
-  const rowCount = ws.actualRowCount
-  const colCount = ws.actualColumnCount
-  if (rowCount === 0 || colCount === 0) {
-    return "<p style='color:#6b7280;padding:16px'>Empty sheet</p>"
-  }
-
-  const { spanMap, skipSet } = buildMergeData(ws)
-
-  const colWidths: number[] = []
-  for (let c = 1; c <= colCount; c++) {
-    colWidths.push(Math.round((ws.getColumn(c).width ?? 8) * 7))
-  }
-
-  const colGroup = colWidths.map((w) => `<col style="width:${w}px">`).join("")
-  const rows = renderRows(ws, rowCount, colCount, spanMap, skipSet).join("")
-
-  return [
-    '<table style="border-collapse:collapse;font-size:13px;font-family:sans-serif;background:#fff">',
-    `<colgroup>${colGroup}</colgroup>`,
-    `<tbody>${rows}</tbody>`,
-    "</table>",
-  ].join("")
-}
-
-function escapeHtml(s: string): string {
-  return s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
+function pdfResponse(pdfBuffer: Buffer): NextResponse {
+  return new NextResponse(pdfBuffer.buffer as ArrayBuffer, {
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": "inline",
+      "Content-Length": String(pdfBuffer.length),
+    },
+  })
 }

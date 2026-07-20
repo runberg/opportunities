@@ -26,12 +26,18 @@ services:
       ADMIN_EMAIL: ${ADMIN_EMAIL}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       UPLOAD_DIR: /app/uploads
+      GOTENBERG_URL: http://gotenberg:3000
       NODE_ENV: production
     volumes:
       - ./data/uploads:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
+    restart: unless-stopped
+
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    container_name: opp-gotenberg
     restart: unless-stopped
 
   nginx:
