@@ -195,6 +195,7 @@ export function DeleteOpportunitiesClient() {
         </span>
         <div className="flex items-center gap-1">
           <button
+            type="button"
             disabled={page <= 1}
             onClick={() => setPage((p) => p - 1)}
             className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-40 transition-colors"
@@ -203,6 +204,7 @@ export function DeleteOpportunitiesClient() {
           </button>
           <span className="px-2">Page {page} of {totalPages}</span>
           <button
+            type="button"
             disabled={page >= totalPages}
             onClick={() => setPage((p) => p + 1)}
             className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-40 transition-colors"

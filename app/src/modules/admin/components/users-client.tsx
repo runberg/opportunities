@@ -131,6 +131,7 @@ export function AdminUsersClient({
                 <td className="px-4 py-3 text-gray-400 hidden md:table-cell">{formatDate(user.createdAt)}</td>
                 <td className="px-4 py-3">
                   <button
+                    type="button"
                     onClick={() => openEdit(user)}
                     className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
                   >

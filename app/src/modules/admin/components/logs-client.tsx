@@ -151,6 +151,7 @@ export function SystemLogClient({
       {/* Type filter */}
       <div className="flex flex-wrap gap-2 mb-4">
         <button
+          type="button"
           onClick={() => navigate(1, "")}
           className={cn(
             "px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors",
@@ -164,6 +165,7 @@ export function SystemLogClient({
         {FILTER_GROUPS.map((g) => (
           <button
             key={g.label}
+            type="button"
             onClick={() => navigate(1, GROUP_FILTER_VALUES[g.label])}
             className={cn(
               "px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors",
@@ -235,6 +237,7 @@ export function SystemLogClient({
           <span>Page {page} of {totalPages}</span>
           <div className="flex gap-2">
             <button
+              type="button"
               disabled={page <= 1}
               onClick={() => navigate(page - 1)}
               className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-medium hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -242,6 +245,7 @@ export function SystemLogClient({
               Previous
             </button>
             <button
+              type="button"
               disabled={page >= totalPages}
               onClick={() => navigate(page + 1)}
               className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-medium hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"

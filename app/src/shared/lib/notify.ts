@@ -172,11 +172,12 @@ async function fireNotification(entry: PendingEntry): Promise<void> {
     (isOpp ? config.opportunityNotificationBody : config.adhocNotificationBody) ||
     (isOpp ? DEFAULT_OPP_BODY : DEFAULT_ADHOC_BODY)
 
+  const path = isOpp ? "/opportunities" : "/adhoc"
   const baseVars: Record<string, string> = {
     title: entry.title,
     internalId: entry.internalId ? ` · ${entry.internalId}` : "",
     customer: entry.customer,
-    link: appUrl ? `${appUrl}${isOpp ? "/opportunities" : "/adhoc"}` : "",
+    link: appUrl ? `${appUrl}${path}` : "",
   }
 
   for (const recipient of recipients) {
