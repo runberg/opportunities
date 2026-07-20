@@ -27,6 +27,15 @@ export interface SavedFile {
   originalName: string
 }
 
+/** Reads a file from UPLOAD_DIR and returns its buffer, or null if not found. */
+export async function readUploadedFile(filename: string): Promise<Buffer | null> {
+  try {
+    return await readFile(join(UPLOAD_DIR, basename(filename)))
+  } catch {
+    return null
+  }
+}
+
 /** Reads a file from UPLOAD_DIR and returns a file response. Pass inline=true to view in browser. */
 export async function serveFile(
   doc: { filename: string; mimeType: string; originalName: string },

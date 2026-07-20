@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/shared/lib/db"
 import { requireSession } from "@/shared/lib/api"
-import { readFile, unlink } from "node:fs/promises"
+import { unlink } from "node:fs/promises"
 import { join, basename } from "node:path"
 import { DOC_TYPE_LABELS } from "@/shared/lib/utils"
-
-const UPLOAD_DIR = process.env.UPLOAD_DIR ?? join(process.cwd(), "uploads")
+import { serveFile, readUploadedFile, UPLOAD_DIR } from "@/shared/lib/upload"
+import { EXCEL_MIMES } from "@/shared/lib/file-types"
+import { serveExcelPreview } from "@/shared/lib/excel-preview"
 
 export async function GET(
   req: NextRequest,
@@ -15,26 +16,19 @@ export async function GET(
   if (error) return error
 
   const { id } = await params
-
   const doc = await db.document.findUnique({ where: { id } })
   if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
-  const filePath = join(UPLOAD_DIR, basename(doc.filename))
-  const buffer = await readFile(filePath).catch(() => null)
-  if (!buffer) return NextResponse.json({ error: "File not found on disk" }, { status: 404 })
+  if (req.nextUrl.searchParams.get("preview") === "1") {
+    if (!EXCEL_MIMES.has(doc.mimeType))
+      return NextResponse.json({ error: "Not an Excel file" }, { status: 400 })
+    const buffer = await readUploadedFile(doc.filename)
+    if (!buffer) return NextResponse.json({ error: "File not found on disk" }, { status: 404 })
+    return serveExcelPreview(buffer)
+  }
 
   const inline = req.nextUrl.searchParams.get("inline") === "1"
-  const disposition = inline
-    ? `inline; filename="${encodeURIComponent(doc.originalName)}"`
-    : `attachment; filename="${encodeURIComponent(doc.originalName)}"`
-
-  return new NextResponse(buffer, {
-    headers: {
-      "Content-Type": doc.mimeType,
-      "Content-Disposition": disposition,
-      "Content-Length": buffer.length.toString(),
-    },
-  })
+  return serveFile(doc, inline)
 }
 
 export async function DELETE(
@@ -45,7 +39,6 @@ export async function DELETE(
   if (error) return error
 
   const { id } = await params
-
   const doc = await db.document.findUnique({ where: { id } })
   if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
@@ -69,6 +62,5 @@ export async function DELETE(
   }
 
   await db.document.delete({ where: { id } })
-
   return NextResponse.json({ ok: true })
 }
