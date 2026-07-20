@@ -6,7 +6,7 @@ const DEFAULT_OPP_SUBJECT = "Opportunity update: {{title}}"
 const DEFAULT_OPP_BODY = [
   "An opportunity has been updated:",
   "",
-  "{{title}}{{internalId}}",
+  "{{internalId}}{{title}}",
   "Customer: {{customer}}",
   "",
   "Changes:",
@@ -175,7 +175,7 @@ async function fireNotification(entry: PendingEntry): Promise<void> {
   const path = isOpp ? "/opportunities" : "/adhoc"
   const baseVars: Record<string, string> = {
     title: entry.title,
-    internalId: entry.internalId ? ` · ${entry.internalId}` : "",
+    internalId: entry.internalId ? `${entry.internalId} - ` : "",
     customer: entry.customer,
     link: appUrl ? `${appUrl}${path}` : "",
   }

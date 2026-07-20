@@ -12,7 +12,7 @@ const DEFAULT_OPP_SUBJECT = "Opportunity update: {{title}}"
 const DEFAULT_OPP_BODY = [
   "An opportunity has been updated:",
   "",
-  "{{title}}{{internalId}}",
+  "{{internalId}}{{title}}",
   "Customer: {{customer}}",
   "",
   "Changes:",
@@ -41,7 +41,7 @@ const DEFAULT_ADHOC_BODY = [
 
 const OPP_PLACEHOLDERS = [
   { token: "{{title}}", desc: "Opportunity title" },
-  { token: "{{internalId}}", desc: "Internal ID (blank if not set, prefixed with \" · \")" },
+  { token: "{{internalId}}", desc: "Internal ID followed by \" - \" (blank if not set — place before {{title}})" },
   { token: "{{customer}}", desc: "Customer name" },
   { token: "{{changes}}", desc: "List of changes in this notification" },
   { token: "{{link}}", desc: "Link to the application" },
