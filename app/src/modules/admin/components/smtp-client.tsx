@@ -8,20 +8,48 @@ import { Label } from "@/shared/components/ui/label"
 import { Send } from "lucide-react"
 import { cn } from "@/shared/lib/utils"
 
-const DEFAULT_SUBJECT = "Opportunity update: {{title}}"
-const DEFAULT_BODY = `An opportunity has been updated:
+const DEFAULT_OPP_SUBJECT = "Opportunity update: {{title}}"
+const DEFAULT_OPP_BODY = [
+  "An opportunity has been updated:",
+  "",
+  "{{title}}{{internalId}}",
+  "Customer: {{customer}}",
+  "",
+  "Changes:",
+  "{{changes}}",
+  "",
+  "{{link}}",
+  "",
+  "---",
+  "This is an auto-generated notification. Please do not reply to this email.",
+].join("\n")
 
-{{title}}{{internalId}}
-Customer: {{customer}}
-Status: {{status}}
+const DEFAULT_ADHOC_SUBJECT = "Work package update: {{title}}"
+const DEFAULT_ADHOC_BODY = [
+  "A work package has been updated:",
+  "",
+  "{{title}}",
+  "",
+  "Changes:",
+  "{{changes}}",
+  "",
+  "{{link}}",
+  "",
+  "---",
+  "This is an auto-generated notification. Please do not reply to this email.",
+].join("\n")
 
-{{link}}`
-
-const PLACEHOLDERS = [
+const OPP_PLACEHOLDERS = [
   { token: "{{title}}", desc: "Opportunity title" },
   { token: "{{internalId}}", desc: "Internal ID (blank if not set, prefixed with \" · \")" },
   { token: "{{customer}}", desc: "Customer name" },
-  { token: "{{status}}", desc: "New status label" },
+  { token: "{{changes}}", desc: "List of changes in this notification" },
+  { token: "{{link}}", desc: "Link to the application" },
+]
+
+const ADHOC_PLACEHOLDERS = [
+  { token: "{{title}}", desc: "Work package title" },
+  { token: "{{changes}}", desc: "List of changes in this notification" },
   { token: "{{link}}", desc: "Link to the application" },
 ]
 
@@ -34,8 +62,11 @@ interface SmtpForm {
   fromAddress: string
   fromName: string
   enabled: boolean
-  notificationSubject: string
-  notificationBody: string
+  notificationDelayMinutes: number
+  opportunityNotificationSubject: string
+  opportunityNotificationBody: string
+  adhocNotificationSubject: string
+  adhocNotificationBody: string
 }
 
 interface InitialConfig {
@@ -47,8 +78,71 @@ interface InitialConfig {
   readonly fromName: string
   readonly hasPassword: boolean
   readonly enabled: boolean
-  readonly notificationSubject: string
-  readonly notificationBody: string
+  readonly notificationDelayMinutes: number
+  readonly opportunityNotificationSubject: string
+  readonly opportunityNotificationBody: string
+  readonly adhocNotificationSubject: string
+  readonly adhocNotificationBody: string
+}
+
+function PlaceholderList({ items }: { readonly items: typeof OPP_PLACEHOLDERS }) {
+  return (
+    <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200 text-xs text-gray-500 space-y-1">
+      <p className="font-medium text-gray-600 mb-1.5">Available placeholders:</p>
+      {items.map(({ token, desc }) => (
+        <div key={token} className="flex gap-2">
+          <code className="text-blue-600 font-mono shrink-0">{token}</code>
+          <span>{desc}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function TemplateFields({
+  subjectId,
+  bodyId,
+  subjectValue,
+  bodyValue,
+  defaultSubject,
+  defaultBody,
+  onSubjectChange,
+  onBodyChange,
+}: {
+  readonly subjectId: string
+  readonly bodyId: string
+  readonly subjectValue: string
+  readonly bodyValue: string
+  readonly defaultSubject: string
+  readonly defaultBody: string
+  readonly onSubjectChange: (v: string) => void
+  readonly onBodyChange: (v: string) => void
+}) {
+  return (
+    <div className="space-y-3">
+      <div>
+        <Label htmlFor={subjectId}>Subject</Label>
+        <Input
+          id={subjectId}
+          value={subjectValue}
+          onChange={(e) => onSubjectChange(e.target.value)}
+          placeholder={defaultSubject}
+        />
+      </div>
+      <div>
+        <Label htmlFor={bodyId}>Body</Label>
+        <textarea
+          id={bodyId}
+          value={bodyValue}
+          onChange={(e) => onBodyChange(e.target.value)}
+          placeholder={defaultBody}
+          rows={8}
+          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 resize-y"
+        />
+        <p className="text-xs text-gray-400 mt-1">Leave blank to use the default template.</p>
+      </div>
+    </div>
+  )
 }
 
 export function SmtpClient({ initial }: { readonly initial: InitialConfig | null }) {
@@ -63,8 +157,11 @@ export function SmtpClient({ initial }: { readonly initial: InitialConfig | null
     fromAddress: initial?.fromAddress ?? "",
     fromName: initial?.fromName ?? "Opportunities",
     enabled: initial?.enabled ?? false,
-    notificationSubject: initial?.notificationSubject ?? "",
-    notificationBody: initial?.notificationBody ?? "",
+    notificationDelayMinutes: initial?.notificationDelayMinutes ?? 15,
+    opportunityNotificationSubject: initial?.opportunityNotificationSubject ?? "",
+    opportunityNotificationBody: initial?.opportunityNotificationBody ?? "",
+    adhocNotificationSubject: initial?.adhocNotificationSubject ?? "",
+    adhocNotificationBody: initial?.adhocNotificationBody ?? "",
   })
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState<{ ok: boolean; text: string } | null>(null)
@@ -78,7 +175,7 @@ export function SmtpClient({ initial }: { readonly initial: InitialConfig | null
     setSaveMsg(null)
   }
 
-  async function handleSave(e: React.FormEvent) {
+  async function handleSave(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
     setSaving(true)
     setSaveMsg(null)
@@ -102,7 +199,7 @@ export function SmtpClient({ initial }: { readonly initial: InitialConfig | null
     router.refresh()
   }
 
-  async function handleTest(e: React.FormEvent) {
+  async function handleTest(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
     setTesting(true)
     setTestMsg(null)
@@ -130,7 +227,7 @@ export function SmtpClient({ initial }: { readonly initial: InitialConfig | null
         <div>
           <p className="text-sm font-semibold text-gray-900">Email Notifications</p>
           <p className="text-xs text-gray-500 mt-0.5">
-            {form.enabled ? "Enabled — notifications will be sent on status changes." : "Disabled — no notifications are sent."}
+            {form.enabled ? "Enabled — notifications will be sent according to user preferences." : "Disabled — no notifications are sent."}
           </p>
           {!isConfigured && (
             <p className="text-xs text-amber-600 mt-1">Save SMTP settings before enabling.</p>
@@ -196,43 +293,53 @@ export function SmtpClient({ initial }: { readonly initial: InitialConfig | null
             </div>
           </div>
 
-          {/* Notification template */}
+          {/* Notification delay */}
           <div className="pt-2 border-t border-gray-100">
-            <h3 className="text-sm font-semibold text-gray-800 mb-3">Notification Template</h3>
+            <Label htmlFor="notif-delay">Notification Delay (minutes)</Label>
+            <Input
+              id="notif-delay"
+              type="number"
+              value={form.notificationDelayMinutes}
+              onChange={(e) => set("notificationDelayMinutes", Number.parseInt(e.target.value, 10) || 15)}
+              min={1}
+              max={1440}
+              className="w-28"
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              Changes within this window are batched into a single email. Default: 15 minutes.
+            </p>
+          </div>
 
-            <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200 text-xs text-gray-500 space-y-1">
-              <p className="font-medium text-gray-600 mb-1.5">Available placeholders:</p>
-              {PLACEHOLDERS.map(({ token, desc }) => (
-                <div key={token} className="flex gap-2">
-                  <code className="text-blue-600 font-mono shrink-0">{token}</code>
-                  <span>{desc}</span>
-                </div>
-              ))}
-            </div>
+          {/* Opportunities template */}
+          <div className="pt-2 border-t border-gray-100">
+            <h3 className="text-sm font-semibold text-gray-800 mb-3">Opportunities — Notification Template</h3>
+            <PlaceholderList items={OPP_PLACEHOLDERS} />
+            <TemplateFields
+              subjectId="opp-subject"
+              bodyId="opp-body"
+              subjectValue={form.opportunityNotificationSubject}
+              bodyValue={form.opportunityNotificationBody}
+              defaultSubject={DEFAULT_OPP_SUBJECT}
+              defaultBody={DEFAULT_OPP_BODY}
+              onSubjectChange={(v) => set("opportunityNotificationSubject", v)}
+              onBodyChange={(v) => set("opportunityNotificationBody", v)}
+            />
+          </div>
 
-            <div className="space-y-3">
-              <div>
-                <Label htmlFor="notif-subject">Subject</Label>
-                <Input
-                  id="notif-subject"
-                  value={form.notificationSubject}
-                  onChange={(e) => set("notificationSubject", e.target.value)}
-                  placeholder={DEFAULT_SUBJECT}
-                />
-              </div>
-              <div>
-                <Label htmlFor="notif-body">Body</Label>
-                <textarea
-                  id="notif-body"
-                  value={form.notificationBody}
-                  onChange={(e) => set("notificationBody", e.target.value)}
-                  placeholder={DEFAULT_BODY}
-                  rows={8}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 resize-y"
-                />
-                <p className="text-xs text-gray-400 mt-1">Leave blank to use the default template.</p>
-              </div>
-            </div>
+          {/* Adhoc template */}
+          <div className="pt-2 border-t border-gray-100">
+            <h3 className="text-sm font-semibold text-gray-800 mb-3">Ad Hoc Work Packages — Notification Template</h3>
+            <PlaceholderList items={ADHOC_PLACEHOLDERS} />
+            <TemplateFields
+              subjectId="adhoc-subject"
+              bodyId="adhoc-body"
+              subjectValue={form.adhocNotificationSubject}
+              bodyValue={form.adhocNotificationBody}
+              defaultSubject={DEFAULT_ADHOC_SUBJECT}
+              defaultBody={DEFAULT_ADHOC_BODY}
+              onSubjectChange={(v) => set("adhocNotificationSubject", v)}
+              onBodyChange={(v) => set("adhocNotificationBody", v)}
+            />
           </div>
 
           {saveMsg && (

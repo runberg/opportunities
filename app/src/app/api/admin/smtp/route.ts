@@ -13,8 +13,11 @@ const schema = z.object({
   fromAddress: z.string().email(),
   fromName: z.string().min(1),
   enabled: z.boolean(),
-  notificationSubject: z.string(),
-  notificationBody: z.string(),
+  notificationDelayMinutes: z.number().int().min(1).max(1440),
+  opportunityNotificationSubject: z.string(),
+  opportunityNotificationBody: z.string(),
+  adhocNotificationSubject: z.string(),
+  adhocNotificationBody: z.string(),
 })
 
 export async function GET() {

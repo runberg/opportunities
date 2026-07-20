@@ -18,10 +18,13 @@ export default async function SmtpPage() {
         username: config.username,
         fromAddress: config.fromAddress,
         fromName: config.fromName,
-        hasPassword: true,
+        hasPassword: !!config.password,
         enabled: config.enabled,
-        notificationSubject: config.notificationSubject,
-        notificationBody: config.notificationBody,
+        notificationDelayMinutes: config.notificationDelayMinutes,
+        opportunityNotificationSubject: config.opportunityNotificationSubject,
+        opportunityNotificationBody: config.opportunityNotificationBody,
+        adhocNotificationSubject: config.adhocNotificationSubject,
+        adhocNotificationBody: config.adhocNotificationBody,
       }
     : null
 

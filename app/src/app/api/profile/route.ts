@@ -3,9 +3,12 @@ import { db } from "@/shared/lib/db"
 import { z } from "zod"
 import { requireSession } from "@/shared/lib/api"
 
+const NOTIFICATION_LEVELS = ["NONE", "STATUS_CHANGES", "ALL"] as const
+
 const schema = z.object({
   name: z.string().min(1).max(100).optional(),
-  emailNotifications: z.boolean().optional(),
+  opportunityNotifications: z.enum(NOTIFICATION_LEVELS).optional(),
+  adhocNotifications: z.enum(NOTIFICATION_LEVELS).optional(),
 })
 
 export async function PATCH(req: NextRequest) {
@@ -18,9 +21,10 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 })
   }
 
-  const data: { name?: string; emailNotifications?: boolean } = {}
+  const data: Record<string, unknown> = {}
   if (parsed.data.name !== undefined) data.name = parsed.data.name
-  if (parsed.data.emailNotifications !== undefined) data.emailNotifications = parsed.data.emailNotifications
+  if (parsed.data.opportunityNotifications !== undefined) data.opportunityNotifications = parsed.data.opportunityNotifications
+  if (parsed.data.adhocNotifications !== undefined) data.adhocNotifications = parsed.data.adhocNotifications
 
   await db.user.update({ where: { id: session.user.id }, data })
 

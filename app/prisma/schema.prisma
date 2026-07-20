@@ -7,16 +7,23 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum NotificationLevel {
+  NONE
+  STATUS_CHANGES
+  ALL
+}
+
 model User {
-  id                 String        @id @default(cuid())
-  name               String
-  email              String        @unique
-  password           String
-  role               Role          @default(USER)
-  active             Boolean       @default(true)
-  emailNotifications Boolean       @default(false)
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
+  id                        String            @id @default(cuid())
+  name                      String
+  email                     String            @unique
+  password                  String
+  role                      Role              @default(USER)
+  active                    Boolean           @default(true)
+  opportunityNotifications  NotificationLevel @default(NONE)
+  adhocNotifications        NotificationLevel @default(NONE)
+  createdAt                 DateTime          @default(now())
+  updatedAt                 DateTime          @updatedAt
 
   opportunities           Opportunity[]
   comments                Comment[]
@@ -311,16 +318,19 @@ enum AdhocAgreementDocumentType {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model SmtpConfig {
-  id                  String   @id @default("default")
-  host                String
-  port                Int      @default(587)
-  secure              Boolean  @default(false)
-  username            String?
-  password            String?
-  fromAddress         String
-  fromName            String   @default("Opportunities")
-  enabled             Boolean  @default(false)
-  notificationSubject String   @default("")
-  notificationBody    String   @default("")
-  updatedAt           DateTime @updatedAt
+  id                           String   @id @default("default")
+  host                         String
+  port                         Int      @default(587)
+  secure                       Boolean  @default(false)
+  username                     String?
+  password                     String?
+  fromAddress                  String
+  fromName                     String   @default("Opportunities")
+  enabled                      Boolean  @default(false)
+  notificationDelayMinutes     Int      @default(15)
+  opportunityNotificationSubject String @default("")
+  opportunityNotificationBody    String @default("")
+  adhocNotificationSubject       String @default("")
+  adhocNotificationBody          String @default("")
+  updatedAt                    DateTime @updatedAt
 }

@@ -40,6 +40,7 @@ export function Dialog({ open, onClose, title, children, className }: DialogProp
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700">
           <h2 className="text-base font-semibold text-gray-100">{title}</h2>
           <button
+            type="button"
             onClick={onClose}
             className="text-gray-400 hover:text-gray-200 transition-colors"
           >

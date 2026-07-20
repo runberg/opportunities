@@ -4,6 +4,7 @@ import { requireSession } from "@/shared/lib/api"
 import { DocumentType, DocumentStatus } from "@prisma/client"
 import { DOC_TYPE_LABELS } from "@/shared/lib/utils"
 import { saveUploadedFile, ALLOWED_MIME_TYPES, MAX_UPLOAD_BYTES } from "@/shared/lib/upload"
+import { scheduleNotification } from "@/shared/lib/notify"
 
 export async function POST(
   req: NextRequest,
@@ -61,6 +62,17 @@ export async function POST(
       authorId: session.user.id,
     },
   })
+
+  scheduleNotification({
+    module: "opportunity",
+    itemId: opportunityId,
+    actorId: session.user.id,
+    title: opportunity.title,
+    internalId: opportunity.internalId,
+    customer: opportunity.customer,
+    changes: [`"${displayName.trim()}" uploaded (${DOC_TYPE_LABELS[type] ?? "Document"})`],
+    statusChanges: [],
+  }).catch((err) => console.error("Failed to schedule notification:", err))
 
   return NextResponse.json(document, { status: 201 })
 }

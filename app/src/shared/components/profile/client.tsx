@@ -6,15 +6,51 @@ import { Input } from "@/shared/components/ui/input"
 import { Label } from "@/shared/components/ui/label"
 import { cn } from "@/shared/lib/utils"
 
+type NotificationLevel = "NONE" | "STATUS_CHANGES" | "ALL"
+
+const LEVEL_OPTIONS: { value: NotificationLevel; label: string }[] = [
+  { value: "NONE", label: "Off" },
+  { value: "STATUS_CHANGES", label: "Status changes only" },
+  { value: "ALL", label: "All updates" },
+]
+
+function NotificationSelect({
+  id,
+  value,
+  disabled,
+  onChange,
+}: {
+  readonly id: string
+  readonly value: NotificationLevel
+  readonly disabled: boolean
+  readonly onChange: (v: NotificationLevel) => void
+}) {
+  return (
+    <select
+      id={id}
+      value={value}
+      disabled={disabled}
+      onChange={(e) => onChange(e.target.value as NotificationLevel)}
+      className="rounded-lg border border-gray-600 bg-gray-700 px-3 py-1.5 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-60"
+    >
+      {LEVEL_OPTIONS.map((opt) => (
+        <option key={opt.value} value={opt.value}>{opt.label}</option>
+      ))}
+    </select>
+  )
+}
+
 export function ProfileClient({
   userName: initialName,
   userEmail,
-  emailNotifications: initialNotifications,
+  opportunityNotifications: initialOppNotif,
+  adhocNotifications: initialAdhocNotif,
   notificationsAvailable,
 }: {
   readonly userName: string
   readonly userEmail: string
-  readonly emailNotifications: boolean
+  readonly opportunityNotifications: NotificationLevel
+  readonly adhocNotifications: NotificationLevel
   readonly notificationsAvailable: boolean
 }) {
   const [name, setName] = useState(initialName)
@@ -36,27 +72,29 @@ export function ProfileClient({
     setNameMsg(res.ok ? { ok: true, text: "Display name updated." } : { ok: false, text: "Failed to save." })
   }
 
-  const [notifications, setNotifications] = useState(initialNotifications)
+  const [oppNotif, setOppNotif] = useState<NotificationLevel>(initialOppNotif)
+  const [adhocNotif, setAdhocNotif] = useState<NotificationLevel>(initialAdhocNotif)
   const [notifSaving, setNotifSaving] = useState(false)
   const [notifMsg, setNotifMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
-  const [form, setForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" })
-  const [saving, setSaving] = useState(false)
-  const [success, setSuccess] = useState("")
-  const [error, setError] = useState("")
-
-  async function toggleNotifications(val: boolean) {
-    setNotifications(val)
+  async function saveNotification(field: "opportunityNotifications" | "adhocNotifications", value: NotificationLevel) {
+    if (field === "opportunityNotifications") setOppNotif(value)
+    else setAdhocNotif(value)
     setNotifSaving(true)
     setNotifMsg(null)
     const res = await fetch("/api/profile", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ emailNotifications: val }),
+      body: JSON.stringify({ [field]: value }),
     })
     setNotifSaving(false)
     setNotifMsg(res.ok ? { ok: true, text: "Preference saved." } : { ok: false, text: "Failed to save." })
   }
+
+  const [form, setForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" })
+  const [saving, setSaving] = useState(false)
+  const [success, setSuccess] = useState("")
+  const [error, setError] = useState("")
 
   function set(field: string, value: string) {
     setForm((p) => ({ ...p, [field]: value }))
@@ -133,35 +171,35 @@ export function ProfileClient({
         )}
       </div>
 
-      {/* Email notifications — only shown when admin has enabled the feature */}
+      {/* Email notifications */}
       {notificationsAvailable && (
         <div className={cardCls}>
           <h2 className="text-base font-semibold text-gray-100 mb-1">Email Notifications</h2>
           <p className="text-sm text-gray-400 mb-4">
-            Receive an email when an opportunity changes status.
+            Choose when to receive email notifications for each module.
           </p>
-          <div className="flex items-center gap-3">
-            <button
-              role="switch"
-              aria-checked={notifications}
-              onClick={() => toggleNotifications(!notifications)}
-              disabled={notifSaving}
-              className={cn(
-                "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-60",
-                notifications ? "bg-blue-600" : "bg-gray-600"
-              )}
-            >
-              <span
-                className={cn(
-                  "inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform",
-                  notifications ? "translate-x-6" : "translate-x-1"
-                )}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-4">
+              <Label htmlFor="notif-opp" className="text-gray-300 text-sm">Opportunities</Label>
+              <NotificationSelect
+                id="notif-opp"
+                value={oppNotif}
+                disabled={notifSaving}
+                onChange={(v) => saveNotification("opportunityNotifications", v)}
               />
-            </button>
-            <span className="text-sm text-gray-300">{notifications ? "Enabled" : "Disabled"}</span>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <Label htmlFor="notif-adhoc" className="text-gray-300 text-sm">Ad hoc work packages</Label>
+              <NotificationSelect
+                id="notif-adhoc"
+                value={adhocNotif}
+                disabled={notifSaving}
+                onChange={(v) => saveNotification("adhocNotifications", v)}
+              />
+            </div>
           </div>
           {notifMsg && (
-            <p className={cn("text-xs mt-2", notifMsg.ok ? "text-green-600" : "text-red-600")}>{notifMsg.text}</p>
+            <p className={cn("text-xs mt-3", notifMsg.ok ? "text-green-500" : "text-red-400")}>{notifMsg.text}</p>
           )}
         </div>
       )}

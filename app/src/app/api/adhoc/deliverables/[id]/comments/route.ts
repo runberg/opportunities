@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/shared/lib/db"
 import { z } from "zod"
 import { requireSession } from "@/shared/lib/api"
+import { scheduleNotification } from "@/shared/lib/notify"
 
 const commentSchema = z.object({
   content: z.string().min(1).max(5000),
@@ -32,6 +33,15 @@ export async function POST(
     },
     include: { author: { select: { id: true, name: true } } },
   })
+
+  scheduleNotification({
+    module: "adhoc",
+    itemId: adhocDeliverableId,
+    actorId: session.user.id,
+    title: deliverable.title,
+    changes: ["Comment added"],
+    statusChanges: [],
+  }).catch((err) => console.error("Failed to schedule notification:", err))
 
   return NextResponse.json(comment, { status: 201 })
 }

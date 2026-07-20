@@ -5,7 +5,7 @@ import { type Opportunity, OpportunityStatus, WaitingOn } from "@prisma/client"
 import { STATUS_LABELS, toDateString, WAITING_LABELS } from "@/shared/lib/utils"
 import { requireSession, requireAdmin } from "@/shared/lib/api"
 import { writeLog } from "@/shared/lib/system-log"
-import { scheduleStatusNotification } from "@/shared/lib/notify"
+import { scheduleNotification } from "@/shared/lib/notify"
 
 export async function GET(
   _req: NextRequest,
@@ -255,16 +255,18 @@ export async function PATCH(
     })
   }
 
-  if (nextStatus !== prevStatus) {
-    const actor = await db.user.findUnique({ where: { id: session.user.id }, select: { email: true } })
-    scheduleStatusNotification({
-      opportunityId: id,
+  if (events.length > 0) {
+    const statusChanges = events.filter((e) => e.startsWith("Status changed"))
+    scheduleNotification({
+      module: "opportunity",
+      itemId: id,
+      actorId: session.user.id,
       title: existing.title,
       internalId: existing.internalId,
       customer: existing.customer,
-      newStatus: nextStatus,
-      actorEmail: actor?.email ?? session.user.id,
-    })
+      changes: events,
+      statusChanges,
+    }).catch((err) => console.error("Failed to schedule notification:", err))
   }
 
   return NextResponse.json(updated)

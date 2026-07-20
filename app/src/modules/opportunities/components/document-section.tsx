@@ -217,6 +217,7 @@ export function DocumentSection({
         {TYPE_FILTERS.map((f) => (
           <button
             key={f}
+            type="button"
             onClick={() => setFilter(f)}
             className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors ${
               filter === f

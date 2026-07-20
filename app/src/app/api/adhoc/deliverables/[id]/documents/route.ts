@@ -4,6 +4,7 @@ import { requireSession } from "@/shared/lib/api"
 import { writeLog } from "@/shared/lib/system-log"
 import { AdhocDocumentType } from "@prisma/client"
 import { saveUploadedFile, ALLOWED_MIME_TYPES, MAX_UPLOAD_BYTES } from "@/shared/lib/upload"
+import { scheduleNotification } from "@/shared/lib/notify"
 
 const VALID_TYPES = Object.values(AdhocDocumentType)
 
@@ -60,6 +61,15 @@ export async function POST(
     userId: session.user.id,
     adhocDeliverableId: id,
   })
+
+  scheduleNotification({
+    module: "adhoc",
+    itemId: id,
+    actorId: session.user.id,
+    title: deliverable.title,
+    changes: [`"${doc.displayName}" (${typeRaw}) uploaded`],
+    statusChanges: [],
+  }).catch((err) => console.error("Failed to schedule notification:", err))
 
   return NextResponse.json(doc, { status: 201 })
 }

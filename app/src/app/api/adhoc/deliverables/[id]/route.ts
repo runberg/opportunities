@@ -3,6 +3,7 @@ import { db } from "@/shared/lib/db"
 import { requireSession } from "@/shared/lib/api"
 import { writeLog } from "@/shared/lib/system-log"
 import { AdhocDeliverableStatus } from "@prisma/client"
+import { scheduleNotification } from "@/shared/lib/notify"
 
 const VALID_STATUSES = Object.values(AdhocDeliverableStatus)
 
@@ -144,6 +145,15 @@ async function handleApprove(
     adhocDeliverableId: deliverableId,
   })
 
+  scheduleNotification({
+    module: "adhoc",
+    itemId: deliverableId,
+    actorId: userId,
+    title: deliverable.title,
+    changes: [`Approved at ${amt.toFixed(2)}${partial}`],
+    statusChanges: [`Status → ${newStatus}`],
+  }).catch((err) => console.error("Failed to schedule notification:", err))
+
   return NextResponse.json({ status: newStatus, approvedAmount: amt })
 }
 
@@ -187,6 +197,14 @@ async function handleRemoveApproval(deliverableId: string, title: string, userId
     userId,
     adhocDeliverableId: deliverableId,
   })
+  scheduleNotification({
+    module: "adhoc",
+    itemId: deliverableId,
+    actorId: userId,
+    title,
+    changes: ["Approval removed"],
+    statusChanges: ["Status → NOT_APPROVED"],
+  }).catch((err) => console.error("Failed to schedule notification:", err))
   return NextResponse.json({ status: "NOT_APPROVED", approvedAmount: 0 })
 }
 
@@ -253,6 +271,18 @@ export async function PATCH(
     userId: session.user.id,
     adhocDeliverableId: id,
   })
+
+  if (changes.length > 0) {
+    const statusChanges = changes.filter((c) => c.startsWith("status →"))
+    scheduleNotification({
+      module: "adhoc",
+      itemId: id,
+      actorId: session.user.id,
+      title: updated.title,
+      changes,
+      statusChanges,
+    }).catch((err) => console.error("Failed to schedule notification:", err))
+  }
 
   return NextResponse.json(updated)
 }
