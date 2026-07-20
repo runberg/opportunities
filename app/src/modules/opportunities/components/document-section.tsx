@@ -8,6 +8,8 @@ import { Button } from "@/shared/components/ui/button"
 import { DocNameCell } from "@/shared/components/ui/doc-name-cell"
 import { DocActionCell } from "@/shared/components/ui/doc-action-cell"
 import { PdfViewerModal } from "@/shared/components/ui/pdf-viewer-modal"
+import { ExcelViewerModal } from "@/shared/components/ui/excel-viewer-modal"
+import { WordViewerModal } from "@/shared/components/ui/word-viewer-modal"
 
 interface Document {
   id: string
@@ -41,6 +43,8 @@ export function DocumentSection({
 }: DocumentSectionProps) {
   const router = useRouter()
   const [pdfViewer, setPdfViewer] = useState<{ id: string; name: string } | null>(null)
+  const [excelViewer, setExcelViewer] = useState<{ id: string; name: string } | null>(null)
+  const [wordViewer, setWordViewer] = useState<{ id: string; name: string } | null>(null)
   const [filter, setFilter] = useState<TypeFilter>("ALL")
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState("")
@@ -261,6 +265,8 @@ export function DocumentSection({
                   <DocNameCell
                     doc={doc}
                     onViewPdf={() => setPdfViewer({ id: doc.id, name: doc.displayName })}
+                    onViewExcel={() => setExcelViewer({ id: doc.id, name: doc.displayName })}
+                    onViewWord={() => setWordViewer({ id: doc.id, name: doc.displayName })}
                   />
                   <td className="px-4 py-3">{docTypeBadge(doc.type)}</td>
                   <td className="px-4 py-3">{docStatusBadge(doc.docStatus)}</td>
@@ -283,6 +289,20 @@ export function DocumentSection({
           fileUrl={`/api/files/${pdfViewer.id}`}
           docName={pdfViewer.name}
           onClose={() => setPdfViewer(null)}
+        />
+      )}
+      {excelViewer && (
+        <ExcelViewerModal
+          fileUrl={`/api/files/${excelViewer.id}`}
+          docName={excelViewer.name}
+          onClose={() => setExcelViewer(null)}
+        />
+      )}
+      {wordViewer && (
+        <WordViewerModal
+          fileUrl={`/api/files/${wordViewer.id}`}
+          docName={wordViewer.name}
+          onClose={() => setWordViewer(null)}
         />
       )}
     </div>

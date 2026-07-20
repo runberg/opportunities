@@ -8,6 +8,8 @@ import { AgreementForm } from "./agreement-form"
 import { AdhocDocList } from "./adhoc-doc-list"
 import { Button } from "@/shared/components/ui/button"
 import { PdfViewerModal } from "@/shared/components/ui/pdf-viewer-modal"
+import { ExcelViewerModal } from "@/shared/components/ui/excel-viewer-modal"
+import { WordViewerModal } from "@/shared/components/ui/word-viewer-modal"
 import { DatePicker } from "@/shared/components/ui/date-picker"
 import { todayISO, formatAmount, formatDate, nameFromFile } from "@/shared/lib/utils"
 import { useDropZone, useWindowDragExpand } from "@/shared/lib/use-drop-zone"
@@ -49,6 +51,18 @@ function AgreementDocs({ agreement, currentUserId, isAdmin, onRefresh }: Agreeme
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [pdfViewer, setPdfViewer] = useState<{ id: string; name: string } | null>(null)
+  const [excelViewer, setExcelViewer] = useState<{ id: string; name: string } | null>(null)
+  const [wordViewer, setWordViewer] = useState<{ id: string; name: string } | null>(null)
+
+  function openViewer(doc: { id: string; displayName: string; mimeType: string }) {
+    if (doc.mimeType === "application/vnd.ms-excel" || doc.mimeType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") {
+      setExcelViewer({ id: doc.id, name: doc.displayName })
+    } else if (doc.mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+      setWordViewer({ id: doc.id, name: doc.displayName })
+    } else {
+      setPdfViewer({ id: doc.id, name: doc.displayName })
+    }
+  }
 
   const docType = agreement.status === "SIGNED" || agreement.status === "ACTIVE"
     ? "COUNTERSIGNED" : "DRAFT"
@@ -112,7 +126,7 @@ function AgreementDocs({ agreement, currentUserId, isAdmin, onRefresh }: Agreeme
         downloadUrl={(id) => `/api/adhoc/agreement-documents/${id}`}
         canDelete={() => isAdmin}
         onDelete={handleDelete}
-        onView={(doc) => setPdfViewer({ id: doc.id, name: doc.displayName })}
+        onView={openViewer}
       />
       <AdhocDocList
         docs={countersigned}
@@ -120,7 +134,7 @@ function AgreementDocs({ agreement, currentUserId, isAdmin, onRefresh }: Agreeme
         downloadUrl={(id) => `/api/adhoc/agreement-documents/${id}`}
         canDelete={() => isAdmin}
         onDelete={handleDelete}
-        onView={(doc) => setPdfViewer({ id: doc.id, name: doc.displayName })}
+        onView={openViewer}
       />
 
       {agreement.documents.length === 0 && !showUpload && (
@@ -192,6 +206,20 @@ function AgreementDocs({ agreement, currentUserId, isAdmin, onRefresh }: Agreeme
           fileUrl={`/api/adhoc/agreement-documents/${pdfViewer.id}`}
           docName={pdfViewer.name}
           onClose={() => setPdfViewer(null)}
+        />
+      )}
+      {excelViewer && (
+        <ExcelViewerModal
+          fileUrl={`/api/adhoc/agreement-documents/${excelViewer.id}`}
+          docName={excelViewer.name}
+          onClose={() => setExcelViewer(null)}
+        />
+      )}
+      {wordViewer && (
+        <WordViewerModal
+          fileUrl={`/api/adhoc/agreement-documents/${wordViewer.id}`}
+          docName={wordViewer.name}
+          onClose={() => setWordViewer(null)}
         />
       )}
     </div>

@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from "react"
 import { Upload } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
 import { PdfViewerModal } from "@/shared/components/ui/pdf-viewer-modal"
+import { ExcelViewerModal } from "@/shared/components/ui/excel-viewer-modal"
+import { WordViewerModal } from "@/shared/components/ui/word-viewer-modal"
 import { LogSection, type LogEntry } from "@/shared/components/ui/log-section"
 import { DatePicker } from "@/shared/components/ui/date-picker"
 import { formatAmount, nameFromFile } from "@/shared/lib/utils"
@@ -568,6 +570,18 @@ function DocumentsTab({
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [pdfViewer, setPdfViewer] = useState<{ id: string; name: string } | null>(null)
+  const [excelViewer, setExcelViewer] = useState<{ id: string; name: string } | null>(null)
+  const [wordViewer, setWordViewer] = useState<{ id: string; name: string } | null>(null)
+
+  function openViewer(doc: { id: string; displayName: string; mimeType: string }) {
+    if (doc.mimeType === "application/vnd.ms-excel" || doc.mimeType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") {
+      setExcelViewer({ id: doc.id, name: doc.displayName })
+    } else if (doc.mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+      setWordViewer({ id: doc.id, name: doc.displayName })
+    } else {
+      setPdfViewer({ id: doc.id, name: doc.displayName })
+    }
+  }
 
   useEffect(() => { setApproverName(deliverable.approverName ?? "") }, [deliverable.approverName])
 
@@ -645,7 +659,7 @@ function DocumentsTab({
         downloadUrl={(id) => `/api/adhoc/documents/${id}`}
         canDelete={() => isAdmin}
         onDelete={handleDelete}
-        onView={(doc) => setPdfViewer({ id: doc.id, name: doc.displayName })}
+        onView={openViewer}
         emptyText="None uploaded"
       />
       <AdhocDocList
@@ -654,7 +668,7 @@ function DocumentsTab({
         downloadUrl={(id) => `/api/adhoc/documents/${id}`}
         canDelete={() => isAdmin}
         onDelete={handleDelete}
-        onView={(doc) => setPdfViewer({ id: doc.id, name: doc.displayName })}
+        onView={openViewer}
         emptyText="None uploaded"
       />
       <AdhocDocList
@@ -663,7 +677,7 @@ function DocumentsTab({
         downloadUrl={(id) => `/api/adhoc/documents/${id}`}
         canDelete={() => isAdmin}
         onDelete={handleDelete}
-        onView={(doc) => setPdfViewer({ id: doc.id, name: doc.displayName })}
+        onView={openViewer}
       />
       <AdhocDocList
         docs={other}
@@ -671,7 +685,7 @@ function DocumentsTab({
         downloadUrl={(id) => `/api/adhoc/documents/${id}`}
         canDelete={() => isAdmin}
         onDelete={handleDelete}
-        onView={(doc) => setPdfViewer({ id: doc.id, name: doc.displayName })}
+        onView={openViewer}
       />
 
       {!isLocked && (
@@ -777,6 +791,20 @@ function DocumentsTab({
           fileUrl={`/api/adhoc/documents/${pdfViewer.id}`}
           docName={pdfViewer.name}
           onClose={() => setPdfViewer(null)}
+        />
+      )}
+      {excelViewer && (
+        <ExcelViewerModal
+          fileUrl={`/api/adhoc/documents/${excelViewer.id}`}
+          docName={excelViewer.name}
+          onClose={() => setExcelViewer(null)}
+        />
+      )}
+      {wordViewer && (
+        <WordViewerModal
+          fileUrl={`/api/adhoc/documents/${wordViewer.id}`}
+          docName={wordViewer.name}
+          onClose={() => setWordViewer(null)}
         />
       )}
     </div>
