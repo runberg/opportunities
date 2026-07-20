@@ -52,9 +52,12 @@ Manage agreements that fall outside the main sales pipeline — retainers, one-o
 - **Audit log** — all agreement, work package, and document events appear in the system log under the Ad Hoc filter
 
 ### Email notifications
-- Users can opt in to email notifications from their profile page (only visible when an admin has configured and enabled SMTP)
-- Notifications fire on opportunity status changes with a 3-minute debounce — multiple rapid changes to the same opportunity produce a single email
-- Template is editable by admin with placeholders: `{{title}}`, `{{internalId}}`, `{{customer}}`, `{{status}}`, `{{link}}`
+- Users choose a notification level per module from their profile page (only visible when an admin has configured and enabled SMTP)
+- Three levels per module: **Off** (no emails), **Status changes only** (email when status changes), **All updates** (email on any change — field edits, documents, comments)
+- Emails are sent individually per recipient — no group emails
+- Changes within a configurable window (default 15 minutes) are batched into a single email; the window resets on each new change
+- Actors never receive notifications for their own changes
+- Separate editable templates for Opportunities and Ad Hoc work packages, with placeholders: `{{title}}`, `{{internalId}}`, `{{customer}}`, `{{changes}}`, `{{link}}`
 
 ### UI
 - **Dark theme** — deep navy palette throughout; no light mode
@@ -339,6 +342,19 @@ docker compose exec -T postgres psql -U opportunities opportunities < opportunit
 For development you run Next.js directly on your machine and only run the database in Docker.
 
 ### 1. Start the database
+
+The production compose file does not expose port 5432 to the host. Create a local override file first so the dev server can reach Postgres:
+
+```bash
+cat > docker-compose.override.yml << 'EOF'
+services:
+  postgres:
+    ports:
+      - "5432:5432"
+EOF
+```
+
+Then start the database:
 
 ```bash
 docker compose up postgres -d
