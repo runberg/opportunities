@@ -7,9 +7,8 @@ import { Upload } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
 import { DocNameCell } from "@/shared/components/ui/doc-name-cell"
 import { DocActionCell } from "@/shared/components/ui/doc-action-cell"
-import { PdfViewerModal } from "@/shared/components/ui/pdf-viewer-modal"
-import { ExcelViewerModal } from "@/shared/components/ui/excel-viewer-modal"
-import { WordViewerModal } from "@/shared/components/ui/word-viewer-modal"
+import { FileViewerModals } from "@/shared/components/ui/file-viewer-modals"
+import { useFileViewer } from "@/shared/lib/use-file-viewer"
 
 interface Document {
   id: string
@@ -42,9 +41,7 @@ export function DocumentSection({
   onRefresh,
 }: DocumentSectionProps) {
   const router = useRouter()
-  const [pdfViewer, setPdfViewer] = useState<{ id: string; name: string } | null>(null)
-  const [excelViewer, setExcelViewer] = useState<{ id: string; name: string } | null>(null)
-  const [wordViewer, setWordViewer] = useState<{ id: string; name: string } | null>(null)
+  const viewers = useFileViewer()
   const [filter, setFilter] = useState<TypeFilter>("ALL")
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState("")
@@ -264,9 +261,7 @@ export function DocumentSection({
                 <tr key={doc.id} className="hover:bg-gray-800/50">
                   <DocNameCell
                     doc={doc}
-                    onViewPdf={() => setPdfViewer({ id: doc.id, name: doc.displayName })}
-                    onViewExcel={() => setExcelViewer({ id: doc.id, name: doc.displayName })}
-                    onViewWord={() => setWordViewer({ id: doc.id, name: doc.displayName })}
+                    onView={() => viewers.openViewer(doc)}
                   />
                   <td className="px-4 py-3">{docTypeBadge(doc.type)}</td>
                   <td className="px-4 py-3">{docStatusBadge(doc.docStatus)}</td>
@@ -284,27 +279,7 @@ export function DocumentSection({
           </table>
         </div>
       )}
-      {pdfViewer && (
-        <PdfViewerModal
-          fileUrl={`/api/files/${pdfViewer.id}`}
-          docName={pdfViewer.name}
-          onClose={() => setPdfViewer(null)}
-        />
-      )}
-      {excelViewer && (
-        <ExcelViewerModal
-          fileUrl={`/api/files/${excelViewer.id}`}
-          docName={excelViewer.name}
-          onClose={() => setExcelViewer(null)}
-        />
-      )}
-      {wordViewer && (
-        <WordViewerModal
-          fileUrl={`/api/files/${wordViewer.id}`}
-          docName={wordViewer.name}
-          onClose={() => setWordViewer(null)}
-        />
-      )}
+      <FileViewerModals viewers={viewers} urlFor={(id) => `/api/files/${id}`} />
     </div>
   )
 }

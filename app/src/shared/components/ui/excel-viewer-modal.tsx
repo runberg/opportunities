@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { X, Download } from "lucide-react"
 import * as XLSX from "xlsx"
+import { ViewerShell } from "./viewer-shell"
 
 interface ExcelViewerModalProps {
   readonly fileUrl: string
@@ -42,60 +42,28 @@ export function ExcelViewerModal({ fileUrl, docName, onClose }: ExcelViewerModal
     void load()
   }, [fileUrl])
 
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose()
-    }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [onClose])
+  const tabs = sheets.length > 1 ? (
+    <div className="flex gap-1 px-3 py-2 bg-gray-800 border-b border-gray-700 shrink-0 overflow-x-auto">
+      {sheets.map((s, i) => (
+        <button
+          key={s.name}
+          type="button"
+          onClick={() => setActiveSheet(i)}
+          className={`px-3 py-1 text-xs font-medium rounded transition-colors whitespace-nowrap ${
+            i === activeSheet
+              ? "bg-white text-gray-900"
+              : "text-gray-300 hover:text-white hover:bg-white/10"
+          }`}
+        >
+          {s.name}
+        </button>
+      ))}
+    </div>
+  ) : undefined
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black/90">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4 px-4 py-3 bg-gray-900 text-white shrink-0">
-        <span className="text-sm font-medium text-gray-100 truncate">{docName}</span>
-        <div className="flex items-center gap-2 shrink-0">
-          <a
-            href={fileUrl}
-            download={docName}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-          >
-            <Download size={14} />
-            Download
-          </a>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-          >
-            <X size={14} />
-            Close
-          </button>
-        </div>
-      </div>
-
-      {/* Sheet tabs */}
-      {sheets.length > 1 && (
-        <div className="flex gap-1 px-3 py-2 bg-gray-800 border-b border-gray-700 shrink-0 overflow-x-auto">
-          {sheets.map((s, i) => (
-            <button
-              key={s.name}
-              type="button"
-              onClick={() => setActiveSheet(i)}
-              className={`px-3 py-1 text-xs font-medium rounded transition-colors whitespace-nowrap ${
-                i === activeSheet
-                  ? "bg-white text-gray-900"
-                  : "text-gray-300 hover:text-white hover:bg-white/10"
-              }`}
-            >
-              {s.name}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Content — explicit light-mode styles prevent dark-theme inheritance */}
+    <ViewerShell fileUrl={fileUrl} docName={docName} onClose={onClose} tabs={tabs}>
+      {/* Explicit light-mode styles prevent dark-theme inheritance */}
       <div className="flex-1 overflow-auto" style={{ backgroundColor: '#ffffff', color: '#111827', colorScheme: 'light' }}>
         {loading && (
           <div className="flex items-center justify-center h-full">
@@ -122,6 +90,6 @@ export function ExcelViewerModal({ fileUrl, docName, onClose }: ExcelViewerModal
           </div>
         )}
       </div>
-    </div>
+    </ViewerShell>
   )
 }

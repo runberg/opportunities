@@ -52,9 +52,7 @@ export function AdhocDocList({
               <tr key={doc.id} className="hover:bg-gray-800/50">
                 <DocNameCell
                   doc={doc}
-                  onViewPdf={() => onView(doc)}
-                  onViewExcel={() => onView(doc)}
-                  onViewWord={() => onView(doc)}
+                  onView={() => onView(doc)}
                 />
                 <td className="px-4 py-3 text-xs text-gray-400 hidden md:table-cell w-48">
                   <div>{doc.uploadedBy?.name ?? "Unknown"}</div>

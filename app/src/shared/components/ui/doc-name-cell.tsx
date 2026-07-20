@@ -1,13 +1,6 @@
 import { truncateFilename } from "@/shared/lib/utils"
 import { FileTypeIcon } from "@/shared/components/ui/file-type-icon"
-
-const EXCEL_MIMES = new Set([
-  "application/vnd.ms-excel",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-])
-
-// Only .docx is supported for preview; old binary .doc is download-only
-const WORD_DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+import { EXCEL_MIMES, WORD_DOCX_MIME, isViewableMime } from "@/shared/lib/file-types"
 
 type DocNameCellDoc = {
   displayName: string
@@ -15,52 +8,29 @@ type DocNameCellDoc = {
   mimeType: string
 }
 
+function viewTitle(mimeType: string): string {
+  if (mimeType === "application/pdf") return "Click to view PDF"
+  if (EXCEL_MIMES.has(mimeType)) return "Click to view spreadsheet"
+  if (mimeType === WORD_DOCX_MIME) return "Click to view document"
+  return "Click to view"
+}
+
 export function DocNameCell({
   doc,
-  onViewPdf,
-  onViewExcel,
-  onViewWord,
+  onView,
   className = "px-4 py-3",
 }: {
   readonly doc: DocNameCellDoc
-  readonly onViewPdf?: () => void
-  readonly onViewExcel?: () => void
-  readonly onViewWord?: () => void
+  readonly onView?: () => void
   readonly className?: string
 }) {
-  const isPdf = doc.mimeType === "application/pdf"
-  const isExcel = EXCEL_MIMES.has(doc.mimeType)
-  const isDocx = doc.mimeType === WORD_DOCX_MIME
-
   let nameEl: React.ReactNode
-  if (isPdf && onViewPdf) {
+  if (isViewableMime(doc.mimeType) && onView) {
     nameEl = (
       <button
         type="button"
-        onClick={onViewPdf}
-        title="Click to view PDF"
-        className="font-medium text-gray-100 truncate block text-left w-full cursor-pointer hover:underline"
-      >
-        {doc.displayName}
-      </button>
-    )
-  } else if (isExcel && onViewExcel) {
-    nameEl = (
-      <button
-        type="button"
-        onClick={onViewExcel}
-        title="Click to view spreadsheet"
-        className="font-medium text-gray-100 truncate block text-left w-full cursor-pointer hover:underline"
-      >
-        {doc.displayName}
-      </button>
-    )
-  } else if (isDocx && onViewWord) {
-    nameEl = (
-      <button
-        type="button"
-        onClick={onViewWord}
-        title="Click to view document"
+        onClick={onView}
+        title={viewTitle(doc.mimeType)}
         className="font-medium text-gray-100 truncate block text-left w-full cursor-pointer hover:underline"
       >
         {doc.displayName}
