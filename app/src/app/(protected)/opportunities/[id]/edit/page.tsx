@@ -1,7 +1,6 @@
 import { db } from "@/shared/lib/db"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/shared/lib/auth"
 import { notFound } from "next/navigation"
+import { requireFullSectionAccess } from "@/shared/lib/page-access"
 import { toDateString } from "@/shared/lib/utils"
 import { OpportunityForm } from "@/modules/opportunities/components/opportunity-form"
 import { QuoteSection } from "@/modules/opportunities/components/quote-section"
@@ -14,7 +13,7 @@ export default async function EditOpportunityPage({
   readonly params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const session = await getServerSession(authOptions)
+  const { session, isAdmin } = await requireFullSectionAccess("opportunities", `/opportunities/${id}`)
 
   const opportunity = await db.opportunity.findUnique({
     where: { id },
@@ -28,8 +27,6 @@ export default async function EditOpportunityPage({
   })
 
   if (!opportunity) notFound()
-
-  const isAdmin = session?.user.role === "ADMIN"
 
   return (
     <div>

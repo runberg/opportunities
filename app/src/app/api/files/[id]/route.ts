@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/shared/lib/db"
-import { requireSession } from "@/shared/lib/api"
+import { requireSession, hasSectionAccess } from "@/shared/lib/api"
 import { unlink } from "node:fs/promises"
 import { join, basename } from "node:path"
 import { DOC_TYPE_LABELS } from "@/shared/lib/utils"
@@ -12,8 +12,10 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { error } = await requireSession()
+  const { session, error } = await requireSession()
   if (error) return error
+  if (!hasSectionAccess(session, "opportunities", "READ_ONLY"))
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
   const { id } = await params
   const doc = await db.document.findUnique({ where: { id } })

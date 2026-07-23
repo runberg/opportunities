@@ -1,4 +1,20 @@
+"use client"
+
+import { useState } from "react"
 import { Download, Trash2 } from "lucide-react"
+
+async function triggerDownload(href: string, filename: string) {
+  const res = await fetch(href)
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
 
 export function DocActionCell({
   downloadHref,
@@ -11,17 +27,29 @@ export function DocActionCell({
   readonly onDelete: (() => void) | null
   readonly className?: string
 }) {
+  const [downloading, setDownloading] = useState(false)
+
+  async function handleDownload() {
+    setDownloading(true)
+    try {
+      await triggerDownload(downloadHref, originalName)
+    } finally {
+      setDownloading(false)
+    }
+  }
+
   return (
     <td className={className}>
       <div className="flex items-center gap-1 justify-end">
-        <a
-          href={downloadHref}
-          download={originalName}
-          className="p-1.5 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors"
+        <button
+          type="button"
+          onClick={handleDownload}
+          disabled={downloading}
+          className="p-1.5 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors disabled:opacity-50"
           title="Download"
         >
           <Download size={15} />
-        </a>
+        </button>
         {onDelete && (
           <button
             type="button"

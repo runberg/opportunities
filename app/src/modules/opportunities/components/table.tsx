@@ -14,11 +14,12 @@ export interface OpportunityRow extends OppTableRow {
 }
 
 export function OppTableView({
-  opportunities, currentUserId, isAdmin, initialSortKey, dateColumn, emptyMessage,
+  opportunities, currentUserId, isAdmin, isReadOnly, initialSortKey, dateColumn, emptyMessage,
 }: {
   readonly opportunities: OppTableRow[]
   readonly currentUserId: string
   readonly isAdmin: boolean
+  readonly isReadOnly: boolean
   readonly initialSortKey: string
   readonly dateColumn: DateColumn
   readonly emptyMessage: string
@@ -44,7 +45,7 @@ export function OppTableView({
         onSort={(k, d) => { setSortKey(k); setSortDir(d) }}
         dateColumn={dateColumn}
         onRowClick={setOpenModalId}
-        renderAction={(row) => (
+        renderAction={isReadOnly ? undefined : (row) => (
           <button
             type="button"
             onClick={() => setCommentTarget(row)}
@@ -61,6 +62,7 @@ export function OppTableView({
         onClose={() => { setOpenModalId(null); router.refresh() }}
         currentUserId={currentUserId}
         isAdmin={isAdmin}
+        isReadOnly={isReadOnly}
       />
 
       <CommentDialog
@@ -73,17 +75,19 @@ export function OppTableView({
 }
 
 export function OpportunitiesTable({
-  opportunities, currentUserId, isAdmin,
+  opportunities, currentUserId, isAdmin, isReadOnly = false,
 }: {
   readonly opportunities: OpportunityRow[]
   readonly currentUserId: string
   readonly isAdmin: boolean
+  readonly isReadOnly?: boolean
 }) {
   return (
     <OppTableView
       opportunities={opportunities}
       currentUserId={currentUserId}
       isAdmin={isAdmin}
+      isReadOnly={isReadOnly}
       initialSortKey="internalId"
       dateColumn={{ label: "RFQ Date", sortKey: "rfqDate", getValue: (r) => r.rfqDate }}
       emptyMessage="No opportunities found."

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/shared/lib/db"
-import { requireSession } from "@/shared/lib/api"
+import { requireSession, hasSectionAccess } from "@/shared/lib/api"
 import { writeLog } from "@/shared/lib/system-log"
 import { AdhocAgreementStatus, SystemLogType } from "@prisma/client"
 
@@ -66,6 +66,8 @@ export async function PATCH(
   const result = await requireSession()
   if (result.error) return result.error
   const session = result.session
+  if (!hasSectionAccess(session, "adhoc", "FULL"))
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
   const { id } = await params
   const agreement = await db.adhocAgreement.findUnique({ where: { id } })

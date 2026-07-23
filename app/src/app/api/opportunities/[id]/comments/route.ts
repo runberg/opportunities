@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/shared/lib/db"
 import { z } from "zod"
-import { requireSession } from "@/shared/lib/api"
+import { requireSession, hasSectionAccess } from "@/shared/lib/api"
 
 const commentSchema = z.object({
   content: z.string().min(1).max(5000),
@@ -13,6 +13,8 @@ export async function POST(
 ) {
   const { session, error } = await requireSession()
   if (error) return error
+  if (!hasSectionAccess(session, "opportunities", "FULL"))
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
   const { id: opportunityId } = await params
   const body = await req.json()

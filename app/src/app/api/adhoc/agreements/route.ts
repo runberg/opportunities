@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/shared/lib/db"
-import { requireSession } from "@/shared/lib/api"
+import { requireSession, hasSectionAccess } from "@/shared/lib/api"
 import { writeLog } from "@/shared/lib/system-log"
 import { findAllAgreements } from "../_helpers"
 
 export async function GET() {
   const result = await requireSession()
   if (result.error) return result.error
+  if (!hasSectionAccess(result.session, "adhoc", "READ_ONLY"))
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
   return NextResponse.json(await findAllAgreements())
 }
@@ -15,6 +17,8 @@ export async function POST(req: NextRequest) {
   const result = await requireSession()
   if (result.error) return result.error
   const session = result.session
+  if (!hasSectionAccess(session, "adhoc", "FULL"))
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
   const body = await req.json()
   const { title, totalAmount } = body

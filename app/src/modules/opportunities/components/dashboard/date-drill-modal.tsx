@@ -22,7 +22,7 @@ const DATE_COLUMNS: Record<string, DateColumn> = {
 
 export function DateDrillModal({
   title, dateField, fromISO, toISO,
-  currentUserId, isAdmin, onClose,
+  currentUserId, isAdmin, isReadOnly = false, onClose,
 }: {
   readonly title: string
   readonly dateField: string
@@ -30,6 +30,7 @@ export function DateDrillModal({
   readonly toISO: string
   readonly currentUserId: string
   readonly isAdmin: boolean
+  readonly isReadOnly?: boolean
   readonly onClose: () => void
 }) {
   const [commentTarget, setCommentTarget] = useState<OppTableRow | null>(null)
@@ -100,7 +101,7 @@ export function DateDrillModal({
             onSort={handleSort}
             dateColumn={DATE_COLUMNS[dateField]}
             onRowClick={setOpenId}
-            renderAction={(row) => (
+            renderAction={isReadOnly ? undefined : (row) => (
               <button
                 type="button"
                 onClick={() => setCommentTarget(row)}
@@ -125,6 +126,7 @@ export function DateDrillModal({
           onClose={() => setOpenId(null)}
           currentUserId={currentUserId}
           isAdmin={isAdmin}
+          isReadOnly={isReadOnly}
         />
       )}
 

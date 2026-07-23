@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/shared/lib/db"
-import { requireSession } from "@/shared/lib/api"
+import { requireSession, hasSectionAccess } from "@/shared/lib/api"
 import { writeLog } from "@/shared/lib/system-log"
 import { serveFile, readUploadedFile, deleteUploadedFile } from "@/shared/lib/upload"
 import { EXCEL_MIMES, WORD_DOCX_MIME } from "@/shared/lib/file-types"
@@ -12,6 +12,8 @@ export async function GET(
 ) {
   const result = await requireSession()
   if (result.error) return result.error
+  if (!hasSectionAccess(result.session, "adhoc", "READ_ONLY"))
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
   const { id } = await params
   const doc = await db.adhocAgreementDocument.findUnique({ where: { id } })

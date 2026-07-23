@@ -54,12 +54,13 @@ interface OpportunityFull {
 // ─── Main modal ──────────────────────────────────────────────────────────────
 
 export function OpportunityModal({
-  opportunityId, onClose, currentUserId, isAdmin, justCreated = false,
+  opportunityId, onClose, currentUserId, isAdmin, isReadOnly = false, justCreated = false,
 }: {
   readonly opportunityId: string | null
   readonly onClose: () => void
   readonly currentUserId: string
   readonly isAdmin: boolean
+  readonly isReadOnly?: boolean
   readonly justCreated?: boolean
 }) {
   const router = useRouter()
@@ -145,9 +146,9 @@ export function OpportunityModal({
                 data={data}
                 currentUserId={currentUserId}
                 isAdmin={isAdmin}
+                isReadOnly={isReadOnly}
                 onRefresh={refresh}
                 onSilentRefresh={silentRefresh}
-
               />
             )}
           </div>
@@ -184,10 +185,11 @@ type OppForm = ReturnType<typeof makeForm>
 
 // ─── View mode ────────────────────────────────────────────────────────────────
 
-function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: {
+function ViewMode({ data, currentUserId, isAdmin, isReadOnly, onRefresh, onSilentRefresh }: {
   readonly data: OpportunityFull
   readonly currentUserId: string
   readonly isAdmin: boolean
+  readonly isReadOnly: boolean
   readonly onRefresh: () => void
   readonly onSilentRefresh: () => void
 }) {
@@ -372,35 +374,41 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
         <textarea
           rows={1}
           value={form.title}
-          onChange={(e) => set("title", e.target.value)}
+          onChange={isReadOnly ? undefined : (e) => set("title", e.target.value)}
+          readOnly={isReadOnly}
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLTextAreaElement).blur() } }}
-          className="flex-1 min-w-0 text-2xl font-semibold text-gray-100 appearance-none bg-gray-800 focus:bg-gray-700 border-b border-transparent hover:border-gray-600 focus:outline-none focus:border-[#006fff] leading-tight transition-colors px-1 py-1.5 resize-none overflow-hidden"
+          className={cn(
+            "flex-1 min-w-0 text-2xl font-semibold text-gray-100 appearance-none bg-gray-800 focus:bg-gray-700 border-b border-transparent hover:border-gray-600 focus:outline-none focus:border-[#006fff] leading-tight transition-colors px-1 py-1.5 resize-none overflow-hidden",
+            isReadOnly && "pointer-events-none select-none",
+          )}
         />
-        <div className="flex items-center gap-2 flex-shrink-0 mt-1">
-          {canSkipToEL && !skippingToEL && (
-            <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white border-0"
-              onClick={() => setSkippingToEL(true)}>
-              Skip to EL →
-            </Button>
-          )}
-          {canAcceptQuote && !acceptingQuote && (
-            <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white border-0"
-              onClick={() => setAcceptingQuote(true)}>
-              Quote Accepted →
-            </Button>
-          )}
-          {data.status === "EL_SIGNED_SHARED" && !counterSigning && (
-            <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white border-0"
-              onClick={() => setCounterSigning(true)}>
-              Counter-signed EL Received →
-            </Button>
-          )}
-        </div>
+        {!isReadOnly && (
+          <div className="flex items-center gap-2 flex-shrink-0 mt-1">
+            {canSkipToEL && !skippingToEL && (
+              <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white border-0"
+                onClick={() => setSkippingToEL(true)}>
+                Skip to EL →
+              </Button>
+            )}
+            {canAcceptQuote && !acceptingQuote && (
+              <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white border-0"
+                onClick={() => setAcceptingQuote(true)}>
+                Quote Accepted →
+              </Button>
+            )}
+            {data.status === "EL_SIGNED_SHARED" && !counterSigning && (
+              <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white border-0"
+                onClick={() => setCounterSigning(true)}>
+                Counter-signed EL Received →
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Meta row: status + ID + Ref */}
       <div className="flex flex-wrap items-center gap-2 mb-5">
-        {isProduction ? (
+        {isProduction && !isReadOnly ? (
           <select value={form.status} onChange={(e) => set("status", e.target.value)}
             className="px-3 py-1 border border-gray-600 rounded-full text-xs font-medium bg-gray-700 text-gray-100 focus:outline-none focus:border-[#006fff] transition-colors">
             {prodStatusOptions.map((s) => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
@@ -408,15 +416,15 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
         ) : (
           <StatusBadge status={data.status} />
         )}
-        <label className="inline-flex items-center gap-1.5 px-3 py-1 border border-gray-600 rounded-full bg-gray-700 focus-within:border-[#006fff] transition-colors cursor-text">
+        <label className={cn("inline-flex items-center gap-1.5 px-3 py-1 border border-gray-600 rounded-full bg-gray-700 focus-within:border-[#006fff] transition-colors", isReadOnly ? "pointer-events-none" : "cursor-text")}>
           <span className="text-xs text-gray-500 shrink-0">ID</span>
-          <input value={form.internalId} onChange={(e) => set("internalId", e.target.value)}
-            maxLength={10} placeholder="0000" className="text-xs font-medium text-gray-100 bg-transparent outline-none w-14" />
+          <input value={form.internalId} onChange={isReadOnly ? undefined : (e) => set("internalId", e.target.value)}
+            readOnly={isReadOnly} maxLength={10} placeholder="0000" className="text-xs font-medium text-gray-100 bg-transparent outline-none w-14" />
         </label>
-        <label className="inline-flex items-center gap-1.5 px-3 py-1 border border-gray-600 rounded-full bg-gray-700 focus-within:border-[#006fff] transition-colors cursor-text">
+        <label className={cn("inline-flex items-center gap-1.5 px-3 py-1 border border-gray-600 rounded-full bg-gray-700 focus-within:border-[#006fff] transition-colors", isReadOnly ? "pointer-events-none" : "cursor-text")}>
           <span className="text-xs text-gray-500 shrink-0">Ref.</span>
-          <input value={form.reference} onChange={(e) => set("reference", e.target.value)}
-            placeholder="BTL-XXXXXXXX" className="text-xs font-medium text-gray-100 bg-transparent outline-none w-28" />
+          <input value={form.reference} onChange={isReadOnly ? undefined : (e) => set("reference", e.target.value)}
+            readOnly={isReadOnly} placeholder="BTL-XXXXXXXX" className="text-xs font-medium text-gray-100 bg-transparent outline-none w-28" />
         </label>
       </div>
 
@@ -466,22 +474,22 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
       {/* Info section */}
       <div className="flex flex-col gap-4 mb-4">
         <FormField label="Customer" required>
-          <input value={form.customer} onChange={(e) => set("customer", e.target.value)}
-            placeholder="Customer name" className={inputCls} />
+          <input value={form.customer} onChange={isReadOnly ? undefined : (e) => set("customer", e.target.value)}
+            readOnly={isReadOnly} placeholder="Customer name" className={cn(inputCls, isReadOnly && "pointer-events-none")} />
         </FormField>
         <FormField label="Product / Service">
-          <input value={form.product} onChange={(e) => set("product", e.target.value)}
-            placeholder="Requested product or service" className={inputCls} />
+          <input value={form.product} onChange={isReadOnly ? undefined : (e) => set("product", e.target.value)}
+            readOnly={isReadOnly} placeholder="Requested product or service" className={cn(inputCls, isReadOnly && "pointer-events-none")} />
         </FormField>
-        <DateSection data={data} form={form} onSetDate={(key, value) => set(key, value)} onRefresh={onRefresh} onDirectPatch={directPatch} />
+        {!isReadOnly && <DateSection data={data} form={form} onSetDate={(key, value) => set(key, value)} onRefresh={onRefresh} onDirectPatch={directPatch} />}
         <FormField label="Details">
-          <textarea value={form.description} onChange={(e) => set("description", e.target.value)}
-            rows={3} placeholder="Additional context, requirements, or background…" className={textareaCls} />
+          <textarea value={form.description} onChange={isReadOnly ? undefined : (e) => set("description", e.target.value)}
+            readOnly={isReadOnly} rows={3} placeholder="Additional context, requirements, or background…" className={cn(textareaCls, isReadOnly && "pointer-events-none")} />
         </FormField>
       </div>
 
       {/* Apply Changes bar */}
-      {isDirty && (
+      {isDirty && !isReadOnly && (
         <div className="flex flex-wrap items-center gap-3 mb-5 px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl">
           <span className="text-xs text-blue-700 flex-1 min-w-0">Unsaved changes</span>
           <button type="button" onClick={discard}
@@ -501,25 +509,25 @@ function ViewMode({ data, currentUserId, isAdmin, onRefresh, onSilentRefresh }: 
         <>
           <QuoteSection opportunityId={data.id}
             documents={data.documents.filter((d) => d.type === "EL")}
-            currentUserId={currentUserId} isAdmin={isAdmin} onRefresh={onRefresh} docType="EL" />
+            currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} docType="EL" />
           <div className="mt-4">
             <QuoteSection opportunityId={data.id}
               documents={data.documents.filter((d) => d.type === "QUOTE")}
-              currentUserId={currentUserId} isAdmin={isAdmin} onRefresh={onRefresh} docType="QUOTE" />
+              currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} docType="QUOTE" />
           </div>
         </>
       ) : (
         <QuoteSection opportunityId={data.id}
           documents={data.documents.filter((d) => d.type === "QUOTE")}
-          currentUserId={currentUserId} isAdmin={isAdmin} onRefresh={onRefresh} docType="QUOTE" />
+          currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} docType="QUOTE" />
       )}
 
       {isProduction && (
-        <ProductionSection data={data} deliveries={data.deliveries} currentUserId={currentUserId} isAdmin={isAdmin} onRefresh={onRefresh} />
+        <ProductionSection data={data} deliveries={data.deliveries} currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} />
       )}
 
       <LogSection commentEndpoint={`/api/opportunities/${data.id}/comments`} entries={data.comments}
-        currentUser={{ id: currentUserId, name: "" }} onRefresh={onRefresh} />
+        currentUser={{ id: currentUserId, name: "" }} isReadOnly={isReadOnly} onRefresh={onRefresh} />
     </div>
   )
 }

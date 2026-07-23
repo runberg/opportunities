@@ -2,9 +2,11 @@
 
 import { useState, useCallback, useEffect, useLayoutEffect, useRef } from "react"
 
-export function useWindowDragExpand(onEnter: () => void) {
+export function useWindowDragExpand(onEnter: () => void, onCollapse?: () => void) {
   const onEnterRef = useRef(onEnter)
+  const onCollapseRef = useRef(onCollapse)
   useLayoutEffect(() => { onEnterRef.current = onEnter })
+  useLayoutEffect(() => { onCollapseRef.current = onCollapse })
   useEffect(() => {
     function handleEnter(e: DragEvent) {
       if (e.dataTransfer?.types.includes("Files")) onEnterRef.current()
@@ -12,7 +14,10 @@ export function useWindowDragExpand(onEnter: () => void) {
     function handleOver(e: DragEvent) {
       if (e.dataTransfer?.types.includes("Files")) e.preventDefault()
     }
-    function handleDrop(e: DragEvent) { e.preventDefault() }
+    function handleDrop(e: DragEvent) {
+      e.preventDefault()
+      onCollapseRef.current?.()
+    }
     window.addEventListener("dragenter", handleEnter)
     window.addEventListener("dragover", handleOver)
     window.addEventListener("drop", handleDrop)

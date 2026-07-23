@@ -34,10 +34,11 @@ function groupByMonth(items: DeliveryPlanItem[]): { key: string; month: number; 
     .map(([key, v]) => ({ key, ...v }))
 }
 
-export function DeliveryPlan({ items, currentUserId, isAdmin }: {
+export function DeliveryPlan({ items, currentUserId, isAdmin, isReadOnly = false }: {
   readonly items: DeliveryPlanItem[]
   readonly currentUserId: string
   readonly isAdmin: boolean
+  readonly isReadOnly?: boolean
 }) {
   const router = useRouter()
   const [openId, setOpenId] = useState<string | null>(null)
@@ -93,6 +94,7 @@ export function DeliveryPlan({ items, currentUserId, isAdmin }: {
         onClose={() => { setOpenId(null); router.refresh() }}
         currentUserId={currentUserId}
         isAdmin={isAdmin}
+        isReadOnly={isReadOnly}
       />
     </>
   )

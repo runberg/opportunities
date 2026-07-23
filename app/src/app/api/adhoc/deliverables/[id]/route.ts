@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/shared/lib/db"
-import { requireSession } from "@/shared/lib/api"
+import { requireSession, hasSectionAccess } from "@/shared/lib/api"
 import { writeLog } from "@/shared/lib/system-log"
 import { AdhocDeliverableStatus } from "@prisma/client"
 import { scheduleNotification } from "@/shared/lib/notify"
@@ -31,6 +31,8 @@ export async function GET(
 ) {
   const result = await requireSession()
   if (result.error) return result.error
+  if (!hasSectionAccess(result.session, "adhoc", "READ_ONLY"))
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
   const { id } = await params
   const deliverable = await db.adhocDeliverable.findUnique({ where: { id }, include: FULL_INCLUDE })
@@ -234,6 +236,8 @@ export async function PATCH(
   const result = await requireSession()
   if (result.error) return result.error
   const session = result.session
+  if (!hasSectionAccess(session, "adhoc", "FULL"))
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
   const { id } = await params
   const deliverable = await db.adhocDeliverable.findUnique({

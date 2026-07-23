@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/shared/lib/db"
-import { requireSession } from "@/shared/lib/api"
+import { requireSession, hasSectionAccess } from "@/shared/lib/api"
 import { DocumentType, DocumentStatus } from "@prisma/client"
 import { DOC_TYPE_LABELS } from "@/shared/lib/utils"
 import { saveUploadedFile, ALLOWED_MIME_TYPES, MAX_UPLOAD_BYTES } from "@/shared/lib/upload"
@@ -12,6 +12,8 @@ export async function POST(
 ) {
   const { session, error } = await requireSession()
   if (error) return error
+  if (!hasSectionAccess(session, "opportunities", "FULL"))
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
   const { id: opportunityId } = await params
 

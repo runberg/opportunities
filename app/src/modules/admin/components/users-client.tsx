@@ -11,12 +11,53 @@ import { Select } from "@/shared/components/ui/select"
 import { UserPlus, Pencil } from "lucide-react"
 import { SortableHeader, sortRows, type SortDir } from "@/shared/components/ui/sortable-header"
 
+type SectionAccess = "FULL" | "READ_ONLY" | "NONE"
+
 interface User {
   id: string
   email: string
   role: string
   active: boolean
   createdAt: Date | string
+  opportunitiesAccess: SectionAccess
+  adhocAccess: SectionAccess
+}
+
+const ACCESS_LABELS: Record<SectionAccess, string> = {
+  FULL: "Full",
+  READ_ONLY: "Read only",
+  NONE: "No access",
+}
+
+function AccessBadge({ level }: { level: SectionAccess }) {
+  const colours: Record<SectionAccess, string> = {
+    FULL: "bg-green-100 text-green-700",
+    READ_ONLY: "bg-yellow-100 text-yellow-700",
+    NONE: "bg-red-100 text-red-700",
+  }
+  return (
+    <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${colours[level]}`}>
+      {ACCESS_LABELS[level]}
+    </span>
+  )
+}
+
+function AccessSelect({
+  id,
+  value,
+  onChange,
+}: {
+  id: string
+  value: SectionAccess
+  onChange: (v: SectionAccess) => void
+}) {
+  return (
+    <Select id={id} value={value} onChange={(e) => onChange(e.target.value as SectionAccess)}>
+      <option value="FULL">Full access</option>
+      <option value="READ_ONLY">Read only</option>
+      <option value="NONE">No access</option>
+    </Select>
+  )
 }
 
 export function AdminUsersClient({
@@ -37,12 +78,31 @@ export function AdminUsersClient({
   function handleSort(key: string, dir: SortDir) { setSortKey(key); setSortDir(dir) }
   const sorted = useMemo(() => sortRows(users, sortKey, sortDir), [users, sortKey, sortDir])
 
-  const [newUser, setNewUser] = useState({ email: "", password: "", role: "USER" })
-  const [editForm, setEditForm] = useState({ email: "", role: "USER", active: true, newPassword: "" })
+  const [newUser, setNewUser] = useState({
+    email: "",
+    password: "",
+    role: "USER",
+    opportunitiesAccess: "FULL" as SectionAccess,
+    adhocAccess: "FULL" as SectionAccess,
+  })
+  const [editForm, setEditForm] = useState({
+    email: "",
+    role: "USER",
+    active: true,
+    newPassword: "",
+    opportunitiesAccess: "FULL" as SectionAccess,
+    adhocAccess: "FULL" as SectionAccess,
+  })
 
   async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError("")
+
+    if (newUser.role !== "ADMIN" && newUser.opportunitiesAccess === "NONE" && newUser.adhocAccess === "NONE") {
+      setError("A user must have access to at least one section.")
+      return
+    }
+
     setSaving(true)
 
     const res = await fetch("/api/admin/users", {
@@ -60,13 +120,20 @@ export function AdminUsersClient({
     }
 
     setShowCreate(false)
-    setNewUser({ email: "", password: "", role: "USER" })
+    setNewUser({ email: "", password: "", role: "USER", opportunitiesAccess: "FULL", adhocAccess: "FULL" })
     router.refresh()
   }
 
   function openEdit(user: User) {
     setEditUser(user)
-    setEditForm({ email: user.email, role: user.role, active: user.active, newPassword: "" })
+    setEditForm({
+      email: user.email,
+      role: user.role,
+      active: user.active,
+      newPassword: "",
+      opportunitiesAccess: user.opportunitiesAccess,
+      adhocAccess: user.adhocAccess,
+    })
     setError("")
   }
 
@@ -74,6 +141,12 @@ export function AdminUsersClient({
     e.preventDefault()
     if (!editUser) return
     setError("")
+
+    if (editForm.role !== "ADMIN" && editForm.opportunitiesAccess === "NONE" && editForm.adhocAccess === "NONE") {
+      setError("A user must have access to at least one section.")
+      return
+    }
+
     setSaving(true)
 
     const res = await fetch(`/api/admin/users/${editUser.id}`, {
@@ -110,6 +183,8 @@ export function AdminUsersClient({
               <SortableHeader label="Email" sortKey="email" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} />
               <SortableHeader label="Role" sortKey="role" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} />
               <SortableHeader label="Status" sortKey="active" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} />
+              <th className="px-4 py-3 text-left font-medium text-gray-600 hidden lg:table-cell">Opportunities</th>
+              <th className="px-4 py-3 text-left font-medium text-gray-600 hidden lg:table-cell">Ad Hoc</th>
               <SortableHeader label="Created" sortKey="createdAt" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="hidden md:table-cell" />
               <th className="px-4 py-3" />
             </tr>
@@ -127,6 +202,12 @@ export function AdminUsersClient({
                   <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${user.active ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
                     {user.active ? "Active" : "Inactive"}
                   </span>
+                </td>
+                <td className="px-4 py-3 hidden lg:table-cell">
+                  <AccessBadge level={user.opportunitiesAccess} />
+                </td>
+                <td className="px-4 py-3 hidden lg:table-cell">
+                  <AccessBadge level={user.adhocAccess} />
                 </td>
                 <td className="px-4 py-3 text-gray-400 hidden md:table-cell">{formatDate(user.createdAt)}</td>
                 <td className="px-4 py-3">
@@ -181,6 +262,26 @@ export function AdminUsersClient({
               <option value="ADMIN">Admin</option>
             </Select>
           </div>
+          {newUser.role !== "ADMIN" && (
+            <>
+              <div>
+                <Label htmlFor="create-opportunities-access">Opportunities Access</Label>
+                <AccessSelect
+                  id="create-opportunities-access"
+                  value={newUser.opportunitiesAccess}
+                  onChange={(v) => setNewUser((p) => ({ ...p, opportunitiesAccess: v }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="create-adhoc-access">Ad Hoc Access</Label>
+                <AccessSelect
+                  id="create-adhoc-access"
+                  value={newUser.adhocAccess}
+                  onChange={(v) => setNewUser((p) => ({ ...p, adhocAccess: v }))}
+                />
+              </div>
+            </>
+          )}
           {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
           <div className="flex gap-2 pt-1">
             <Button type="submit" disabled={saving}>{saving ? "Creating…" : "Create User"}</Button>
@@ -216,6 +317,26 @@ export function AdminUsersClient({
               <option value="false">Inactive</option>
             </Select>
           </div>
+          {editForm.role !== "ADMIN" && (
+            <>
+              <div>
+                <Label htmlFor="edit-opportunities-access">Opportunities Access</Label>
+                <AccessSelect
+                  id="edit-opportunities-access"
+                  value={editForm.opportunitiesAccess}
+                  onChange={(v) => setEditForm((p) => ({ ...p, opportunitiesAccess: v }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-adhoc-access">Ad Hoc Access</Label>
+                <AccessSelect
+                  id="edit-adhoc-access"
+                  value={editForm.adhocAccess}
+                  onChange={(v) => setEditForm((p) => ({ ...p, adhocAccess: v }))}
+                />
+              </div>
+            </>
+          )}
           <div>
             <Label htmlFor="edit-password">
               New Password <span className="font-normal text-gray-400">(leave blank to keep current)</span>
@@ -229,6 +350,7 @@ export function AdminUsersClient({
               placeholder="Minimum 8 characters"
             />
           </div>
+          <p className="text-xs text-gray-400">Access level changes take effect on the user&apos;s next login.</p>
           {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
           <div className="flex gap-2 pt-1">
             <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save Changes"}</Button>

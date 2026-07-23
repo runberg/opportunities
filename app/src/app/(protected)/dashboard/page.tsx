@@ -1,6 +1,5 @@
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/shared/lib/auth"
 import { db } from "@/shared/lib/db"
+import { requireSectionAccess } from "@/shared/lib/page-access"
 import { PeriodSelector } from "@/modules/opportunities/components/dashboard/period-selector"
 import { PipelineFlow } from "@/modules/opportunities/components/dashboard/pipeline-flow"
 import { QuoteActivitySection, ElActivitySection, ProductionActivitySection } from "@/modules/opportunities/components/dashboard/activity-sections"
@@ -133,7 +132,10 @@ export default async function DashboardPage({
 }: {
   readonly searchParams: Promise<{ readonly period?: string; readonly from?: string; readonly to?: string }>
 }) {
-  const [session, params] = await Promise.all([getServerSession(authOptions), searchParams])
+  const [{ session, isAdmin, isReadOnly }, params] = await Promise.all([
+    requireSectionAccess("opportunities", "/adhoc"),
+    searchParams,
+  ])
 
   const period = (["7d", "30d", "90d", "year", "custom"].includes(params.period ?? "")
     ? params.period
@@ -274,18 +276,17 @@ export default async function DashboardPage({
     periodLabel = `Last ${dayCount} days`
   }
 
-  const currentUserId = session!.user.id
-  const isAdmin = session?.user.role === "ADMIN"
+  const currentUserId = session.user.id
 
   return (
     <div>
       <div className="mb-8">
         <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-1">Welcome back, {session?.user.name}</p>
+        <p className="text-sm text-gray-500 mt-1">Welcome back, {session.user.name}</p>
       </div>
 
       {/* Pipeline — current state, not time-bound */}
-      <PipelineFlow counts={statusCounts} currentUserId={currentUserId} isAdmin={isAdmin} />
+      <PipelineFlow counts={statusCounts} currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} />
 
       {/* Period selector — applies to activity graphs below */}
       <div className="flex items-center justify-between mb-4 mt-6">
@@ -297,23 +298,23 @@ export default async function DashboardPage({
         <QuoteActivitySection
           kpiRfq={rfqsReceived} kpiQuotes={quotesShared} kpiAvgDays={avgDaysToQuote}
           trendData={trendData} periodFromISO={periodFromISO} periodToISO={periodToISO}
-          currentUserId={currentUserId} isAdmin={isAdmin} />
+          currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} />
 
         <ElActivitySection
           kpiRequested={elRequested} kpiDrafted={elDrafted} kpiSigned={elSigned} kpiAvgDays={avgDaysToElSigned}
           trendData={elTrendData} periodFromISO={periodFromISO} periodToISO={periodToISO}
-          currentUserId={currentUserId} isAdmin={isAdmin} />
+          currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} />
 
         <ProductionActivitySection
           kpiCountersigned={countersigned} kpiAdvance={advancePaid} kpiFat={fatPassed} kpiDelivered={delivered}
           trendData={prodTrendData} periodFromISO={periodFromISO} periodToISO={periodToISO}
-          currentUserId={currentUserId} isAdmin={isAdmin} />
+          currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} />
 
-        <DeliveryPlan items={deliveryItems} currentUserId={currentUserId} isAdmin={isAdmin} />
+        <DeliveryPlan items={deliveryItems} currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} />
 
         <div className="border-t border-gray-200" />
 
-        <RecentActivity items={recentItems} currentUserId={currentUserId} isAdmin={isAdmin} />
+        <RecentActivity items={recentItems} currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} />
       </div>
     </div>
   )

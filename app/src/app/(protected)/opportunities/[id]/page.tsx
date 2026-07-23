@@ -1,7 +1,6 @@
 import { db } from "@/shared/lib/db"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/shared/lib/auth"
 import { notFound } from "next/navigation"
+import { requireSectionAccess } from "@/shared/lib/page-access"
 import { formatDate, formatDateTime } from "@/shared/lib/utils"
 import { StatusBadge, PendingBadge } from "@/modules/opportunities/components/status-badge"
 import { LogSection } from "@/modules/opportunities/components/log-section"
@@ -15,7 +14,7 @@ export default async function OpportunityDetailPage({
   readonly params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const session = await getServerSession(authOptions)
+  const { session, isAdmin, isReadOnly } = await requireSectionAccess("opportunities")
 
   const opportunity = await db.opportunity.findUnique({
     where: { id },
@@ -33,8 +32,6 @@ export default async function OpportunityDetailPage({
   })
 
   if (!opportunity) notFound()
-
-  const isAdmin = session?.user.role === "ADMIN"
 
   return (
     <div>
@@ -56,13 +53,15 @@ export default async function OpportunityDetailPage({
             <PendingBadge waitingOn={opportunity.waitingOn} />
           </div>
         </div>
-        <Link
-          href={`/opportunities/${opportunity.id}/edit`}
-          className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 text-sm text-gray-700 rounded-lg hover:bg-gray-50 transition-colors self-start flex-shrink-0"
-        >
-          <Pencil size={14} />
-          Edit
-        </Link>
+        {!isReadOnly && (
+          <Link
+            href={`/opportunities/${opportunity.id}/edit`}
+            className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 text-sm text-gray-700 rounded-lg hover:bg-gray-50 transition-colors self-start flex-shrink-0"
+          >
+            <Pencil size={14} />
+            Edit
+          </Link>
+        )}
       </div>
 
       {/* Info grid */}
@@ -104,15 +103,17 @@ export default async function OpportunityDetailPage({
       <DocumentSection
         opportunityId={opportunity.id}
         documents={opportunity.documents as never}
-        currentUserId={session!.user.id}
+        currentUserId={session.user.id}
         isAdmin={isAdmin}
+        isReadOnly={isReadOnly}
       />
 
       {/* Log */}
       <LogSection
         commentEndpoint={`/api/opportunities/${opportunity.id}/comments`}
         entries={opportunity.comments as never}
-        currentUser={{ id: session!.user.id, name: session!.user.name ?? "User" }}
+        currentUser={{ id: session.user.id, name: session.user.name ?? "User" }}
+        isReadOnly={isReadOnly}
       />
     </div>
   )

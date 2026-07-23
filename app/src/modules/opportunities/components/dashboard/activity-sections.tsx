@@ -40,12 +40,12 @@ function KpiTile({
 export function QuoteActivitySection({
   kpiRfq, kpiQuotes, kpiAvgDays,
   trendData, periodFromISO, periodToISO,
-  currentUserId, isAdmin,
+  currentUserId, isAdmin, isReadOnly = false,
 }: {
   readonly kpiRfq: number; readonly kpiQuotes: number; readonly kpiAvgDays: number | null
   readonly trendData: RfqTrendBucket[]
   readonly periodFromISO: string; readonly periodToISO: string
-  readonly currentUserId: string; readonly isAdmin: boolean
+  readonly currentUserId: string; readonly isAdmin: boolean; readonly isReadOnly?: boolean
 }) {
   const [drill, setDrill] = useState<DrillTarget | null>(null)
 
@@ -64,7 +64,7 @@ export function QuoteActivitySection({
       <RfqTrendChart data={trendData} onBarClick={setDrill} />
 
       {drill && (
-        <DateDrillModal {...drill} currentUserId={currentUserId} isAdmin={isAdmin} onClose={() => setDrill(null)} />
+        <DateDrillModal {...drill} currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} onClose={() => setDrill(null)} />
       )}
     </div>
   )
@@ -75,12 +75,12 @@ export function QuoteActivitySection({
 export function ElActivitySection({
   kpiRequested, kpiDrafted, kpiSigned, kpiAvgDays,
   trendData, periodFromISO, periodToISO,
-  currentUserId, isAdmin,
+  currentUserId, isAdmin, isReadOnly = false,
 }: {
   readonly kpiRequested: number; readonly kpiDrafted: number; readonly kpiSigned: number; readonly kpiAvgDays: number | null
   readonly trendData: ElTrendBucket[]
   readonly periodFromISO: string; readonly periodToISO: string
-  readonly currentUserId: string; readonly isAdmin: boolean
+  readonly currentUserId: string; readonly isAdmin: boolean; readonly isReadOnly?: boolean
 }) {
   const [drill, setDrill] = useState<DrillTarget | null>(null)
 
@@ -101,7 +101,7 @@ export function ElActivitySection({
       <ElTrendChart data={trendData} onBarClick={setDrill} />
 
       {drill && (
-        <DateDrillModal {...drill} currentUserId={currentUserId} isAdmin={isAdmin} onClose={() => setDrill(null)} />
+        <DateDrillModal {...drill} currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} onClose={() => setDrill(null)} />
       )}
     </div>
   )
@@ -112,12 +112,12 @@ export function ElActivitySection({
 export function ProductionActivitySection({
   kpiCountersigned, kpiAdvance, kpiFat, kpiDelivered,
   trendData, periodFromISO, periodToISO,
-  currentUserId, isAdmin,
+  currentUserId, isAdmin, isReadOnly = false,
 }: {
   readonly kpiCountersigned: number; readonly kpiAdvance: number; readonly kpiFat: number; readonly kpiDelivered: number
   readonly trendData: ProdTrendBucket[]
   readonly periodFromISO: string; readonly periodToISO: string
-  readonly currentUserId: string; readonly isAdmin: boolean
+  readonly currentUserId: string; readonly isAdmin: boolean; readonly isReadOnly?: boolean
 }) {
   const [drill, setDrill] = useState<DrillTarget | null>(null)
 
@@ -139,7 +139,7 @@ export function ProductionActivitySection({
       <ProductionTrendChart data={trendData} onBarClick={setDrill} />
 
       {drill && (
-        <DateDrillModal {...drill} currentUserId={currentUserId} isAdmin={isAdmin} onClose={() => setDrill(null)} />
+        <DateDrillModal {...drill} currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} onClose={() => setDrill(null)} />
       )}
     </div>
   )

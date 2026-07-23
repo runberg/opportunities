@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/shared/lib/db"
 import { z } from "zod"
 import { OpportunityStatus, WaitingOn } from "@prisma/client"
-import { requireSession } from "@/shared/lib/api"
+import { requireSession, hasSectionAccess } from "@/shared/lib/api"
 import { writeLog } from "@/shared/lib/system-log"
 
 const createSchema = z.object({
@@ -19,8 +19,10 @@ const createSchema = z.object({
 })
 
 export async function GET(req: NextRequest) {
-  const { error } = await requireSession()
+  const { session, error } = await requireSession()
   if (error) return error
+  if (!hasSectionAccess(session, "opportunities", "READ_ONLY"))
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
   const sp = req.nextUrl.searchParams
   const status = sp.get("status") ?? ""
@@ -111,6 +113,8 @@ export async function DELETE(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const { session, error } = await requireSession()
   if (error) return error
+  if (!hasSectionAccess(session, "opportunities", "FULL"))
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
   const body = await req.json()
   const parsed = createSchema.safeParse(body)

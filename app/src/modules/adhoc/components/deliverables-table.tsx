@@ -96,11 +96,12 @@ function exportToCsv(agreementTitle: string, deliverables: DeliverableRow[]) {
 
 type RowProps = {
   readonly d: DeliverableRow
+  readonly isReadOnly: boolean
   readonly onOpen: (id: string) => void
   readonly onComment: (d: DeliverableRow) => void
 }
 
-function DeliverableTableRow({ d, onOpen, onComment }: RowProps) {
+function DeliverableTableRow({ d, isReadOnly, onOpen, onComment }: RowProps) {
   const lineTotal = d.lineItems.reduce((s, li) => s + Number(li.amount), 0)
   const approved = Number(d.approvedAmount)
   const balance = approved - lineTotal
@@ -137,14 +138,16 @@ function DeliverableTableRow({ d, onOpen, onComment }: RowProps) {
         {d.documents.length}
       </td>
       <td className="px-2 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-        <button
-          type="button"
-          onClick={() => onComment(d)}
-          className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-          title="Add comment"
-        >
-          <MessageSquarePlus size={15} />
-        </button>
+        {!isReadOnly && (
+          <button
+            type="button"
+            onClick={() => onComment(d)}
+            className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            title="Add comment"
+          >
+            <MessageSquarePlus size={15} />
+          </button>
+        )}
       </td>
     </tr>
   )
@@ -156,12 +159,13 @@ type Props = {
   readonly agreement: AgreementRow
   readonly currentUserId: string
   readonly isAdmin: boolean
+  readonly isReadOnly?: boolean
   readonly onRefresh: () => Promise<void>
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh }: Props) {
+export function DeliverablesTable({ agreement, currentUserId, isAdmin, isReadOnly = false, onRefresh }: Props) {
   const [openDeliverableId, setOpenDeliverableId] = useState<string | null>(null)
   const [commentTarget, setCommentTarget] = useState<DeliverableRow | null>(null)
   const [adding, setAdding] = useState(false)
@@ -235,7 +239,7 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
         <h3 className="text-sm font-medium text-gray-700">
           Work Packages ({agreement.deliverables.length})
         </h3>
-        {canAdd && !adding && (
+        {canAdd && !adding && !isReadOnly && (
           <Button variant="primary" size="sm" onClick={() => setAdding(true)}>
             + Add Work Package
           </Button>
@@ -315,6 +319,7 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
                   <DeliverableTableRow
                     key={d.id}
                     d={d}
+                    isReadOnly={isReadOnly}
                     onOpen={setOpenDeliverableId}
                     onComment={setCommentTarget}
                   />
@@ -338,6 +343,7 @@ export function DeliverablesTable({ agreement, currentUserId, isAdmin, onRefresh
           deliverableId={openDeliverableId}
           currentUserId={currentUserId}
           isAdmin={isAdmin}
+          isReadOnly={isReadOnly}
           onClose={() => setOpenDeliverableId(null)}
           onRefresh={onRefresh}
         />

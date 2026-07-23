@@ -19,6 +19,7 @@ interface LogSectionProps {
   readonly entries: LogEntry[]
   readonly currentUser: { id: string; name: string }
   readonly onRefresh?: () => void
+  readonly isReadOnly?: boolean
 }
 
 export function LogSection({
@@ -26,6 +27,7 @@ export function LogSection({
   entries,
   currentUser,
   onRefresh,
+  isReadOnly = false,
 }: LogSectionProps) {
   const router = useRouter()
   const [showSystem, setShowSystem] = useState(false)
@@ -84,14 +86,16 @@ export function LogSection({
               </span>
             )}
           </button>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => setShowForm((v) => !v)}
-          >
-            <MessageSquarePlus size={13} className="mr-1.5" />
-            Add comment
-          </Button>
+          {!isReadOnly && (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setShowForm((v) => !v)}
+            >
+              <MessageSquarePlus size={13} className="mr-1.5" />
+              Add comment
+            </Button>
+          )}
         </div>
       </div>
 

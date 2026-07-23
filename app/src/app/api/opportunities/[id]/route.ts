@@ -3,7 +3,7 @@ import { db } from "@/shared/lib/db"
 import { z } from "zod"
 import { type Opportunity, OpportunityStatus, WaitingOn } from "@prisma/client"
 import { STATUS_LABELS, toDateString, WAITING_LABELS } from "@/shared/lib/utils"
-import { requireSession, requireAdmin } from "@/shared/lib/api"
+import { requireSession, requireAdmin, hasSectionAccess } from "@/shared/lib/api"
 import { writeLog } from "@/shared/lib/system-log"
 import { scheduleNotification } from "@/shared/lib/notify"
 
@@ -11,8 +11,10 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { error } = await requireSession()
+  const { session, error } = await requireSession()
   if (error) return error
+  if (!hasSectionAccess(session, "opportunities", "READ_ONLY"))
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
   const { id } = await params
   const opportunity = await db.opportunity.findUnique({
@@ -194,6 +196,8 @@ export async function PATCH(
 ) {
   const { session, error } = await requireSession()
   if (error) return error
+  if (!hasSectionAccess(session, "opportunities", "FULL"))
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
   const { id } = await params
   const body = await req.json().catch(() => null)

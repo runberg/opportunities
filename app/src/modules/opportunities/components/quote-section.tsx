@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Upload } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
@@ -38,6 +38,7 @@ interface QuoteSectionProps {
   readonly isAdmin: boolean
   readonly onRefresh?: () => void
   readonly docType?: "QUOTE" | "EL" | "FAT" | "SAT"
+  readonly isReadOnly?: boolean
 }
 
 export function QuoteSection({
@@ -47,6 +48,7 @@ export function QuoteSection({
   isAdmin,
   onRefresh,
   docType = "QUOTE",
+  isReadOnly = false,
 }: QuoteSectionProps) {
   const router = useRouter()
 
@@ -58,9 +60,15 @@ export function QuoteSection({
   const [docStatus, setDocStatus] = useState("DRAFT")
   const [file, setFile] = useState<File | null>(null)
 
-  useWindowDragExpand(() => setShowUpload(true))
+  const hasFileRef = useRef(false)
+
+  useWindowDragExpand(
+    () => { if (!isReadOnly) setShowUpload(true) },
+    () => { if (!hasFileRef.current) setShowUpload(false) },
+  )
 
   function applyFile(f: File) {
+    hasFileRef.current = true
     setFile(f)
     setDisplayName((prev) => (prev.trim() === "" ? nameFromFile(f) : prev))
   }
@@ -91,6 +99,7 @@ export function QuoteSection({
       setDisplayName("")
       setDocStatus("DRAFT")
       setFile(null)
+      hasFileRef.current = false
       onRefresh?.()
       router.refresh()
     } finally {
@@ -117,10 +126,12 @@ export function QuoteSection({
             {sectionLabel}
             <span className="ml-1.5 text-gray-400 font-normal">({documents.length})</span>
           </p>
-          <Button variant="secondary" size="sm" onClick={() => setShowUpload((v) => !v)}>
-            <Upload size={13} className="mr-1.5" />
-            Upload
-          </Button>
+          {!isReadOnly && (
+            <Button variant="secondary" size="sm" onClick={() => setShowUpload((v) => !v)}>
+              <Upload size={13} className="mr-1.5" />
+              Upload
+            </Button>
+          )}
         </div>
 
         {showUpload && (
@@ -164,7 +175,7 @@ export function QuoteSection({
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => { setShowUpload(false); setFile(null); setDisplayName("") }}
+                    onClick={() => { setShowUpload(false); setFile(null); setDisplayName(""); hasFileRef.current = false }}
                   >
                     Cancel
                   </Button>

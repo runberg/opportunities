@@ -24,15 +24,20 @@ import { NewOpportunityModal } from "@/modules/opportunities/components/new-oppo
 import { OpportunityModal } from "@/modules/opportunities/components/opportunity-modal"
 
 interface SidebarProps {
-  readonly userEmail: string
+  readonly userName: string
   readonly userRole: string
   readonly currentUserId: string
+  readonly opportunitiesAccess: string
+  readonly adhocAccess: string
 }
 
-export function Sidebar({ userEmail, userRole, currentUserId }: SidebarProps) {
+export function Sidebar({ userName, userRole, currentUserId, opportunitiesAccess, adhocAccess }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const isAdmin = userRole === "ADMIN"
+  const canCreateOpportunity = isAdmin || opportunitiesAccess === "FULL"
+  const showOpportunities = isAdmin || opportunitiesAccess !== "NONE"
+  const showAdhoc = isAdmin || adhocAccess !== "NONE"
   const [newModalOpen, setNewModalOpen] = useState(false)
   const [justCreatedId, setJustCreatedId] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
@@ -50,6 +55,13 @@ export function Sidebar({ userEmail, userRole, currentUserId }: SidebarProps) {
       : "text-gray-400 hover:bg-white/5 hover:text-blue-300"
   )
 
+  const dashboardCls = cn(
+    "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
+    isActive("/dashboard")
+      ? "bg-blue-600/20 text-blue-400"
+      : "text-blue-300/70 hover:bg-white/5 hover:text-blue-300"
+  )
+
   return (
     <>
     <aside className="w-60 text-white flex flex-col h-full fixed top-0 left-0 bottom-0 bg-[#0a1220]">
@@ -61,47 +73,56 @@ export function Sidebar({ userEmail, userRole, currentUserId }: SidebarProps) {
       </div>
 
       {/* New Opportunity */}
-      <div className="px-3 py-3 border-b border-[#1a2d40]">
-        <button
-          type="button"
-          onClick={() => setNewModalOpen(true)}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#006fff] hover:bg-blue-600 text-white text-sm font-medium rounded-lg transition-colors"
-        >
-          <Plus size={16} />
-          New Opportunity
-        </button>
-      </div>
+      {canCreateOpportunity && (
+        <div className="px-3 py-3 border-b border-[#1a2d40]">
+          <button
+            type="button"
+            onClick={() => setNewModalOpen(true)}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#006fff] hover:bg-blue-600 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            <Plus size={16} />
+            New Opportunity
+          </button>
+        </div>
+      )}
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        <Link href="/dashboard" className={linkCls("/dashboard")}>
-          <LayoutDashboard size={18} />
-          Dashboard
-        </Link>
+        {showOpportunities && (
+          <>
+            <div className="pt-2 pb-1 px-3">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#3d5570]">Opportunities</span>
+            </div>
+            <Link href="/dashboard" className={dashboardCls}>
+              <LayoutDashboard size={18} />
+              Dashboard
+            </Link>
+            <Link href="/opportunities" className={linkCls("/opportunities")}>
+              <FileText size={18} />
+              Quotes
+            </Link>
+            <Link href="/els" className={linkCls("/els")}>
+              <ScrollText size={18} />
+              ELs
+            </Link>
+            <Link href="/production" className={linkCls("/production")}>
+              <Factory size={18} />
+              Production
+            </Link>
+          </>
+        )}
 
-        <div className="pt-4 pb-1 px-3">
-          <span className="text-xs font-semibold uppercase tracking-wider text-[#3d5570]">Opportunities</span>
-        </div>
-        <Link href="/opportunities" className={linkCls("/opportunities")}>
-          <FileText size={18} />
-          Quotes
-        </Link>
-        <Link href="/els" className={linkCls("/els")}>
-          <ScrollText size={18} />
-          ELs
-        </Link>
-        <Link href="/production" className={linkCls("/production")}>
-          <Factory size={18} />
-          Production
-        </Link>
-
-        <div className="pt-4 pb-1 px-3">
-          <span className="text-xs font-semibold uppercase tracking-wider text-[#3d5570]">Ad Hoc</span>
-        </div>
-        <Link href="/adhoc" className={linkCls("/adhoc")}>
-          <Package size={18} />
-          Ad Hoc Deliveries
-        </Link>
+        {showAdhoc && (
+          <>
+            <div className="pt-4 pb-1 px-3">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#3d5570]">Ad Hoc</span>
+            </div>
+            <Link href="/adhoc" className={linkCls("/adhoc")}>
+              <Package size={18} />
+              Ad Hoc Deliveries
+            </Link>
+          </>
+        )}
 
         {isAdmin && (
           <>
@@ -133,7 +154,7 @@ export function Sidebar({ userEmail, userRole, currentUserId }: SidebarProps) {
         <Link href="/profile" className={linkCls("/profile")}>
           <User size={18} />
           <div className="min-w-0">
-            <div className="text-xs truncate text-white">{userEmail}</div>
+            <div className="text-xs truncate text-white">{userName}</div>
             <div className="text-xs capitalize text-[#3d5570]">{userRole.toLowerCase()}</div>
           </div>
         </Link>

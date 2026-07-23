@@ -47,9 +47,10 @@ type Props = {
   readonly initialAgreements: AgreementRow[]
   readonly currentUserId: string
   readonly isAdmin: boolean
+  readonly isReadOnly?: boolean
 }
 
-export function AdhocClient({ initialAgreements, currentUserId, isAdmin }: Props) {
+export function AdhocClient({ initialAgreements, currentUserId, isAdmin, isReadOnly = false }: Props) {
   const [agreements, setAgreements] = useState(initialAgreements)
   const [showForm, setShowForm] = useState(false)
 
@@ -67,9 +68,11 @@ export function AdhocClient({ initialAgreements, currentUserId, isAdmin }: Props
             Manage ad hoc agreements and work packages
           </p>
         </div>
-        <Button variant="ghost" size="sm" onClick={() => setShowForm(true)}>
-          + New Agreement
-        </Button>
+        {!isReadOnly && (
+          <Button variant="ghost" size="sm" onClick={() => setShowForm(true)}>
+            + New Agreement
+          </Button>
+        )}
       </div>
 
       {agreements.length === 0 ? (
@@ -81,6 +84,7 @@ export function AdhocClient({ initialAgreements, currentUserId, isAdmin }: Props
           agreements={agreements}
           currentUserId={currentUserId}
           isAdmin={isAdmin}
+          isReadOnly={isReadOnly}
           onRefresh={refresh}
         />
       )}

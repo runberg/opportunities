@@ -39,10 +39,11 @@ type AgreementDocsProps = {
   readonly agreement: AgreementRow
   readonly currentUserId: string
   readonly isAdmin: boolean
+  readonly isReadOnly?: boolean
   readonly onRefresh: () => Promise<void>
 }
 
-function AgreementDocs({ agreement, currentUserId, isAdmin, onRefresh }: AgreementDocsProps) {
+function AgreementDocs({ agreement, currentUserId, isAdmin, isReadOnly = false, onRefresh }: AgreementDocsProps) {
   const [showUpload, setShowUpload] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [displayName, setDisplayName] = useState("")
@@ -55,7 +56,7 @@ function AgreementDocs({ agreement, currentUserId, isAdmin, onRefresh }: Agreeme
     ? "COUNTERSIGNED" : "DRAFT"
   const isClosed = agreement.status === "CLOSED"
 
-  useWindowDragExpand(() => setShowUpload(true))
+  useWindowDragExpand(() => { if (!isReadOnly) setShowUpload(true) })
 
   function applyFile(f: File) {
     setFile(f)
@@ -99,7 +100,7 @@ function AgreementDocs({ agreement, currentUserId, isAdmin, onRefresh }: Agreeme
     <div>
       <div className="flex items-center justify-between mb-2">
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Agreement Documents</p>
-        {!isClosed && (
+        {!isClosed && !isReadOnly && (
           <Button variant="secondary" size="sm" onClick={() => setShowUpload((v) => !v)}>
             <Upload size={13} className="mr-1.5" />
             Upload
@@ -307,10 +308,11 @@ type Props = {
   readonly agreements: AgreementRow[]
   readonly currentUserId: string
   readonly isAdmin: boolean
+  readonly isReadOnly?: boolean
   readonly onRefresh: () => Promise<void>
 }
 
-export function AgreementTabs({ agreements, currentUserId, isAdmin, onRefresh }: Props) {
+export function AgreementTabs({ agreements, currentUserId, isAdmin, isReadOnly = false, onRefresh }: Props) {
   const [activeTab, setActiveTab] = useState(() => defaultTabIndex(agreements))
   const [showDetails, setShowDetails] = useState(false)
   const [showSignDialog, setShowSignDialog] = useState(false)
@@ -400,7 +402,7 @@ export function AgreementTabs({ agreements, currentUserId, isAdmin, onRefresh }:
                 {formatAmount(remaining)}
               </p>
             </div>
-            {canSign && (
+            {canSign && !isReadOnly && (
               <Button variant="outline" size="sm" onClick={() => setShowSignDialog(true)}>
                 Mark Signed
               </Button>
@@ -430,20 +432,23 @@ export function AgreementTabs({ agreements, currentUserId, isAdmin, onRefresh }:
               agreement={agreement}
               currentUserId={currentUserId}
               isAdmin={isAdmin}
+              isReadOnly={isReadOnly}
               onRefresh={onRefresh}
             />
-            <div className="flex justify-end gap-2 mt-3">
-              {!isClosed && (
-                <Button variant="ghost" size="sm" onClick={() => setEditingAgreement(agreement)}>
-                  Edit
-                </Button>
-              )}
-              {canClose && (
-                <Button variant="outline" size="sm" onClick={handleClose} disabled={transitioning}>
-                  {transitioning ? "Saving…" : "Close Agreement"}
-                </Button>
-              )}
-            </div>
+            {!isReadOnly && (
+              <div className="flex justify-end gap-2 mt-3">
+                {!isClosed && (
+                  <Button variant="ghost" size="sm" onClick={() => setEditingAgreement(agreement)}>
+                    Edit
+                  </Button>
+                )}
+                {canClose && (
+                  <Button variant="outline" size="sm" onClick={handleClose} disabled={transitioning}>
+                    {transitioning ? "Saving…" : "Close Agreement"}
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -452,6 +457,7 @@ export function AgreementTabs({ agreements, currentUserId, isAdmin, onRefresh }:
         agreement={agreement}
         currentUserId={currentUserId}
         isAdmin={isAdmin}
+        isReadOnly={isReadOnly}
         onRefresh={onRefresh}
       />
 

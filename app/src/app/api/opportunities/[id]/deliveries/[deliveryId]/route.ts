@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { db } from "@/shared/lib/db"
-import { requireSession } from "@/shared/lib/api"
+import { requireSession, hasSectionAccess } from "@/shared/lib/api"
 
 const updateSchema = z.object({
   unitType:      z.string().min(1).optional(),
@@ -14,8 +14,10 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string; deliveryId: string }> }
 ) {
-  const { error } = await requireSession()
+  const { session, error } = await requireSession()
   if (error) return error
+  if (!hasSectionAccess(session, "opportunities", "FULL"))
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
   const { id, deliveryId } = await params
   const existing = await db.expectedDelivery.findUnique({ where: { id: deliveryId } })
@@ -36,8 +38,10 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string; deliveryId: string }> }
 ) {
-  const { error } = await requireSession()
+  const { session, error } = await requireSession()
   if (error) return error
+  if (!hasSectionAccess(session, "opportunities", "FULL"))
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
   const { id, deliveryId } = await params
   const existing = await db.expectedDelivery.findUnique({ where: { id: deliveryId } })

@@ -785,12 +785,14 @@ function EditableTextField({
   fieldName,
   value,
   deliverableId,
+  isReadOnly = false,
   onSaved,
 }: {
   readonly label: string
   readonly fieldName: "approverName" | "deliveryNoteRef"
   readonly value: string | null
   readonly deliverableId: string
+  readonly isReadOnly?: boolean
   readonly onSaved: () => Promise<void>
 }) {
   const [editing, setEditing] = useState(false)
@@ -814,6 +816,20 @@ function EditableTextField({
     }
   }
 
+  const displayValue = value ?? <span className="text-gray-600 italic text-xs">—</span>
+  const viewEl = isReadOnly
+    ? <p className="text-sm text-gray-200 mt-0.5">{displayValue}</p>
+    : (
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        className="text-sm text-gray-200 hover:text-blue-400 transition-colors mt-0.5 block text-left"
+        title="Click to edit"
+      >
+        {displayValue}
+      </button>
+    )
+
   return (
     <div>
       <p className="text-xs text-gray-400">{label}</p>
@@ -832,16 +848,7 @@ function EditableTextField({
           />
           {saving && <span className="text-xs text-gray-500">…</span>}
         </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setEditing(true)}
-          className="text-sm text-gray-200 hover:text-blue-400 transition-colors mt-0.5 block text-left"
-          title="Click to edit"
-        >
-          {value ?? <span className="text-gray-600 italic text-xs">—</span>}
-        </button>
-      )}
+      ) : viewEl}
     </div>
   )
 }
@@ -977,6 +984,7 @@ function DateField({
   deliverableId,
   field,
   nullable = true,
+  isReadOnly = false,
   onSaved,
 }: {
   readonly label: string
@@ -984,6 +992,7 @@ function DateField({
   readonly deliverableId: string
   readonly field: "createdAt" | "partiallyApprovedAt" | "approvedAt" | "deliveredAt"
   readonly nullable?: boolean
+  readonly isReadOnly?: boolean
   readonly onSaved: () => Promise<void>
 }) {
   const [editing, setEditing] = useState(false)
@@ -1012,6 +1021,19 @@ function DateField({
     ? new Date(value).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
     : "—"
 
+  const viewEl = isReadOnly
+    ? <span className="text-sm text-gray-200 tabular-nums">{formatted}</span>
+    : (
+      <button
+        type="button"
+        onClick={() => { setDraft(value ? value.slice(0, 10) : ""); setEditing(true) }}
+        className="text-sm text-gray-200 hover:text-blue-400 transition-colors tabular-nums"
+        title="Click to edit"
+      >
+        {formatted}
+      </button>
+    )
+
   return (
     <div>
       <p className="text-xs text-gray-500 mb-0.5">{label}</p>
@@ -1034,16 +1056,7 @@ function DateField({
             Cancel
           </button>
         </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => { setDraft(value ? value.slice(0, 10) : ""); setEditing(true) }}
-          className="text-sm text-gray-200 hover:text-blue-400 transition-colors tabular-nums"
-          title="Click to edit"
-        >
-          {formatted}
-        </button>
-      )}
+      ) : viewEl}
     </div>
   )
 }
@@ -1060,9 +1073,10 @@ type TabContentProps = {
   readonly currentUserId: string
   readonly isAdmin: boolean
   readonly isLocked: boolean
+  readonly isReadOnly: boolean
 }
 
-function DeliverableTabContent({ loading, deliverable, activeTab, showUpload, onShowUpload, onRefresh, currentUserId, isAdmin, isLocked }: TabContentProps) {
+function DeliverableTabContent({ loading, deliverable, activeTab, showUpload, onShowUpload, onRefresh, currentUserId, isAdmin, isLocked, isReadOnly }: TabContentProps) {
   if (loading) {
     return (
       <div className="space-y-2">
@@ -1101,6 +1115,7 @@ function DeliverableTabContent({ loading, deliverable, activeTab, showUpload, on
             })),
           ]}
           currentUser={{ id: currentUserId, name: "" }}
+          isReadOnly={isReadOnly}
           onRefresh={onRefresh}
         />
       )}
@@ -1114,11 +1129,12 @@ type Props = {
   readonly deliverableId: string
   readonly currentUserId: string
   readonly isAdmin: boolean
+  readonly isReadOnly?: boolean
   readonly onClose: () => void
   readonly onRefresh: () => Promise<void>
 }
 
-export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClose, onRefresh }: Props) {
+export function DeliverableModal({ deliverableId, currentUserId, isAdmin, isReadOnly = false, onClose, onRefresh }: Props) {
   const [deliverable, setDeliverable] = useState<Deliverable | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<"items" | "documents" | "log">("items")
@@ -1154,7 +1170,7 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
   }, [deliverable?.status])
 
   useWindowDragExpand(() => {
-    if (!approvePanelOpen && !deliverPanelOpen) {
+    if (!isReadOnly && !approvePanelOpen && !deliverPanelOpen) {
       setActiveTab("documents")
       setShowUpload(true)
     }
@@ -1218,7 +1234,7 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
     }
   }
 
-  const isLocked = deliverable?.status === "DELIVERED" && !isAdmin
+  const isLocked = (deliverable?.status === "DELIVERED" && !isAdmin) || isReadOnly
   const canApprove = deliverable?.status === "NOT_APPROVED"
   const canEditApproval = deliverable?.status === "PARTIALLY_APPROVED" || deliverable?.status === "APPROVED"
   const canDeliver = deliverable?.status === "APPROVED"
@@ -1297,6 +1313,7 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
                   fieldName="approverName"
                   value={deliverable.approverName}
                   deliverableId={deliverable.id}
+                  isReadOnly={isReadOnly}
                   onSaved={refresh}
                 />
               )}
@@ -1306,11 +1323,12 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
                   fieldName="deliveryNoteRef"
                   value={deliverable.deliveryNoteRef}
                   deliverableId={deliverable.id}
+                  isReadOnly={isReadOnly}
                   onSaved={refresh}
                 />
               )}
             </div>
-            {(canApprove || canEditApproval || canDeliver || canRevertDelivered) && (
+            {!isReadOnly && (canApprove || canEditApproval || canDeliver || canRevertDelivered) && (
               <div className="flex items-center gap-2 mt-3">
                 {canApprove && !approvePanelOpen && (
                   <Button size="sm" variant="outline" onClick={() => setApprovePanelOpen(true)}>Approve</Button>
@@ -1338,10 +1356,10 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
 
             {/* Milestone dates */}
             <div className="flex flex-wrap gap-6 mt-3 pt-3 border-t border-gray-700/60">
-              <DateField label="Created" value={deliverable.createdAt} deliverableId={deliverable.id} field="createdAt" nullable={false} onSaved={refresh} />
-              <DateField label="Partially Approved" value={deliverable.partiallyApprovedAt} deliverableId={deliverable.id} field="partiallyApprovedAt" onSaved={refresh} />
-              <DateField label="Approved" value={deliverable.approvedAt} deliverableId={deliverable.id} field="approvedAt" onSaved={refresh} />
-              <DateField label="Delivered" value={deliverable.deliveredAt} deliverableId={deliverable.id} field="deliveredAt" onSaved={refresh} />
+              <DateField label="Created" value={deliverable.createdAt} deliverableId={deliverable.id} field="createdAt" nullable={false} isReadOnly={isReadOnly} onSaved={refresh} />
+              <DateField label="Partially Approved" value={deliverable.partiallyApprovedAt} deliverableId={deliverable.id} field="partiallyApprovedAt" isReadOnly={isReadOnly} onSaved={refresh} />
+              <DateField label="Approved" value={deliverable.approvedAt} deliverableId={deliverable.id} field="approvedAt" isReadOnly={isReadOnly} onSaved={refresh} />
+              <DateField label="Delivered" value={deliverable.deliveredAt} deliverableId={deliverable.id} field="deliveredAt" isReadOnly={isReadOnly} onSaved={refresh} />
             </div>
 
             {missingApprovalDoc && !editingApproval && (
@@ -1419,6 +1437,7 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, onClos
             currentUserId={currentUserId}
             isAdmin={isAdmin}
             isLocked={!!isLocked}
+            isReadOnly={isReadOnly}
           />
         </div>
       </div>

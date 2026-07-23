@@ -28,6 +28,7 @@ interface DocumentSectionProps {
   readonly currentUserId: string
   readonly isAdmin: boolean
   readonly onRefresh?: () => void
+  readonly isReadOnly?: boolean
 }
 
 const TYPE_FILTERS = ["ALL", "QUOTE", "EL", "OTHER"] as const
@@ -39,6 +40,7 @@ export function DocumentSection({
   currentUserId,
   isAdmin,
   onRefresh,
+  isReadOnly = false,
 }: DocumentSectionProps) {
   const router = useRouter()
   const viewers = useFileViewer()
@@ -124,14 +126,16 @@ export function DocumentSection({
           Documents{" "}
           <span className="text-gray-400 font-normal">({documents.length})</span>
         </h2>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => setShowForm((v) => !v)}
-        >
-          <Upload size={14} className="mr-1.5" />
-          Upload
-        </Button>
+        {!isReadOnly && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setShowForm((v) => !v)}
+          >
+            <Upload size={14} className="mr-1.5" />
+            Upload
+          </Button>
+        )}
       </div>
 
       {/* Upload form */}

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/shared/lib/db"
 import bcrypt from "bcryptjs"
 import { z } from "zod"
-import { requireAdmin } from "@/shared/lib/api"
+import { requireAdmin, ACCESS_LEVELS } from "@/shared/lib/api"
 import { writeLog } from "@/shared/lib/system-log"
 
 const updateSchema = z.object({
@@ -11,6 +11,8 @@ const updateSchema = z.object({
   role: z.enum(["ADMIN", "USER"]).optional(),
   active: z.boolean().optional(),
   newPassword: z.string().min(8).optional().or(z.literal("")),
+  opportunitiesAccess: z.enum(ACCESS_LEVELS).optional(),
+  adhocAccess: z.enum(ACCESS_LEVELS).optional(),
 })
 
 export async function PATCH(
@@ -27,7 +29,23 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid input" }, { status: 400 })
   }
 
-  const { newPassword, ...rest } = parsed.data
+  const { newPassword, opportunitiesAccess, adhocAccess, ...rest } = parsed.data
+
+  if (opportunitiesAccess !== undefined || adhocAccess !== undefined) {
+    const current = await db.user.findUnique({
+      where: { id },
+      select: { opportunitiesAccess: true, adhocAccess: true },
+    })
+    if (!current) return NextResponse.json({ error: "User not found" }, { status: 404 })
+    const resolvedOpps = opportunitiesAccess ?? current.opportunitiesAccess
+    const resolvedAdhoc = adhocAccess ?? current.adhocAccess
+    if (resolvedOpps === "NONE" && resolvedAdhoc === "NONE") {
+      return NextResponse.json(
+        { error: "A user must have access to at least one section." },
+        { status: 400 }
+      )
+    }
+  }
 
   // Check email uniqueness if changed
   if (rest.email) {
@@ -40,13 +58,15 @@ export async function PATCH(
   }
 
   const data: Record<string, unknown> = { ...rest }
-  if (rest.email) data.name = rest.email // keep name in sync with email
+  if (rest.email) data.name = rest.email
   if (newPassword) data.password = await bcrypt.hash(newPassword, 12)
+  if (opportunitiesAccess !== undefined) data.opportunitiesAccess = opportunitiesAccess
+  if (adhocAccess !== undefined) data.adhocAccess = adhocAccess
 
   const user = await db.user.update({
     where: { id },
     data,
-    select: { id: true, email: true, role: true, active: true, createdAt: true },
+    select: { id: true, email: true, role: true, active: true, createdAt: true, opportunitiesAccess: true, adhocAccess: true },
   })
 
   const changes: string[] = []
@@ -55,6 +75,8 @@ export async function PATCH(
   if (rest.role) changes.push(`role set to ${rest.role}`)
   if (rest.active !== undefined) changes.push(rest.active ? "account activated" : "account deactivated")
   if (newPassword) changes.push("password reset")
+  if (opportunitiesAccess) changes.push(`opportunities access → ${opportunitiesAccess}`)
+  if (adhocAccess) changes.push(`ad hoc access → ${adhocAccess}`)
 
   await writeLog({
     type: "USER_UPDATED",

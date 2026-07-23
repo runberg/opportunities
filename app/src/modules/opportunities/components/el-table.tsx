@@ -8,17 +8,19 @@ export interface ELRow extends OppTableRow {
 }
 
 export function ELTable({
-  opportunities, currentUserId, isAdmin,
+  opportunities, currentUserId, isAdmin, isReadOnly = false,
 }: {
   readonly opportunities: ELRow[]
   readonly currentUserId: string
   readonly isAdmin: boolean
+  readonly isReadOnly?: boolean
 }) {
   return (
     <OppTableView
       opportunities={opportunities}
       currentUserId={currentUserId}
       isAdmin={isAdmin}
+      isReadOnly={isReadOnly}
       initialSortKey="internalId"
       dateColumn={{ label: "EL Requested", sortKey: "elRequestedDate", getValue: (r) => r.elRequestedDate }}
       emptyMessage="No engagement letters found."

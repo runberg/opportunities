@@ -1,7 +1,6 @@
 import { Suspense } from "react"
 import { db } from "@/shared/lib/db"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/shared/lib/auth"
+import { requireSectionAccess } from "@/shared/lib/page-access"
 import { formatDate, parseParam, buildOpportunityWhere, EL_STATUSES, STATUS_GROUPS } from "@/shared/lib/utils"
 import { ELTable } from "@/modules/opportunities/components/el-table"
 import { FilterBar } from "@/modules/opportunities/components/filter-bar"
@@ -20,7 +19,11 @@ export default async function ELsPage({
 }: {
   readonly searchParams: Promise<SearchParams>
 }) {
-  const [params, session] = await Promise.all([searchParams, getServerSession(authOptions)])
+  const [params, { session, isAdmin, isReadOnly }] = await Promise.all([
+    searchParams,
+    requireSectionAccess("opportunities"),
+  ])
+
   const query = params.q?.trim() ?? ""
   const selectedStatuses = params.status ? params.status.split(",").filter(Boolean) : []
   const perPage = parseParam(params.perPage, 50)
@@ -66,8 +69,9 @@ export default async function ELsPage({
 
       <ELTable
         opportunities={rows}
-        currentUserId={session!.user.id}
-        isAdmin={session?.user.role === "ADMIN"}
+        currentUserId={session.user.id}
+        isAdmin={isAdmin}
+        isReadOnly={isReadOnly}
       />
 
       <Suspense>

@@ -34,6 +34,7 @@ interface ProductionSectionProps {
   readonly currentUserId: string
   readonly isAdmin: boolean
   readonly onRefresh: () => void
+  readonly isReadOnly?: boolean
 }
 
 interface ProdEditForm {
@@ -269,11 +270,12 @@ function ProductionEditPanel({ data, onRefresh, onCancel }: {
 
 // ─── View panel ───────────────────────────────────────────────────────────────
 
-function ProductionViewPanel({ data, deliveries, currentUserId, isAdmin, onRefresh, onEnterEdit }: {
+function ProductionViewPanel({ data, deliveries, currentUserId, isAdmin, isReadOnly, onRefresh, onEnterEdit }: {
   readonly data: ProductionData
   readonly deliveries: DeliveryLine[]
   readonly currentUserId: string
   readonly isAdmin: boolean
+  readonly isReadOnly: boolean
   readonly onRefresh: () => void
   readonly onEnterEdit: () => void
 }) {
@@ -307,67 +309,65 @@ function ProductionViewPanel({ data, deliveries, currentUserId, isAdmin, onRefre
     <div className="mt-6 bg-white border border-gray-200 rounded-xl p-6">
       <div className="flex items-center justify-between mb-5">
         <h2 className="text-base font-semibold text-gray-900">Production</h2>
-        <button type="button" onClick={onEnterEdit}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors">
-          <Pencil size={12} />Edit
-        </button>
+        {!isReadOnly && (
+          <button type="button" onClick={onEnterEdit}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors">
+            <Pencil size={12} />Edit
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
         <DateCard label="Advance Payment" done={advancePaid}
           doneValue={advancePaid ? formatDate(data.advancePaymentDate ?? "") : null}
-          onRevert={onRevertIf(advancePaid, { field: "advancePaymentDate", status: "PENDING_ADVANCE_PAYMENT", label: "Pending Advance Payment" }, setRevertTarget)}>
-          <DatePicker
-            value={advanceDate}
-            onChange={setAdvanceDate}
-            triggerClassName={inputCls + " flex items-center"}
-          />
-          <ActionButton label="Received" savingKey="advance" saving={saving}
-            disabled={!advanceDate} onClick={() => patch({ advancePaymentDate: advanceDate }, "advance")} />
+          onRevert={isReadOnly ? undefined : onRevertIf(advancePaid, { field: "advancePaymentDate", status: "PENDING_ADVANCE_PAYMENT", label: "Pending Advance Payment" }, setRevertTarget)}>
+          {!isReadOnly && <>
+            <DatePicker value={advanceDate} onChange={setAdvanceDate} triggerClassName={inputCls + " flex items-center"} />
+            <ActionButton label="Received" savingKey="advance" saving={saving}
+              disabled={!advanceDate} onClick={() => patch({ advancePaymentDate: advanceDate }, "advance")} />
+          </>}
         </DateCard>
 
         <DateCard label="FAT" done={fatPassed}
           doneValue={fatPassed ? formatDate(data.fatPassedDate ?? "") : null}
           locked={!advancePaid}
-          onRevert={onRevertIf(fatPassed, { field: "fatPassedDate", status: "IN_PRODUCTION", label: "In Production" }, setRevertTarget)}>
-          <DatePicker
-            value={fatDate}
-            onChange={(v) => { setFatDate(v); if (v) void patch({ fatDate: v }, "fatDate") }}
-            triggerClassName={inputCls + " flex items-center"}
-          />
-          <ActionButton label="Passed" savingKey="fat" saving={saving}
-            onClick={() => patch({ fatPassedDate: todayISO(), fatDate: fatDate || undefined }, "fat")} />
+          onRevert={isReadOnly ? undefined : onRevertIf(fatPassed, { field: "fatPassedDate", status: "IN_PRODUCTION", label: "In Production" }, setRevertTarget)}>
+          {!isReadOnly && <>
+            <DatePicker value={fatDate} onChange={(v) => { setFatDate(v); if (v) void patch({ fatDate: v }, "fatDate") }}
+              triggerClassName={inputCls + " flex items-center"} />
+            <ActionButton label="Passed" savingKey="fat" saving={saving}
+              onClick={() => patch({ fatPassedDate: todayISO(), fatDate: fatDate || undefined }, "fat")} />
+          </>}
         </DateCard>
 
         <DateCard label="SAT" done={satDone}
           doneValue={satDoneValue}
           locked={!fatPassed && !satNA}
           na={satNA}
-          showNaToggle={fatPassed || satNA}
+          showNaToggle={!isReadOnly && (fatPassed || satNA)}
           onNaToggle={() => patch({ satApplicable: satNA }, "satNA")}
           naToggleSaving={saving === "satNA"}
-          onRevert={onRevertIf(satPassed, { field: "satPassedDate", status: "IN_PRODUCTION", label: "In Production" }, setRevertTarget)}>
-          <DatePicker
-            value={satDate}
-            disabled={satNA}
-            onChange={(v) => { setSatDate(v); if (v) void patch({ satDate: v }, "satDate") }}
-            triggerClassName={cn(inputCls, "flex items-center", satNA && "opacity-40 cursor-not-allowed")}
-          />
-          <ActionButton label="Passed" savingKey="sat" saving={saving} disabled={satNA}
-            onClick={() => patch({ satPassedDate: todayISO(), satDate: satDate || undefined }, "sat")} />
+          onRevert={isReadOnly ? undefined : onRevertIf(satPassed, { field: "satPassedDate", status: "IN_PRODUCTION", label: "In Production" }, setRevertTarget)}>
+          {!isReadOnly && <>
+            <DatePicker value={satDate} disabled={satNA}
+              onChange={(v) => { setSatDate(v); if (v) void patch({ satDate: v }, "satDate") }}
+              triggerClassName={cn(inputCls, "flex items-center", satNA && "opacity-40 cursor-not-allowed")} />
+            <ActionButton label="Passed" savingKey="sat" saving={saving} disabled={satNA}
+              onClick={() => patch({ satPassedDate: todayISO(), satDate: satDate || undefined }, "sat")} />
+          </>}
         </DateCard>
 
         <DateCard label="Delivered" done={delivered}
           doneValue={data.deliveredDate ? formatDate(data.deliveredDate) : null}
           locked={!satDone}
-          onRevert={onRevertIf(delivered, { field: "deliveredDate", status: "IN_PRODUCTION", label: "In Production" }, setRevertTarget)}
-          deliverButton={canDeliver ? (
+          onRevert={isReadOnly ? undefined : onRevertIf(delivered, { field: "deliveredDate", status: "IN_PRODUCTION", label: "In Production" }, setRevertTarget)}
+          deliverButton={!isReadOnly && canDeliver ? (
             <ActionButton label="Mark Delivered" savingKey="deliver" saving={saving} green
               onClick={() => patch({ deliveredDate: todayISO() }, "deliver")} />
           ) : undefined} />
       </div>
 
-      {revertTarget && (
+      {!isReadOnly && revertTarget && (
         <RevertConfirmation
           target={revertTarget} reverting={reverting} error={revertError}
           onConfirm={() => void execProductionRevert(
@@ -383,34 +383,34 @@ function ProductionViewPanel({ data, deliveries, currentUserId, isAdmin, onRefre
         <div className="mb-4">
           <QuoteSection opportunityId={data.id}
             documents={data.documents.filter((d) => d.type === "FAT")}
-            currentUserId={currentUserId} isAdmin={isAdmin} onRefresh={onRefresh} docType="FAT" />
+            currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} docType="FAT" />
         </div>
       )}
 
       {fatPassed && !satNA && (
         <QuoteSection opportunityId={data.id}
           documents={data.documents.filter((d) => d.type === "SAT")}
-          currentUserId={currentUserId} isAdmin={isAdmin} onRefresh={onRefresh} docType="SAT" />
+          currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} docType="SAT" />
       )}
 
-      <ExpectedDeliverySection opportunityId={data.id} deliveries={deliveries} onRefresh={onRefresh} />
+      <ExpectedDeliverySection opportunityId={data.id} deliveries={deliveries} isReadOnly={isReadOnly} onRefresh={onRefresh} />
     </div>
   )
 }
 
 // ─── Main coordinator ─────────────────────────────────────────────────────────
 
-export function ProductionSection({ data, deliveries, currentUserId, isAdmin, onRefresh }: ProductionSectionProps) {
+export function ProductionSection({ data, deliveries, currentUserId, isAdmin, isReadOnly = false, onRefresh }: ProductionSectionProps) {
   const [editing, setEditing] = useState(false)
 
-  if (editing) {
+  if (editing && !isReadOnly) {
     return <ProductionEditPanel data={data} onRefresh={onRefresh} onCancel={() => setEditing(false)} />
   }
 
   return (
     <ProductionViewPanel
       data={data} deliveries={deliveries} currentUserId={currentUserId} isAdmin={isAdmin}
-      onRefresh={onRefresh} onEnterEdit={() => setEditing(true)} />
+      isReadOnly={isReadOnly} onRefresh={onRefresh} onEnterEdit={() => setEditing(true)} />
   )
 }
 
@@ -569,10 +569,11 @@ function toRows(lines: DeliveryLine[]): DeliveryRowState[] {
   return lines.length > 0 ? lines.map(fromDelivery) : [makeNewRow()]
 }
 
-function DeliveryViewRow({ row, onEdit, onDelete }: {
+function DeliveryViewRow({ row, onEdit, onDelete, isReadOnly = false }: {
   readonly row: DeliveryRowState
   readonly onEdit: () => void
   readonly onDelete: () => void
+  readonly isReadOnly?: boolean
 }) {
   const parsed = parseMonthYear(row.monthYear)
   return (
@@ -582,16 +583,18 @@ function DeliveryViewRow({ row, onEdit, onDelete }: {
       <span className="text-xs text-gray-400 shrink-0">
         {parsed ? deliveryMonthLabel(parsed.month, parsed.year) : row.monthYear}
       </span>
-      <div className="flex gap-0.5 opacity-0 group-hover/row:opacity-100 transition-opacity shrink-0">
-        <button type="button" onClick={onEdit}
-          className="p-1 text-gray-400 hover:text-gray-700 rounded transition-colors">
-          <Pencil size={12} />
-        </button>
-        <button type="button" onClick={onDelete}
-          className="p-1 text-gray-400 hover:text-red-500 rounded transition-colors">
-          <Trash2 size={12} />
-        </button>
-      </div>
+      {!isReadOnly && (
+        <div className="flex gap-0.5 opacity-0 group-hover/row:opacity-100 transition-opacity shrink-0">
+          <button type="button" onClick={onEdit}
+            className="p-1 text-gray-400 hover:text-gray-700 rounded transition-colors">
+            <Pencil size={12} />
+          </button>
+          <button type="button" onClick={onDelete}
+            className="p-1 text-gray-400 hover:text-red-500 rounded transition-colors">
+            <Trash2 size={12} />
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -628,9 +631,10 @@ function DeliveryEditRow({ row, onChange, onSave, onCancel }: {
   )
 }
 
-function ExpectedDeliverySection({ opportunityId, deliveries, onRefresh }: {
+function ExpectedDeliverySection({ opportunityId, deliveries, isReadOnly, onRefresh }: {
   readonly opportunityId: string
   readonly deliveries: DeliveryLine[]
+  readonly isReadOnly: boolean
   readonly onRefresh: () => void
 }) {
   const [rows, setRows] = useState<DeliveryRowState[]>(() => toRows(deliveries))
@@ -707,23 +711,26 @@ function ExpectedDeliverySection({ opportunityId, deliveries, onRefresh }: {
     <div className="mt-4 bg-white border border-gray-200 rounded-xl p-5">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-semibold text-gray-900">Expected Delivery</h2>
-        <button type="button" onClick={() => setRows((r) => [...r, makeNewRow()])}
-          className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-[#006fff] hover:bg-blue-50 rounded-lg transition-colors">
-          <Plus size={13} />Add
-        </button>
+        {!isReadOnly && (
+          <button type="button" onClick={() => setRows((r) => [...r, makeNewRow()])}
+            className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-[#006fff] hover:bg-blue-50 rounded-lg transition-colors">
+            <Plus size={13} />Add
+          </button>
+        )}
       </div>
       <div className="flex flex-col gap-1.5">
         {rows.map((row, i) =>
-          row.editing ? (
+          !isReadOnly && row.editing ? (
             <DeliveryEditRow key={row.id ?? `new-${i}`} row={row}
               onChange={(patch) => updateRow(i, patch)}
               onSave={() => saveRow(i)}
               onCancel={() => cancelRow(i)} />
-          ) : (
-            <DeliveryViewRow key={row.id!} row={row}
+          ) : row.id ? (
+            <DeliveryViewRow key={row.id} row={row}
               onEdit={() => updateRow(i, { editing: true })}
-              onDelete={() => deleteRow(i)} />
-          )
+              onDelete={() => deleteRow(i)}
+              isReadOnly={isReadOnly} />
+          ) : null
         )}
       </div>
     </div>

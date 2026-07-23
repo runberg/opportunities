@@ -13,6 +13,12 @@ enum NotificationLevel {
   ALL
 }
 
+enum SectionAccess {
+  FULL
+  READ_ONLY
+  NONE
+}
+
 model User {
   id                        String            @id @default(cuid())
   name                      String
@@ -20,6 +26,8 @@ model User {
   password                  String
   role                      Role              @default(USER)
   active                    Boolean           @default(true)
+  opportunitiesAccess       SectionAccess     @default(FULL)
+  adhocAccess               SectionAccess     @default(FULL)
   opportunityNotifications  NotificationLevel @default(NONE)
   adhocNotifications        NotificationLevel @default(NONE)
   createdAt                 DateTime          @default(now())

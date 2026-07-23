@@ -25,3 +25,20 @@ export async function requireAdmin(): Promise<Result> {
   }
   return result
 }
+
+export const ACCESS_LEVELS = ["FULL", "READ_ONLY", "NONE"] as const
+
+/**
+ * Returns true if the session user has at least the required access level for the given section.
+ * Admins always pass. Changes to access levels take effect on next login.
+ */
+export function hasSectionAccess(
+  session: Session,
+  section: "opportunities" | "adhoc",
+  minimum: "READ_ONLY" | "FULL",
+): boolean {
+  if (session.user.role === "ADMIN") return true
+  const level = section === "opportunities" ? session.user.opportunitiesAccess : session.user.adhocAccess
+  if (minimum === "READ_ONLY") return level === "FULL" || level === "READ_ONLY"
+  return level === "FULL"
+}

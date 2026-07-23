@@ -1,8 +1,11 @@
+import { requireFullSectionAccess } from "@/shared/lib/page-access"
 import { OpportunityForm } from "@/modules/opportunities/components/opportunity-form"
 import Link from "next/link"
 import { ChevronLeft } from "lucide-react"
 
-export default function NewOpportunityPage() {
+export default async function NewOpportunityPage() {
+  await requireFullSectionAccess("opportunities", "/opportunities")
+
   return (
     <div>
       <div className="mb-6">

@@ -1,12 +1,9 @@
-import { redirect } from "next/navigation"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/shared/lib/auth"
 import { findAllAgreements } from "@/app/api/adhoc/_helpers"
 import { AdhocClient } from "@/modules/adhoc/components/adhoc-client"
+import { requireSectionAccess } from "@/shared/lib/page-access"
 
 export default async function AdHocPage() {
-  const session = await getServerSession(authOptions)
-  if (!session) redirect("/login")
+  const { session, isAdmin, isReadOnly } = await requireSectionAccess("adhoc")
 
   const agreements = await findAllAgreements()
 
@@ -33,8 +30,9 @@ export default async function AdHocPage() {
   return (
     <AdhocClient
       initialAgreements={serialized}
-      currentUserId={session!.user.id}
-      isAdmin={session!.user.role === "ADMIN"}
+      currentUserId={session.user.id}
+      isAdmin={isAdmin}
+      isReadOnly={isReadOnly}
     />
   )
 }
