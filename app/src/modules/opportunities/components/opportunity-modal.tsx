@@ -183,6 +183,100 @@ function makeForm(data: OpportunityFull) {
 }
 type OppForm = ReturnType<typeof makeForm>
 
+// ─── ViewMode helpers ────────────────────────────────────────────────────────
+
+function validateOppStatus(form: OppForm, data: OpportunityFull): string | null {
+  if (form.status === data.status) return null
+  const req = STATUS_DATE_REQUIRED[form.status]
+  if (!req) return null
+  const existing = data[req.field as keyof OpportunityFull] as string | null
+  const formVal = form[req.field as keyof OppForm]
+  if (!existing && !formVal) {
+    return `"${STATUS_LABELS[form.status]}" requires the "${req.label}" date to be set first.`
+  }
+  return null
+}
+
+function buildOppPayload(form: OppForm, data: OpportunityFull): Record<string, unknown> {
+  const p: Record<string, unknown> = {}
+  if (form.title !== data.title) p.title = form.title
+  if (form.customer !== data.customer) p.customer = form.customer
+  if (form.product !== (data.product ?? "")) p.product = form.product
+  if (form.description !== (data.description ?? "")) p.description = form.description
+  if (form.internalId !== (data.internalId ?? "")) p.internalId = form.internalId
+  if (form.reference !== (data.reference ?? "")) p.reference = form.reference
+  if (form.status !== data.status) p.status = form.status
+  if (form.rfqDate !== toDateString(data.rfqDate)) p.rfqDate = form.rfqDate || null
+  if (form.quoteSentDate !== toDateString(data.quoteSentDate)) p.quoteSentDate = form.quoteSentDate || null
+  if (form.elRequestedDate !== toDateString(data.elRequestedDate)) p.elRequestedDate = form.elRequestedDate || null
+  if (form.elDraftSharedDate !== toDateString(data.elDraftSharedDate)) p.elDraftSharedDate = form.elDraftSharedDate || null
+  if (form.elSignedSharedDate !== toDateString(data.elSignedSharedDate)) p.elSignedSharedDate = form.elSignedSharedDate || null
+  if (form.elCountersignedDate !== toDateString(data.elCountersignedDate)) p.elCountersignedDate = form.elCountersignedDate || null
+  return p
+}
+
+async function patchOppTransition(
+  oppId: string,
+  payload: Record<string, unknown>,
+  setSaving: (v: boolean) => void,
+  setError: (v: string) => void,
+  onSuccess: () => void,
+  onRefresh: () => void,
+): Promise<void> {
+  setSaving(true)
+  setError("")
+  try {
+    const res = await fetch(`/api/opportunities/${oppId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+    if (res.ok) {
+      onSuccess()
+      onRefresh()
+    } else {
+      const d = await res.json().catch(() => ({}))
+      setError(d.error ?? "Failed to save. Please try again.")
+    }
+  } catch {
+    setError("Network error. Please try again.")
+  } finally {
+    setSaving(false)
+  }
+}
+
+function DocumentsSection({
+  data, currentUserId, isAdmin, isReadOnly, isEL, isProduction, onRefresh,
+}: {
+  readonly data: OpportunityFull
+  readonly currentUserId: string
+  readonly isAdmin: boolean
+  readonly isReadOnly: boolean
+  readonly isEL: boolean
+  readonly isProduction: boolean
+  readonly onRefresh: () => void
+}) {
+  if (isEL || isProduction) {
+    return (
+      <>
+        <QuoteSection opportunityId={data.id}
+          documents={data.documents.filter((d) => d.type === "EL")}
+          currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} docType="EL" />
+        <div className="mt-4">
+          <QuoteSection opportunityId={data.id}
+            documents={data.documents.filter((d) => d.type === "QUOTE")}
+            currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} docType="QUOTE" />
+        </div>
+      </>
+    )
+  }
+  return (
+    <QuoteSection opportunityId={data.id}
+      documents={data.documents.filter((d) => d.type === "QUOTE")}
+      currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} docType="QUOTE" />
+  )
+}
+
 // ─── View mode ────────────────────────────────────────────────────────────────
 
 function ViewMode({ data, currentUserId, isAdmin, isReadOnly, onRefresh, onSilentRefresh }: {
@@ -249,46 +343,16 @@ function ViewMode({ data, currentUserId, isAdmin, isReadOnly, onRefresh, onSilen
     }
   }
 
-  function validateStatusChange(): string | null {
-    if (form.status === data.status) return null
-    const req = STATUS_DATE_REQUIRED[form.status]
-    if (!req) return null
-    const existing = data[req.field as keyof OpportunityFull] as string | null
-    const formVal = form[req.field as keyof OppForm]
-    if (!existing && !formVal) {
-      return `"${STATUS_LABELS[form.status]}" requires the "${req.label}" date to be set first.`
-    }
-    return null
-  }
-
-  function buildPayload(): Record<string, unknown> {
-    const p: Record<string, unknown> = {}
-    if (form.title !== data.title) p.title = form.title
-    if (form.customer !== data.customer) p.customer = form.customer
-    if (form.product !== (data.product ?? "")) p.product = form.product
-    if (form.description !== (data.description ?? "")) p.description = form.description
-    if (form.internalId !== (data.internalId ?? "")) p.internalId = form.internalId
-    if (form.reference !== (data.reference ?? "")) p.reference = form.reference
-    if (form.status !== data.status) p.status = form.status
-    if (form.rfqDate !== toDateString(data.rfqDate)) p.rfqDate = form.rfqDate || null
-    if (form.quoteSentDate !== toDateString(data.quoteSentDate)) p.quoteSentDate = form.quoteSentDate || null
-    if (form.elRequestedDate !== toDateString(data.elRequestedDate)) p.elRequestedDate = form.elRequestedDate || null
-    if (form.elDraftSharedDate !== toDateString(data.elDraftSharedDate)) p.elDraftSharedDate = form.elDraftSharedDate || null
-    if (form.elSignedSharedDate !== toDateString(data.elSignedSharedDate)) p.elSignedSharedDate = form.elSignedSharedDate || null
-    if (form.elCountersignedDate !== toDateString(data.elCountersignedDate)) p.elCountersignedDate = form.elCountersignedDate || null
-    return p
-  }
-
   async function applyChanges() {
     if (!form.title.trim() || !form.customer.trim()) {
       setApplyError("Title and customer are required.")
       return
     }
-    const statusError = validateStatusChange()
+    const statusError = validateOppStatus(form, data)
     if (statusError) { setApplyError(statusError); return }
     setSaving(true)
     setApplyError("")
-    const err = await directPatch(buildPayload())
+    const err = await directPatch(buildOppPayload(form, data))
     setSaving(false)
     if (err) {
       setApplyError(err)
@@ -315,57 +379,45 @@ function ViewMode({ data, currentUserId, isAdmin, isReadOnly, onRefresh, onSilen
   const [counterSignSaving, setCounterSignSaving] = useState(false)
   const [counterSignError, setCounterSignError] = useState("")
 
-  async function patchTransition(
-    payload: Record<string, unknown>,
-    setSaving: (v: boolean) => void,
-    setError: (v: string) => void,
-    onSuccess: () => void,
-  ) {
-    setSaving(true)
-    setError("")
-    try {
-      const res = await fetch(`/api/opportunities/${data.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
-      if (res.ok) {
-        onSuccess()
-        onRefresh()
-      } else {
-        const d = await res.json().catch(() => ({}))
-        setError(d.error ?? "Failed to save. Please try again.")
-      }
-    } catch {
-      setError("Network error. Please try again.")
-    } finally {
-      setSaving(false)
-    }
-  }
-
   function handleSkipToEL() {
-    return patchTransition(
+    return patchOppTransition(
+      data.id,
       { status: "EL_REQUEST_RECEIVED", elRequestedDate: skipElDate },
-      setSkipSaving, setSkipError, () => setSkippingToEL(false),
+      setSkipSaving, setSkipError, () => setSkippingToEL(false), onRefresh,
     )
   }
 
   function handleAcceptQuote() {
-    return patchTransition(
+    return patchOppTransition(
+      data.id,
       { status: "EL_REQUEST_RECEIVED", elRequestedDate: elDate },
-      setAccepting, setAcceptError, () => setAcceptingQuote(false),
+      setAccepting, setAcceptError, () => setAcceptingQuote(false), onRefresh,
     )
   }
 
   function handleCounterSigned() {
-    return patchTransition(
+    return patchOppTransition(
+      data.id,
       { status: "PENDING_ADVANCE_PAYMENT", elCountersignedDate: counterSignDate },
-      setCounterSignSaving, setCounterSignError, () => setCounterSigning(false),
+      setCounterSignSaving, setCounterSignError, () => setCounterSigning(false), onRefresh,
     )
   }
 
   // Status options for production (only stage where status is a free dropdown)
   const prodStatusOptions = ["PENDING_ADVANCE_PAYMENT", "IN_PRODUCTION", "DELIVERED"]
+
+  // Pre-computed to keep JSX free of nested ternaries (reduces cognitive complexity)
+  const titleCls = cn("flex-1 min-w-0 text-2xl font-semibold text-gray-100 appearance-none bg-gray-800 focus:bg-gray-700 border-b border-transparent hover:border-gray-600 focus:outline-none focus:border-[#006fff] leading-tight transition-colors px-1 py-1.5 resize-none overflow-hidden", isReadOnly && "pointer-events-none select-none")
+  const labelCls = cn("inline-flex items-center gap-1.5 px-3 py-1 border border-gray-600 rounded-full bg-gray-700 focus-within:border-[#006fff] transition-colors", isReadOnly ? "pointer-events-none" : "cursor-text")
+  const interactiveCls = cn(inputCls, isReadOnly && "pointer-events-none")
+  const interactiveTextareaCls = cn(textareaCls, isReadOnly && "pointer-events-none")
+  const statusControl = isProduction && !isReadOnly
+    ? <select value={form.status} onChange={(e) => set("status", e.target.value)}
+        className="px-3 py-1 border border-gray-600 rounded-full text-xs font-medium bg-gray-700 text-gray-100 focus:outline-none focus:border-[#006fff] transition-colors">
+        {prodStatusOptions.map((s) => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
+      </select>
+    : <StatusBadge status={data.status} />
+  const applyLabel = saving ? "Saving…" : "Apply Changes"
 
   return (
     <div>
@@ -374,13 +426,10 @@ function ViewMode({ data, currentUserId, isAdmin, isReadOnly, onRefresh, onSilen
         <textarea
           rows={1}
           value={form.title}
-          onChange={isReadOnly ? undefined : (e) => set("title", e.target.value)}
+          onChange={(e) => set("title", e.target.value)}
           readOnly={isReadOnly}
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLTextAreaElement).blur() } }}
-          className={cn(
-            "flex-1 min-w-0 text-2xl font-semibold text-gray-100 appearance-none bg-gray-800 focus:bg-gray-700 border-b border-transparent hover:border-gray-600 focus:outline-none focus:border-[#006fff] leading-tight transition-colors px-1 py-1.5 resize-none overflow-hidden",
-            isReadOnly && "pointer-events-none select-none",
-          )}
+          className={titleCls}
         />
         {!isReadOnly && (
           <div className="flex items-center gap-2 flex-shrink-0 mt-1">
@@ -408,22 +457,15 @@ function ViewMode({ data, currentUserId, isAdmin, isReadOnly, onRefresh, onSilen
 
       {/* Meta row: status + ID + Ref */}
       <div className="flex flex-wrap items-center gap-2 mb-5">
-        {isProduction && !isReadOnly ? (
-          <select value={form.status} onChange={(e) => set("status", e.target.value)}
-            className="px-3 py-1 border border-gray-600 rounded-full text-xs font-medium bg-gray-700 text-gray-100 focus:outline-none focus:border-[#006fff] transition-colors">
-            {prodStatusOptions.map((s) => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
-          </select>
-        ) : (
-          <StatusBadge status={data.status} />
-        )}
-        <label className={cn("inline-flex items-center gap-1.5 px-3 py-1 border border-gray-600 rounded-full bg-gray-700 focus-within:border-[#006fff] transition-colors", isReadOnly ? "pointer-events-none" : "cursor-text")}>
+        {statusControl}
+        <label className={labelCls}>
           <span className="text-xs text-gray-500 shrink-0">ID</span>
-          <input value={form.internalId} onChange={isReadOnly ? undefined : (e) => set("internalId", e.target.value)}
+          <input value={form.internalId} onChange={(e) => set("internalId", e.target.value)}
             readOnly={isReadOnly} maxLength={10} placeholder="0000" className="text-xs font-medium text-gray-100 bg-transparent outline-none w-14" />
         </label>
-        <label className={cn("inline-flex items-center gap-1.5 px-3 py-1 border border-gray-600 rounded-full bg-gray-700 focus-within:border-[#006fff] transition-colors", isReadOnly ? "pointer-events-none" : "cursor-text")}>
+        <label className={labelCls}>
           <span className="text-xs text-gray-500 shrink-0">Ref.</span>
-          <input value={form.reference} onChange={isReadOnly ? undefined : (e) => set("reference", e.target.value)}
+          <input value={form.reference} onChange={(e) => set("reference", e.target.value)}
             readOnly={isReadOnly} placeholder="BTL-XXXXXXXX" className="text-xs font-medium text-gray-100 bg-transparent outline-none w-28" />
         </label>
       </div>
@@ -474,17 +516,17 @@ function ViewMode({ data, currentUserId, isAdmin, isReadOnly, onRefresh, onSilen
       {/* Info section */}
       <div className="flex flex-col gap-4 mb-4">
         <FormField label="Customer" required>
-          <input value={form.customer} onChange={isReadOnly ? undefined : (e) => set("customer", e.target.value)}
-            readOnly={isReadOnly} placeholder="Customer name" className={cn(inputCls, isReadOnly && "pointer-events-none")} />
+          <input value={form.customer} onChange={(e) => set("customer", e.target.value)}
+            readOnly={isReadOnly} placeholder="Customer name" className={interactiveCls} />
         </FormField>
         <FormField label="Product / Service">
-          <input value={form.product} onChange={isReadOnly ? undefined : (e) => set("product", e.target.value)}
-            readOnly={isReadOnly} placeholder="Requested product or service" className={cn(inputCls, isReadOnly && "pointer-events-none")} />
+          <input value={form.product} onChange={(e) => set("product", e.target.value)}
+            readOnly={isReadOnly} placeholder="Requested product or service" className={interactiveCls} />
         </FormField>
         {!isReadOnly && <DateSection data={data} form={form} onSetDate={(key, value) => set(key, value)} onRefresh={onRefresh} onDirectPatch={directPatch} />}
         <FormField label="Details">
-          <textarea value={form.description} onChange={isReadOnly ? undefined : (e) => set("description", e.target.value)}
-            readOnly={isReadOnly} rows={3} placeholder="Additional context, requirements, or background…" className={cn(textareaCls, isReadOnly && "pointer-events-none")} />
+          <textarea value={form.description} onChange={(e) => set("description", e.target.value)}
+            readOnly={isReadOnly} rows={3} placeholder="Additional context, requirements, or background…" className={interactiveTextareaCls} />
         </FormField>
       </div>
 
@@ -498,29 +540,15 @@ function ViewMode({ data, currentUserId, isAdmin, isReadOnly, onRefresh, onSilen
           </button>
           <button type="button" onClick={applyChanges} disabled={saving}
             className="px-4 py-1.5 bg-[#006fff] hover:bg-blue-700 text-white text-xs font-semibold rounded-lg disabled:opacity-50 transition-colors">
-            {saving ? "Saving…" : "Apply Changes"}
+            {applyLabel}
           </button>
           {applyError && <p className="w-full text-xs text-red-600">{applyError}</p>}
         </div>
       )}
 
       {/* Documents, Production, Log */}
-      {isEL || isProduction ? (
-        <>
-          <QuoteSection opportunityId={data.id}
-            documents={data.documents.filter((d) => d.type === "EL")}
-            currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} docType="EL" />
-          <div className="mt-4">
-            <QuoteSection opportunityId={data.id}
-              documents={data.documents.filter((d) => d.type === "QUOTE")}
-              currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} docType="QUOTE" />
-          </div>
-        </>
-      ) : (
-        <QuoteSection opportunityId={data.id}
-          documents={data.documents.filter((d) => d.type === "QUOTE")}
-          currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} docType="QUOTE" />
-      )}
+      <DocumentsSection data={data} currentUserId={currentUserId} isAdmin={isAdmin}
+        isReadOnly={isReadOnly} isEL={isEL} isProduction={isProduction} onRefresh={onRefresh} />
 
       {isProduction && (
         <ProductionSection data={data} deliveries={data.deliveries} currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} />

@@ -719,19 +719,21 @@ function ExpectedDeliverySection({ opportunityId, deliveries, isReadOnly, onRefr
         )}
       </div>
       <div className="flex flex-col gap-1.5">
-        {rows.map((row, i) =>
-          !isReadOnly && row.editing ? (
-            <DeliveryEditRow key={row.id ?? `new-${i}`} row={row}
+        {rows.map((row, i) => {
+          if (!isReadOnly && row.editing) {
+            return <DeliveryEditRow key={row.id ?? `new-${i}`} row={row}
               onChange={(patch) => updateRow(i, patch)}
               onSave={() => saveRow(i)}
               onCancel={() => cancelRow(i)} />
-          ) : row.id ? (
-            <DeliveryViewRow key={row.id} row={row}
+          }
+          if (row.id) {
+            return <DeliveryViewRow key={row.id} row={row}
               onEdit={() => updateRow(i, { editing: true })}
               onDelete={() => deleteRow(i)}
               isReadOnly={isReadOnly} />
-          ) : null
-        )}
+          }
+          return null
+        })}
       </div>
     </div>
   )

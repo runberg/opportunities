@@ -29,7 +29,7 @@ const ACCESS_LABELS: Record<SectionAccess, string> = {
   NONE: "No access",
 }
 
-function AccessBadge({ level }: { level: SectionAccess }) {
+function AccessBadge({ level }: { readonly level: SectionAccess }) {
   const colours: Record<SectionAccess, string> = {
     FULL: "bg-green-100 text-green-700",
     READ_ONLY: "bg-yellow-100 text-yellow-700",
@@ -47,9 +47,9 @@ function AccessSelect({
   value,
   onChange,
 }: {
-  id: string
-  value: SectionAccess
-  onChange: (v: SectionAccess) => void
+  readonly id: string
+  readonly value: SectionAccess
+  readonly onChange: (v: SectionAccess) => void
 }) {
   return (
     <Select id={id} value={value} onChange={(e) => onChange(e.target.value as SectionAccess)}>

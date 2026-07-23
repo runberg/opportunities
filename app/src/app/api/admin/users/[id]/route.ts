@@ -15,6 +15,37 @@ const updateSchema = z.object({
   adhocAccess: z.enum(ACCESS_LEVELS).optional(),
 })
 
+async function buildUserData(
+  rest: { name?: string; email?: string; role?: string; active?: boolean },
+  newPassword: string | undefined,
+  opportunitiesAccess: string | undefined,
+  adhocAccess: string | undefined,
+): Promise<Record<string, unknown>> {
+  const data: Record<string, unknown> = { ...rest }
+  if (rest.email) data.name = rest.email
+  if (newPassword) data.password = await bcrypt.hash(newPassword, 12)
+  if (opportunitiesAccess !== undefined) data.opportunitiesAccess = opportunitiesAccess
+  if (adhocAccess !== undefined) data.adhocAccess = adhocAccess
+  return data
+}
+
+function buildUserChanges(
+  rest: { name?: string; email?: string; role?: string; active?: boolean },
+  newPassword: string | undefined,
+  opportunitiesAccess: string | undefined,
+  adhocAccess: string | undefined,
+): string[] {
+  const changes: string[] = []
+  if (rest.name) changes.push(`name set to "${rest.name}"`)
+  if (rest.email) changes.push(`email set to "${rest.email}"`)
+  if (rest.role) changes.push(`role set to ${rest.role}`)
+  if (rest.active !== undefined) changes.push(rest.active ? "account activated" : "account deactivated")
+  if (newPassword) changes.push("password reset")
+  if (opportunitiesAccess) changes.push(`opportunities access → ${opportunitiesAccess}`)
+  if (adhocAccess) changes.push(`ad hoc access → ${adhocAccess}`)
+  return changes
+}
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -57,11 +88,7 @@ export async function PATCH(
     }
   }
 
-  const data: Record<string, unknown> = { ...rest }
-  if (rest.email) data.name = rest.email
-  if (newPassword) data.password = await bcrypt.hash(newPassword, 12)
-  if (opportunitiesAccess !== undefined) data.opportunitiesAccess = opportunitiesAccess
-  if (adhocAccess !== undefined) data.adhocAccess = adhocAccess
+  const data = await buildUserData(rest, newPassword || undefined, opportunitiesAccess, adhocAccess)
 
   const user = await db.user.update({
     where: { id },
@@ -69,14 +96,7 @@ export async function PATCH(
     select: { id: true, email: true, role: true, active: true, createdAt: true, opportunitiesAccess: true, adhocAccess: true },
   })
 
-  const changes: string[] = []
-  if (rest.name) changes.push(`name set to "${rest.name}"`)
-  if (rest.email) changes.push(`email set to "${rest.email}"`)
-  if (rest.role) changes.push(`role set to ${rest.role}`)
-  if (rest.active !== undefined) changes.push(rest.active ? "account activated" : "account deactivated")
-  if (newPassword) changes.push("password reset")
-  if (opportunitiesAccess) changes.push(`opportunities access → ${opportunitiesAccess}`)
-  if (adhocAccess) changes.push(`ad hoc access → ${adhocAccess}`)
+  const changes = buildUserChanges(rest, newPassword || undefined, opportunitiesAccess, adhocAccess)
 
   await writeLog({
     type: "USER_UPDATED",

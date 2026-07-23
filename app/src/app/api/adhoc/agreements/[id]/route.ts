@@ -59,6 +59,20 @@ export async function DELETE(
   return NextResponse.json({ ok: true })
 }
 
+function buildAgreementChanges(
+  status: unknown,
+  title: unknown,
+  totalAmount: unknown,
+  agreement: { status: string; title: string; totalAmount: unknown },
+): string[] {
+  const changes: string[] = []
+  if (status && status !== agreement.status) changes.push(`status → ${status}`)
+  if (title && (title as string).trim() !== agreement.title) changes.push(`title → "${(title as string).trim()}"`)
+  if (totalAmount && Number(totalAmount) !== Number(agreement.totalAmount))
+    changes.push(`amount → ${totalAmount}`)
+  return changes
+}
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -98,11 +112,7 @@ export async function PATCH(
     },
   })
 
-  const changes: string[] = []
-  if (status && status !== agreement.status) changes.push(`status → ${status}`)
-  if (title && (title as string).trim() !== agreement.title) changes.push(`title → "${(title as string).trim()}"`)
-  if (totalAmount && Number(totalAmount) !== Number(agreement.totalAmount))
-    changes.push(`amount → ${totalAmount}`)
+  const changes = buildAgreementChanges(status, title, totalAmount, agreement)
 
   const logType: SystemLogType = signingNow ? "ADHOC_AGREEMENT_SIGNED" : "ADHOC_AGREEMENT_UPDATED"
   await writeLog({
