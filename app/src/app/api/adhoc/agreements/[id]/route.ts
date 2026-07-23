@@ -60,14 +60,14 @@ export async function DELETE(
 }
 
 function buildAgreementChanges(
-  status: unknown,
-  title: unknown,
-  totalAmount: unknown,
+  status: string | undefined,
+  title: string | undefined,
+  totalAmount: number | string | undefined,
   agreement: { status: string; title: string; totalAmount: unknown },
 ): string[] {
   const changes: string[] = []
   if (status && status !== agreement.status) changes.push(`status → ${status}`)
-  if (title && (title as string).trim() !== agreement.title) changes.push(`title → "${(title as string).trim()}"`)
+  if (title && title.trim() !== agreement.title) changes.push(`title → "${title.trim()}"`)
   if (totalAmount && Number(totalAmount) !== Number(agreement.totalAmount))
     changes.push(`amount → ${totalAmount}`)
   return changes

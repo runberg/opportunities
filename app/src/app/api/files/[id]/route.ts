@@ -4,9 +4,8 @@ import { requireSession, hasSectionAccess } from "@/shared/lib/api"
 import { unlink } from "node:fs/promises"
 import { join, basename } from "node:path"
 import { DOC_TYPE_LABELS } from "@/shared/lib/utils"
-import { serveFile, readUploadedFile, UPLOAD_DIR } from "@/shared/lib/upload"
-import { EXCEL_MIMES, WORD_DOCX_MIME } from "@/shared/lib/file-types"
-import { serveExcelSheetList, serveExcelSheetPdf, serveWordPreview } from "@/shared/lib/excel-preview"
+import { UPLOAD_DIR } from "@/shared/lib/upload"
+import { serveDocumentResponse } from "@/shared/lib/serve-doc"
 
 export async function GET(
   req: NextRequest,
@@ -21,20 +20,7 @@ export async function GET(
   const doc = await db.document.findUnique({ where: { id } })
   if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
-  if (req.nextUrl.searchParams.get("preview") === "1") {
-    const buffer = await readUploadedFile(doc.filename)
-    if (!buffer) return NextResponse.json({ error: "File not found on disk" }, { status: 404 })
-    if (doc.mimeType === WORD_DOCX_MIME) return serveWordPreview(doc.filename, buffer)
-    if (EXCEL_MIMES.has(doc.mimeType)) {
-      const sheet = req.nextUrl.searchParams.get("sheet")
-      if (sheet === null) return serveExcelSheetList(buffer)
-      return serveExcelSheetPdf(doc.filename, buffer, Number.parseInt(sheet, 10))
-    }
-    return NextResponse.json({ error: "Preview not available for this file type" }, { status: 400 })
-  }
-
-  const inline = req.nextUrl.searchParams.get("inline") === "1"
-  return serveFile(doc, inline)
+  return serveDocumentResponse(req, doc)
 }
 
 export async function DELETE(
