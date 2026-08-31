@@ -33,6 +33,19 @@ export async function extractSheetBuffer(buffer: Buffer, sheetIndex: number): Pr
   const destWb = new ExcelJS.Workbook()
   const destWs = destWb.addWorksheet(srcWs.name)
 
+  // EXPERIMENTAL: force fit-to-width regardless of the source file's own print
+  // setup, so a wide sheet never splits its columns across multiple PDF pages
+  // (the most common complaint with "print to PDF"-style conversion). Sheets
+  // still paginate normally top-to-bottom. If this doesn't hold up in practice
+  // (e.g. very wide sheets become illegibly small), revert by deleting this
+  // block and letting LibreOffice fall back to the source file's own settings.
+  destWs.pageSetup = {
+    orientation: "landscape",
+    fitToPage: true,
+    fitToWidth: 1,
+    fitToHeight: 0,
+  }
+
   // Column widths and visibility
   srcWs.columns.forEach((col, i) => {
     const destCol = destWs.getColumn(i + 1)

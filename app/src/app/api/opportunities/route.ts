@@ -3,6 +3,7 @@ import { db } from "@/shared/lib/db"
 import { z } from "zod"
 import { OpportunityStatus, WaitingOn } from "@prisma/client"
 import { requireSession, hasSectionAccess } from "@/shared/lib/api"
+import { statusSinceDate } from "@/shared/lib/utils"
 import { writeLog } from "@/shared/lib/system-log"
 
 const createSchema = z.object({
@@ -31,7 +32,7 @@ export async function GET(req: NextRequest) {
   const perPage = Math.min(200, Math.max(10, Number.parseInt(sp.get("perPage") ?? "50", 10) || 50))
 
   // Date-range filter for chart drill-downs (queries by a specific date field in a range)
-  const DATE_FIELDS = ["rfqDate","quoteSentDate","elRequestedDate","elDraftSharedDate",
+  const DATE_FIELDS = ["rfqDate","quoteSentDate","elRequestedDate","elDraftSharedDate","elDraftReturnedDate",
     "elSignedSharedDate","elCountersignedDate","advancePaymentDate","fatPassedDate","satPassedDate","deliveredDate"]
   const dateField = sp.get("dateField") ?? ""
   const dateFrom = sp.get("dateFrom") ?? ""
@@ -61,7 +62,7 @@ export async function GET(req: NextRequest) {
 
   const SORT_FIELDS = [
     "title", "customer", "status", "createdAt", "updatedAt",
-    "rfqDate", "quoteSentDate", "elRequestedDate", "elDraftSharedDate",
+    "rfqDate", "quoteSentDate", "elRequestedDate", "elDraftSharedDate", "elDraftReturnedDate",
     "elSignedSharedDate", "elCountersignedDate",
     "advancePaymentDate", "fatPassedDate", "satPassedDate", "deliveredDate",
   ]
@@ -75,8 +76,9 @@ export async function GET(req: NextRequest) {
       select: {
         id: true, internalId: true, title: true, customer: true,
         reference: true, product: true, status: true,
+        createdAt: true, updatedAt: true,
         rfqDate: true, quoteSentDate: true,
-        elRequestedDate: true, elDraftSharedDate: true,
+        elRequestedDate: true, elDraftSharedDate: true, elDraftReturnedDate: true,
         elSignedSharedDate: true, elCountersignedDate: true,
         advancePaymentDate: true, fatPassedDate: true,
         satApplicable: true, satPassedDate: true, deliveredDate: true,
@@ -89,7 +91,12 @@ export async function GET(req: NextRequest) {
     db.opportunity.count({ where }),
   ])
 
-  return NextResponse.json({ items, total })
+  const withStatusSince = items.map((item) => ({
+    ...item,
+    statusSince: statusSinceDate(item.status, item).toISOString(),
+  }))
+
+  return NextResponse.json({ items: withStatusSince, total })
 }
 
 export async function DELETE(req: NextRequest) {

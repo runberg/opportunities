@@ -34,6 +34,11 @@ export function formatBytes(bytes: number): string {
   return `${Number.parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`
 }
 
+/** Strips characters that are invalid in filenames on common filesystems (esp. Windows). */
+export function sanitizeFilename(name: string): string {
+  return name.replace(/[\\/:*?"<>|]+/g, " ").trim()
+}
+
 export function truncateFilename(name: string, maxLength = 32): string {
   if (name.length <= maxLength) return name
   const dot = name.lastIndexOf(".")
@@ -55,6 +60,70 @@ export function timeAgo(date: Date | string): string {
   return formatDistanceToNow(new Date(date), { addSuffix: true })
 }
 
+function plural(n: number, unit: string): string {
+  return `${n} ${unit}${n === 1 ? "" : "s"}`
+}
+
+/** Compact, tiered "how long ago" label: "Just updated" within the hour, then hours,
+ * days, weeks+days, months, and years — for showing how long a row has sat in its
+ * current status at a glance. */
+export function statusAgeLabel(date: Date | string): string {
+  const diffMs = Math.max(0, Date.now() - new Date(date).getTime())
+  const minutes = Math.floor(diffMs / 60_000)
+  if (minutes < 60) return "Just updated"
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${plural(hours, "hour")} ago`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `${plural(days, "day")} ago`
+  const weeks = Math.floor(days / 7)
+  if (weeks < 5) {
+    const remDays = days % 7
+    return remDays > 0 ? `${plural(weeks, "week")} ${plural(remDays, "day")} ago` : `${plural(weeks, "week")} ago`
+  }
+  const months = Math.floor(days / 30)
+  if (months < 12) return `${plural(months, "month")} ago`
+  const years = Math.floor(days / 365)
+  return `${plural(years, "year")} ago`
+}
+
+// Which date field marks the moment an opportunity entered a given status —
+// used to compute "time since current status" in table views.
+export const STATUS_ENTERED_FIELD: Record<string, string> = {
+  NEW: "createdAt",
+  RFQ_RECEIVED: "rfqDate",
+  QUOTE_SENT: "quoteSentDate",
+  EL_REQUEST_RECEIVED: "elRequestedDate",
+  EL_DRAFT_SHARED: "elDraftSharedDate",
+  EL_DRAFT_RETURNED: "elDraftReturnedDate",
+  EL_SIGNED_SHARED: "elSignedSharedDate",
+  EL_FULLY_SIGNED: "elCountersignedDate",
+  PENDING_ADVANCE_PAYMENT: "elCountersignedDate",
+  IN_PRODUCTION: "advancePaymentDate",
+  PRODUCTION: "advancePaymentDate",
+  DELIVERED: "deliveredDate",
+  CANCELLED: "updatedAt",
+}
+
+/** Resolves the "entered current status" timestamp for an opportunity, falling back to
+ * `updatedAt` when the status-specific field isn't set (e.g. legacy/inconsistent data). */
+export function statusSinceDate(status: string, fields: {
+  createdAt: Date
+  updatedAt: Date
+  rfqDate: Date | null
+  quoteSentDate: Date | null
+  elRequestedDate: Date | null
+  elDraftSharedDate: Date | null
+  elDraftReturnedDate: Date | null
+  elSignedSharedDate: Date | null
+  elCountersignedDate: Date | null
+  advancePaymentDate: Date | null
+  deliveredDate: Date | null
+}): Date {
+  const field = STATUS_ENTERED_FIELD[status]
+  const value = field ? (fields as unknown as Record<string, Date | null>)[field] : null
+  return value ?? fields.updatedAt
+}
+
 export function initials(name: string): string {
   // Handle email addresses: use local part before @
   const local = name.includes("@") ? name.split("@")[0] : name
@@ -70,6 +139,7 @@ export const STATUS_SHORT_LABELS: Record<string, string> = {
   QUOTE_SENT: "Quoted",
   EL_REQUEST_RECEIVED: "EL Req",
   EL_DRAFT_SHARED: "EL Draft",
+  EL_DRAFT_RETURNED: "Draft Returned",
   EL_SIGNED_SHARED: "Signed Shared",
   EL_FULLY_SIGNED: "Countersigned",
   PENDING_ADVANCE_PAYMENT: "Adv. Payment",
@@ -85,6 +155,7 @@ export const STATUS_LABELS: Record<string, string> = {
   QUOTE_SENT: "Quote Sent",
   EL_REQUEST_RECEIVED: "EL Requested",
   EL_DRAFT_SHARED: "EL Draft Shared",
+  EL_DRAFT_RETURNED: "EL Draft Returned",
   EL_SIGNED_SHARED: "EL Signed Shared",
   EL_FULLY_SIGNED: "EL Fully Signed",
   PENDING_ADVANCE_PAYMENT: "Pending Advance Payment",
@@ -96,7 +167,7 @@ export const STATUS_LABELS: Record<string, string> = {
 
 // Statuses available in each workflow stage
 export const QUOTE_STATUSES = ["RFQ_RECEIVED", "QUOTE_SENT"] as const
-export const EL_STATUSES = ["EL_REQUEST_RECEIVED", "EL_DRAFT_SHARED", "EL_SIGNED_SHARED", "EL_FULLY_SIGNED"] as const
+export const EL_STATUSES = ["EL_REQUEST_RECEIVED", "EL_DRAFT_SHARED", "EL_DRAFT_RETURNED", "EL_SIGNED_SHARED", "EL_FULLY_SIGNED"] as const
 export const PRODUCTION_STATUSES = [
   "PENDING_ADVANCE_PAYMENT",
   "IN_PRODUCTION",
@@ -115,6 +186,7 @@ export const STATUS_GROUPS = [
     statuses: [
       "EL_REQUEST_RECEIVED",
       "EL_DRAFT_SHARED",
+      "EL_DRAFT_RETURNED",
       "EL_SIGNED_SHARED",
       "EL_FULLY_SIGNED",
     ],
@@ -156,7 +228,7 @@ export const ALL_STATUSES = Object.keys(STATUS_LABELS)
 
 export const PIPELINE_STATUSES = [
   "RFQ_RECEIVED", "QUOTE_SENT",
-  "EL_REQUEST_RECEIVED", "EL_DRAFT_SHARED", "EL_SIGNED_SHARED", "EL_FULLY_SIGNED",
+  "EL_REQUEST_RECEIVED", "EL_DRAFT_SHARED", "EL_DRAFT_RETURNED", "EL_SIGNED_SHARED", "EL_FULLY_SIGNED",
   "PENDING_ADVANCE_PAYMENT", "IN_PRODUCTION", "DELIVERED",
 ] as const
 
@@ -214,6 +286,7 @@ export const ACTIVE_STATUSES = [
   "QUOTE_SENT",
   "EL_REQUEST_RECEIVED",
   "EL_DRAFT_SHARED",
+  "EL_DRAFT_RETURNED",
   "EL_SIGNED_SHARED",
   "EL_FULLY_SIGNED",
   "PENDING_ADVANCE_PAYMENT",

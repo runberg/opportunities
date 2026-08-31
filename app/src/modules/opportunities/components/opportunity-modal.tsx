@@ -17,10 +17,11 @@ import { FormField } from "@/shared/components/ui/form-field"
 import { DatePicker } from "@/shared/components/ui/date-picker"
 
 const STATUS_DATE_REQUIRED: Record<string, { field: string; label: string }> = {
-  RFQ_RECEIVED:        { field: "rfqDate",           label: "RFQ Date" },
-  EL_REQUEST_RECEIVED: { field: "elRequestedDate",    label: "EL Requested" },
-  EL_DRAFT_SHARED:     { field: "elDraftSharedDate",  label: "EL Draft Shared" },
-  EL_SIGNED_SHARED:    { field: "elSignedSharedDate", label: "EL Signed Shared" },
+  RFQ_RECEIVED:        { field: "rfqDate",             label: "RFQ Date" },
+  EL_REQUEST_RECEIVED: { field: "elRequestedDate",      label: "EL Requested" },
+  EL_DRAFT_SHARED:     { field: "elDraftSharedDate",    label: "EL Draft Shared" },
+  EL_DRAFT_RETURNED:   { field: "elDraftReturnedDate",  label: "EL Draft Returned" },
+  EL_SIGNED_SHARED:    { field: "elSignedSharedDate",   label: "EL Signed Shared" },
 }
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -41,7 +42,8 @@ interface OpportunityFull {
   reference: string | null; rfqDate: string | null; product: string | null
   status: string; waitingOn: string
   quoteSentDate: string | null; elRequestedDate: string | null
-  elDraftSharedDate: string | null; elSignedSharedDate: string | null
+  elDraftSharedDate: string | null; elDraftReturnedDate: string | null
+  elSignedSharedDate: string | null
   elCountersignedDate: string | null
   advancePaymentDate: string | null; fatDate: string | null
   fatPassedDate: string | null; satApplicable: boolean
@@ -177,6 +179,7 @@ function makeForm(data: OpportunityFull) {
     quoteSentDate: toDateString(data.quoteSentDate),
     elRequestedDate: toDateString(data.elRequestedDate),
     elDraftSharedDate: toDateString(data.elDraftSharedDate),
+    elDraftReturnedDate: toDateString(data.elDraftReturnedDate),
     elSignedSharedDate: toDateString(data.elSignedSharedDate),
     elCountersignedDate: toDateString(data.elCountersignedDate),
   }
@@ -210,6 +213,7 @@ function buildOppPayload(form: OppForm, data: OpportunityFull): Record<string, u
   if (form.quoteSentDate !== toDateString(data.quoteSentDate)) p.quoteSentDate = form.quoteSentDate || null
   if (form.elRequestedDate !== toDateString(data.elRequestedDate)) p.elRequestedDate = form.elRequestedDate || null
   if (form.elDraftSharedDate !== toDateString(data.elDraftSharedDate)) p.elDraftSharedDate = form.elDraftSharedDate || null
+  if (form.elDraftReturnedDate !== toDateString(data.elDraftReturnedDate)) p.elDraftReturnedDate = form.elDraftReturnedDate || null
   if (form.elSignedSharedDate !== toDateString(data.elSignedSharedDate)) p.elSignedSharedDate = form.elSignedSharedDate || null
   if (form.elCountersignedDate !== toDateString(data.elCountersignedDate)) p.elCountersignedDate = form.elCountersignedDate || null
   return p
@@ -315,6 +319,7 @@ function ViewMode({ data, currentUserId, isAdmin, isReadOnly, onRefresh, onSilen
     form.quoteSentDate !== toDateString(data.quoteSentDate) ||
     form.elRequestedDate !== toDateString(data.elRequestedDate) ||
     form.elDraftSharedDate !== toDateString(data.elDraftSharedDate) ||
+    form.elDraftReturnedDate !== toDateString(data.elDraftReturnedDate) ||
     form.elSignedSharedDate !== toDateString(data.elSignedSharedDate) ||
     form.elCountersignedDate !== toDateString(data.elCountersignedDate)
 
@@ -611,13 +616,13 @@ function TransitionPanel({
 
 // ─── Date section ─────────────────────────────────────────────────────────────
 
-type RevertTarget = { status: string; label: string; clearField: string }
+type RevertTarget = { status: string; label: string; clearField?: string }
 type SetDate = (key: keyof OppForm, value: string) => void
 
 function ShareActionCard({ label, date, onDateChange, docCount, docLabel, saving, onShare, error, buttonLabel }: {
   readonly label: string; readonly date: string
   readonly onDateChange: (v: string) => void
-  readonly docCount: number; readonly docLabel: string
+  readonly docCount?: number; readonly docLabel?: string
   readonly saving: boolean; readonly onShare: () => void
   readonly error: string; readonly buttonLabel: string
 }) {
@@ -676,16 +681,27 @@ function ELDatePanel({ data, form, setDate, setRevertTarget, onDirectPatch, onRe
   const [elDraftDate, setElDraftDate] = useState(todayISO())
   const [elDraftSharing, setElDraftSharing] = useState(false)
   const [elDraftShareError, setElDraftShareError] = useState("")
+  const [elReturnedDate, setElReturnedDate] = useState(todayISO())
+  const [elReturning, setElReturning] = useState(false)
+  const [elReturnError, setElReturnError] = useState("")
   const [elSignedDate, setElSignedDate] = useState(todayISO())
   const [elSignedSharing, setElSignedSharing] = useState(false)
   const [elSignedShareError, setElSignedShareError] = useState("")
   const elDocCount = data.documents.filter((d) => d.type === "EL").length
+  const isDraftReturned = data.status === "EL_DRAFT_RETURNED"
 
   async function handleShareELDraft() {
     setElDraftSharing(true); setElDraftShareError("")
     const err = await onDirectPatch({ elDraftSharedDate: elDraftDate, status: "EL_DRAFT_SHARED" })
     setElDraftSharing(false)
     if (err) setElDraftShareError(err); else onRefresh()
+  }
+
+  async function handleReturnedWithComments() {
+    setElReturning(true); setElReturnError("")
+    const err = await onDirectPatch({ elDraftReturnedDate: elReturnedDate, status: "EL_DRAFT_RETURNED" })
+    setElReturning(false)
+    if (err) setElReturnError(err); else onRefresh()
   }
 
   async function handleShareSignedEL() {
@@ -695,13 +711,29 @@ function ELDatePanel({ data, form, setDate, setRevertTarget, onDirectPatch, onRe
     if (err) setElSignedShareError(err); else onRefresh()
   }
 
+  const isDraftShared = data.status === "EL_DRAFT_SHARED"
+  // Once set, these two dates are never cleared by a revert (only overwritten by the next
+  // forward action) — that keeps "has this ever happened" checks below safe across any number
+  // of share ↔ return loops, since reverting never erases the memory that a prior loop happened.
+
   let elDraftCardNode: React.ReactNode
-  if (data.elDraftSharedDate) {
+  if (isDraftReturned) {
+    elDraftCardNode = (
+      <ShareActionCard label="EL Draft Shared" date={elDraftDate} onDateChange={setElDraftDate}
+        docCount={elDocCount} docLabel="EL document"
+        saving={elDraftSharing} onShare={handleShareELDraft} error={elDraftShareError} buttonLabel="Share Updated EL Draft" />
+    )
+  } else if (isDraftShared) {
+    const draftRevertTarget = data.elDraftReturnedDate
+      ? { status: "EL_DRAFT_RETURNED", label: "EL Draft Returned" }
+      : { status: "EL_REQUEST_RECEIVED", label: "EL Requested" }
     elDraftCardNode = (
       <DateCard label="EL Draft Shared" formValue={form.elDraftSharedDate}
         onChange={(v) => setDate("elDraftSharedDate", v)}
-        onRevert={() => setRevertTarget({ status: "EL_REQUEST_RECEIVED", label: "EL Requested", clearField: "elDraftSharedDate" })} />
+        onRevert={() => setRevertTarget(draftRevertTarget)} />
     )
+  } else if (data.elDraftSharedDate) {
+    elDraftCardNode = <DateCard label="EL Draft Shared" formValue={form.elDraftSharedDate} onChange={(v) => setDate("elDraftSharedDate", v)} />
   } else if (data.status === "EL_REQUEST_RECEIVED") {
     elDraftCardNode = (
       <ShareActionCard label="EL Draft Shared" date={elDraftDate} onDateChange={setElDraftDate}
@@ -712,14 +744,35 @@ function ELDatePanel({ data, form, setDate, setRevertTarget, onDirectPatch, onRe
     elDraftCardNode = <LockedDateCard label="EL Draft Shared" />
   }
 
+  let elReturnedCardNode: React.ReactNode
+  if (isDraftShared) {
+    elReturnedCardNode = (
+      <ShareActionCard label="EL Draft Returned" date={elReturnedDate} onDateChange={setElReturnedDate}
+        saving={elReturning} onShare={handleReturnedWithComments} error={elReturnError} buttonLabel="Returned with Comments" />
+    )
+  } else if (isDraftReturned) {
+    elReturnedCardNode = (
+      <DateCard label="EL Draft Returned" formValue={form.elDraftReturnedDate}
+        onChange={(v) => setDate("elDraftReturnedDate", v)}
+        onRevert={() => setRevertTarget({ status: "EL_DRAFT_SHARED", label: "EL Draft Shared" })} />
+    )
+  } else if (data.elDraftReturnedDate) {
+    elReturnedCardNode = <DateCard label="EL Draft Returned" formValue={form.elDraftReturnedDate} onChange={(v) => setDate("elDraftReturnedDate", v)} />
+  } else {
+    elReturnedCardNode = <LockedDateCard label="EL Draft Returned" />
+  }
+
   let elSignedCardNode: React.ReactNode
   if (data.elSignedSharedDate) {
+    const signedRevertTarget = (data.elDraftReturnedDate ?? "") >= (data.elDraftSharedDate ?? "")
+      ? { status: "EL_DRAFT_RETURNED", label: "EL Draft Returned", clearField: "elSignedSharedDate" }
+      : { status: "EL_DRAFT_SHARED", label: "EL Draft Shared", clearField: "elSignedSharedDate" }
     elSignedCardNode = (
       <DateCard label="EL Signed Shared" formValue={form.elSignedSharedDate}
         onChange={(v) => setDate("elSignedSharedDate", v)}
-        onRevert={() => setRevertTarget({ status: "EL_DRAFT_SHARED", label: "EL Draft Shared", clearField: "elSignedSharedDate" })} />
+        onRevert={() => setRevertTarget(signedRevertTarget)} />
     )
-  } else if (data.status === "EL_DRAFT_SHARED") {
+  } else if (isDraftShared || isDraftReturned) {
     elSignedCardNode = (
       <ShareActionCard label="EL Signed Shared" date={elSignedDate} onDateChange={setElSignedDate}
         docCount={elDocCount} docLabel="EL document"
@@ -730,7 +783,7 @@ function ELDatePanel({ data, form, setDate, setRevertTarget, onDirectPatch, onRe
   }
 
   return (
-    <div className="grid gap-3 grid-cols-5">
+    <div className="grid gap-3 grid-cols-6">
       <DateCard label="RFQ Date" formValue={form.rfqDate} onChange={(v) => setDate("rfqDate", v)} />
       {data.quoteSentDate ? (
         <DateCard label="Quote Shared" formValue={form.quoteSentDate}
@@ -747,6 +800,7 @@ function ELDatePanel({ data, form, setDate, setRevertTarget, onDirectPatch, onRe
         <LockedDateCard label="EL Requested" />
       )}
       {elDraftCardNode}
+      {elReturnedCardNode}
       {elSignedCardNode}
     </div>
   )
@@ -771,7 +825,9 @@ function DateSection({ data, form, onSetDate, onRefresh, onDirectPatch }: {
   async function handleRevert() {
     if (!revertTarget) return
     setReverting(true); setRevertError("")
-    const err = await onDirectPatch({ status: revertTarget.status, [revertTarget.clearField]: null })
+    const payload: Record<string, unknown> = { status: revertTarget.status }
+    if (revertTarget.clearField) payload[revertTarget.clearField] = null
+    const err = await onDirectPatch(payload)
     setReverting(false)
     if (err) setRevertError(err); else { setRevertTarget(null); onRefresh() }
   }
@@ -791,7 +847,8 @@ function DateSection({ data, form, onSetDate, onRefresh, onDirectPatch }: {
       {revertTarget && (
         <div className="mt-3 p-4 bg-red-900/20 border border-red-800 rounded-xl">
           <p className="text-xs font-medium text-red-400 mb-3">
-            Revert status to <span className="font-semibold">"{revertTarget.label}"</span>? The milestone date will be cleared.
+            Revert status to <span className="font-semibold">"{revertTarget.label}"</span>?
+            {revertTarget.clearField ? " The milestone date will be cleared." : " Recorded dates are kept."}
           </p>
           <div className="flex items-center gap-2">
             <button type="button" onClick={handleRevert} disabled={reverting}

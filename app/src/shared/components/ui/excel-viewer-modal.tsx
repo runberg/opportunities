@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { ViewerShell } from "./viewer-shell"
+import { sanitizeFilename } from "@/shared/lib/utils"
 import type { SheetInfo } from "@/shared/lib/excel-preview"
 
 interface ExcelViewerModalProps {
@@ -60,7 +61,12 @@ export function ExcelViewerModal({ fileUrl, docName, onClose }: ExcelViewerModal
     fetch(`${fileUrl}?preview=1&sheet=${activeSheet}`, { signal: controller.signal })
       .then((res) => (res.ok ? res.blob() : Promise.reject(new Error("Failed"))))
       .then((blob) => {
-        url = URL.createObjectURL(blob)
+        // Named as a File (not a bare Blob) so the browser's built-in PDF viewer
+        // suggests a real filename on save/download instead of the blob's UUID.
+        const sheetName = sheets[activeSheet]?.name
+        const label = sheets.length > 1 && sheetName ? `${docName} - ${sheetName}` : docName
+        const file = new File([blob], `${sanitizeFilename(label)}.pdf`, { type: "application/pdf" })
+        url = URL.createObjectURL(file)
         allBlobUrls.current.push(url)
         setBlobUrl(url)
       })

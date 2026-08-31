@@ -13,6 +13,7 @@ const STATUS_DATE_COLUMN: Record<string, DateColumn> = {
   QUOTE_SENT:               { label: "Quote Sent Date",       sortKey: "quoteSentDate",       getValue: (r) => r.quoteSentDate },
   EL_REQUEST_RECEIVED:      { label: "EL Request Date",       sortKey: "elRequestedDate",     getValue: (r) => r.elRequestedDate },
   EL_DRAFT_SHARED:          { label: "EL Draft Shared Date",  sortKey: "elDraftSharedDate",   getValue: (r) => r.elDraftSharedDate },
+  EL_DRAFT_RETURNED:        { label: "EL Draft Returned Date", sortKey: "elDraftReturnedDate", getValue: (r) => r.elDraftReturnedDate },
   EL_SIGNED_SHARED:         { label: "EL Signed Shared Date", sortKey: "elSignedSharedDate",  getValue: (r) => r.elSignedSharedDate },
   PENDING_ADVANCE_PAYMENT:  { label: "Countersigned Date",    sortKey: "elCountersignedDate", getValue: (r) => r.elCountersignedDate },
   IN_PRODUCTION:            { label: "Adv. Payment Date",     sortKey: "advancePaymentDate",  getValue: (r) => r.advancePaymentDate },
@@ -38,6 +39,7 @@ const PIPELINE_GROUPS = [
     steps: [
       { status: "EL_REQUEST_RECEIVED", label: "EL Requested"  },
       { status: "EL_DRAFT_SHARED",     label: "EL Draft"      },
+      { status: "EL_DRAFT_RETURNED",   label: "Draft Returned" },
       { status: "EL_SIGNED_SHARED",    label: "Signed Shared" },
     ],
   },

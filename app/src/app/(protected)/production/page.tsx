@@ -1,7 +1,7 @@
 import { Suspense } from "react"
 import { db } from "@/shared/lib/db"
 import { requireSectionAccess } from "@/shared/lib/page-access"
-import { formatDate, parseParam, buildOpportunityWhere, PRODUCTION_STATUSES, STATUS_GROUPS } from "@/shared/lib/utils"
+import { formatDate, parseParam, buildOpportunityWhere, statusSinceDate, PRODUCTION_STATUSES, STATUS_GROUPS } from "@/shared/lib/utils"
 import { FilterBar } from "@/modules/opportunities/components/filter-bar"
 import { ProductionTable } from "@/modules/opportunities/components/production-table"
 import { Pagination } from "@/modules/opportunities/components/pagination"
@@ -50,6 +50,7 @@ export default async function ProductionPage({
     reference: opp.reference,
     product: opp.product,
     status: opp.status,
+    statusSince: statusSinceDate(opp.status, opp).toISOString(),
     advancePaymentDate: opp.advancePaymentDate ? formatDate(opp.advancePaymentDate) : null,
     fatPassedDate: opp.fatPassedDate ? formatDate(opp.fatPassedDate) : null,
     satApplicable: opp.satApplicable,

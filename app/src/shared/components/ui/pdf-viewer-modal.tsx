@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { ViewerShell } from "./viewer-shell"
+import { sanitizeFilename } from "@/shared/lib/utils"
 
 interface PdfViewerModalProps {
   readonly fileUrl: string
@@ -21,7 +22,10 @@ export function PdfViewerModal({ fileUrl, docName, onClose }: PdfViewerModalProp
         const res = await fetch(`${fileUrl}?inline=1`)
         if (!res.ok) { setLoadError(true); return }
         const blob = await res.blob()
-        url = URL.createObjectURL(blob)
+        // Named as a File (not a bare Blob) so the browser's built-in PDF viewer
+        // suggests a real filename on save/download instead of the blob's UUID.
+        const file = new File([blob], `${sanitizeFilename(docName)}.pdf`, { type: "application/pdf" })
+        url = URL.createObjectURL(file)
         setBlobUrl(url)
       } catch {
         setLoadError(true)

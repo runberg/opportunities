@@ -43,12 +43,13 @@ export async function GET(req: NextRequest) {
     const where = buildOpportunityWhere(query, selectedStatuses, EL_STATUSES)
     const records = await db.opportunity.findMany({ where, orderBy: { updatedAt: "desc" } })
     filename = "engagement-letters.csv"
-    const header = row(["ID", "Title", "Customer", "Reference", "Product", "Status", "EL Requested Date", "EL Draft Shared", "EL Signed Shared", "Details"])
+    const header = row(["ID", "Title", "Customer", "Reference", "Product", "Status", "EL Requested Date", "EL Draft Shared", "EL Draft Returned", "EL Signed Shared", "Details"])
     const lines = records.map((r) =>
       row([r.internalId, r.title, r.customer, r.reference, r.product,
         STATUS_LABELS[r.status] ?? r.status,
         r.elRequestedDate ? formatDate(r.elRequestedDate) : null,
         r.elDraftSharedDate ? formatDate(r.elDraftSharedDate) : null,
+        r.elDraftReturnedDate ? formatDate(r.elDraftReturnedDate) : null,
         r.elSignedSharedDate ? formatDate(r.elSignedSharedDate) : null,
         r.description])
     )

@@ -60,7 +60,8 @@ model Opportunity {
   waitingOn     WaitingOn         @default(INTERNAL)
   quoteSentDate      DateTime?         // Date the quote was shared with the customer
   elRequestedDate    DateTime?         // Date the EL was requested (quote accepted)
-  elDraftSharedDate  DateTime?         // Date the EL draft was shared with the customer
+  elDraftSharedDate  DateTime?         // Date the EL draft was (most recently) shared with the customer
+  elDraftReturnedDate DateTime?        // Date the EL draft was (most recently) returned with comments
   elSignedSharedDate    DateTime?         // Date the signed EL was shared back
   elCountersignedDate  DateTime?         // Date the EL was countersigned (fully signed by both parties)
   // Production fields
@@ -90,6 +91,7 @@ enum OpportunityStatus {
   QUOTE_SENT
   EL_REQUEST_RECEIVED
   EL_DRAFT_SHARED
+  EL_DRAFT_RETURNED
   EL_SIGNED_SHARED
   EL_FULLY_SIGNED
   PENDING_ADVANCE_PAYMENT

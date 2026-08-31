@@ -8,7 +8,7 @@ Built for small teams on a private network. All data stays on your own server.
 
 ### Pipeline views
 - **Quotes** — track opportunities from RFQ Received → Quote Sent
-- **Engagement Letters** — dedicated EL view: EL Requested → Draft Shared → Signed Shared → Countersigned
+- **Engagement Letters** — dedicated EL view: EL Requested → Draft Shared ⇄ Draft Returned (comments loop, repeat as many times as needed) → Signed Shared → Countersigned
 - **Production** — track progress from Pending Advance Payment → In Production → Delivered, with per-row phase indicators (Adv. Payment, FAT, SAT); add expected delivery lines (unit type, quantity, month/year) per opportunity to forecast output
 
 ### Opportunity workflow
@@ -31,6 +31,7 @@ Built for small teams on a private network. All data stays on your own server.
 
 ### Data management
 - **Audit log** — every status change, field edit, document upload and deletion is captured as a system event with actor and timestamp; user comments sit alongside system events in the same timeline
+- **Status age** — every list view shows how long an opportunity has sat in its current status (e.g. "3 days ago") right after the status badge, so stalled items are easy to spot at a glance
 - **Column sorting** — all tables across the app support click-to-sort on every column header
 - **Full-text search** — search by title, customer, internal ID, or reference number
 - **Status + pending filters** — multi-select status filter and waiting-on filter on all list views
@@ -341,9 +342,9 @@ docker compose exec -T postgres psql -U opportunities opportunities < opportunit
 
 For development you run Next.js directly on your machine and only run the database in Docker.
 
-### 1. Start the database
+### 1. Start the database and document conversion service
 
-The production compose file does not expose port 5432 to the host. Create a local override file first so the dev server can reach Postgres:
+The production compose file does not expose port 5432 (Postgres) or 3000 (Gotenberg, used to convert Word/Excel documents to PDF for in-browser preview) to the host. Create a local override file first so the dev server can reach both:
 
 ```bash
 cat > docker-compose.override.yml << 'EOF'
@@ -351,13 +352,17 @@ services:
   postgres:
     ports:
       - "5432:5432"
+
+  gotenberg:
+    ports:
+      - "3001:3000"
 EOF
 ```
 
-Then start the database:
+Then start both services:
 
 ```bash
-docker compose up postgres -d
+docker compose up postgres gotenberg -d
 ```
 
 ### 2. Configure the app environment
@@ -375,7 +380,10 @@ NEXTAUTH_URL=http://localhost:3000
 UPLOAD_DIR=./uploads
 ADMIN_EMAIL=admin@dev.local
 ADMIN_PASSWORD=change_me
+GOTENBERG_URL=http://localhost:3001
 ```
+
+> Without `GOTENBERG_URL`, the app defaults to `http://gotenberg:3000` — a Docker-network-internal hostname that only resolves from inside another container, not from `next dev` running on the host. Word/Excel preview will fail silently without this override.
 
 ### 3. Install dependencies and set up the database
 

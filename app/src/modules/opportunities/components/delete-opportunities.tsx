@@ -12,6 +12,7 @@ const ALL_STATUSES = [
   { value: "QUOTE_SENT",            label: "Quote Sent" },
   { value: "EL_REQUEST_RECEIVED",   label: "EL Requested" },
   { value: "EL_DRAFT_SHARED",       label: "EL Draft Shared" },
+  { value: "EL_DRAFT_RETURNED",     label: "EL Draft Returned" },
   { value: "EL_SIGNED_SHARED",      label: "EL Signed Shared" },
   { value: "EL_FULLY_SIGNED",       label: "EL Fully Signed" },
   { value: "PENDING_ADVANCE_PAYMENT", label: "Pending Adv. Payment" },

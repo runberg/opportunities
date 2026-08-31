@@ -2,7 +2,7 @@
 
 import { useRef, useEffect } from "react"
 import { Check, Minus } from "lucide-react"
-import { cn, formatDate } from "@/shared/lib/utils"
+import { cn, formatDate, statusAgeLabel } from "@/shared/lib/utils"
 import { StatusBadge } from "@/modules/opportunities/components/status-badge"
 import { SortableHeader, type SortDir } from "@/shared/components/ui/sortable-header"
 
@@ -22,6 +22,7 @@ export interface OppTableRow {
   quoteSentDate?: string | null
   elRequestedDate?: string | null
   elDraftSharedDate?: string | null
+  elDraftReturnedDate?: string | null
   elSignedSharedDate?: string | null
   elCountersignedDate?: string | null
   advancePaymentDate?: string | null
@@ -31,6 +32,8 @@ export interface OppTableRow {
   deliveredDate?: string | null
   updatedAt?: string | null
   lastChange?: string | null
+  // Raw timestamp the row entered its current status — rendered as a relative label after the badge
+  statusSince?: string | null
 }
 
 export interface DateColumn {
@@ -214,6 +217,9 @@ export function OpportunityDataTable({
                 )}
                 <td className="px-4 py-3">
                   <StatusBadge status={row.status} short />
+                  {row.statusSince && (
+                    <div className="text-xs text-gray-400 mt-1 whitespace-nowrap">{statusAgeLabel(row.statusSince)}</div>
+                  )}
                 </td>
                 {renderAction && (
                   <td className="px-2 py-3" onClick={(e) => e.stopPropagation()}>

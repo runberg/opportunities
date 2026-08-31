@@ -6,6 +6,7 @@ const STATUS_STYLES: Record<string, string> = {
   QUOTE_SENT: "bg-green-100 text-green-700",
   EL_REQUEST_RECEIVED: "bg-red-100 text-red-700",
   EL_DRAFT_SHARED: "bg-yellow-100 text-yellow-700",
+  EL_DRAFT_RETURNED: "bg-red-100 text-red-700",
   EL_SIGNED_SHARED: "bg-green-100 text-green-700",
   EL_FULLY_SIGNED: "bg-emerald-600 text-white",
   PENDING_ADVANCE_PAYMENT: "bg-red-100 text-red-700",

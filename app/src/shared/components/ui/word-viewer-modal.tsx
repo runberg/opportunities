@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { ViewerShell } from "./viewer-shell"
+import { sanitizeFilename } from "@/shared/lib/utils"
 
 interface WordViewerModalProps {
   readonly fileUrl: string
@@ -20,7 +21,10 @@ export function WordViewerModal({ fileUrl, docName, onClose }: WordViewerModalPr
     fetch(`${fileUrl}?preview=1`, { signal: controller.signal })
       .then((res) => (res.ok ? res.blob() : Promise.reject(new Error("Failed"))))
       .then((blob) => {
-        url = URL.createObjectURL(blob)
+        // Named as a File (not a bare Blob) so the browser's built-in PDF viewer
+        // suggests a real filename on save/download instead of the blob's UUID.
+        const file = new File([blob], `${sanitizeFilename(docName)}.pdf`, { type: "application/pdf" })
+        url = URL.createObjectURL(file)
         setBlobUrl(url)
       })
       .catch((err: unknown) => {

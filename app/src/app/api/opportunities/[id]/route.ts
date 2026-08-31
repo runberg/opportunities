@@ -51,6 +51,7 @@ const updateSchema = z.object({
   quoteSentDate: z.string().optional().nullable(),
   elRequestedDate: z.string().optional().nullable(),
   elDraftSharedDate: z.string().optional().nullable(),
+  elDraftReturnedDate: z.string().optional().nullable(),
   elSignedSharedDate: z.string().optional().nullable(),
   elCountersignedDate: z.string().optional().nullable(),
   // Production fields
@@ -66,7 +67,7 @@ const updateSchema = z.object({
 
 type ParsedUpdate = z.infer<typeof updateSchema>
 type DateFieldKey =
-  | "rfqDate" | "quoteSentDate" | "elRequestedDate" | "elDraftSharedDate" | "elSignedSharedDate"
+  | "rfqDate" | "quoteSentDate" | "elRequestedDate" | "elDraftSharedDate" | "elDraftReturnedDate" | "elSignedSharedDate"
   | "elCountersignedDate" | "advancePaymentDate" | "fatDate" | "fatPassedDate" | "satDate"
   | "satPassedDate" | "deliveredDate"
 type DateFields = Pick<ParsedUpdate, DateFieldKey>
@@ -154,21 +155,26 @@ function buildNullableFieldEvents(existing: Opportunity, rest: RestFields): stri
   return events
 }
 
+function scheduledDateEvent(
+  next: string | null | undefined,
+  prev: Date | null,
+  setMessage: (value: string) => string,
+  clearMessage: string
+): string | null {
+  if (next === undefined || next === toDateString(prev)) return null
+  return next ? setMessage(next) : clearMessage
+}
+
 function buildScheduledDateEvents(existing: Opportunity, dates: DateFields): string[] {
-  const msgs = {
-    rfq: dates.rfqDate ? `RFQ date set to ${dates.rfqDate}` : `RFQ date cleared`,
-    elDraft: dates.elDraftSharedDate ? `EL draft shared date set to ${dates.elDraftSharedDate}` : `EL draft shared date cleared`,
-    elSigned: dates.elSignedSharedDate ? `EL signed shared date set to ${dates.elSignedSharedDate}` : `EL signed shared date cleared`,
-    fat: dates.fatDate ? `FAT scheduled for ${dates.fatDate}` : `FAT scheduled date cleared`,
-    sat: dates.satDate ? `SAT scheduled for ${dates.satDate}` : `SAT scheduled date cleared`,
-  }
-  const events: string[] = []
-  if (dates.rfqDate !== undefined && dates.rfqDate !== toDateString(existing.rfqDate)) events.push(msgs.rfq)
-  if (dates.elDraftSharedDate !== undefined && dates.elDraftSharedDate !== toDateString(existing.elDraftSharedDate)) events.push(msgs.elDraft)
-  if (dates.elSignedSharedDate !== undefined && dates.elSignedSharedDate !== toDateString(existing.elSignedSharedDate)) events.push(msgs.elSigned)
-  if (dates.fatDate !== undefined && dates.fatDate !== toDateString(existing.fatDate)) events.push(msgs.fat)
-  if (dates.satDate !== undefined && dates.satDate !== toDateString(existing.satDate)) events.push(msgs.sat)
-  return events
+  const events = [
+    scheduledDateEvent(dates.rfqDate, existing.rfqDate, (v) => `RFQ date set to ${v}`, `RFQ date cleared`),
+    scheduledDateEvent(dates.elDraftSharedDate, existing.elDraftSharedDate, (v) => `EL draft shared date set to ${v}`, `EL draft shared date cleared`),
+    scheduledDateEvent(dates.elDraftReturnedDate, existing.elDraftReturnedDate, (v) => `EL draft returned with comments (${v})`, `EL draft returned date cleared`),
+    scheduledDateEvent(dates.elSignedSharedDate, existing.elSignedSharedDate, (v) => `EL signed shared date set to ${v}`, `EL signed shared date cleared`),
+    scheduledDateEvent(dates.fatDate, existing.fatDate, (v) => `FAT scheduled for ${v}`, `FAT scheduled date cleared`),
+    scheduledDateEvent(dates.satDate, existing.satDate, (v) => `SAT scheduled for ${v}`, `SAT scheduled date cleared`),
+  ]
+  return events.filter((e): e is string => e !== null)
 }
 
 function buildChangeEvents(
@@ -209,13 +215,13 @@ export async function PATCH(
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
   const {
-    rfqDate, quoteSentDate, elRequestedDate, elDraftSharedDate, elSignedSharedDate, elCountersignedDate,
+    rfqDate, quoteSentDate, elRequestedDate, elDraftSharedDate, elDraftReturnedDate, elSignedSharedDate, elCountersignedDate,
     advancePaymentDate, fatDate, fatPassedDate, satDate, satPassedDate, deliveredDate,
     ...rest
   } = parsed.data
 
   const dates: DateFields = {
-    rfqDate, quoteSentDate, elRequestedDate, elDraftSharedDate, elSignedSharedDate, elCountersignedDate,
+    rfqDate, quoteSentDate, elRequestedDate, elDraftSharedDate, elDraftReturnedDate, elSignedSharedDate, elCountersignedDate,
     advancePaymentDate, fatDate, fatPassedDate, satDate, satPassedDate, deliveredDate,
   }
 
@@ -231,6 +237,7 @@ export async function PATCH(
       quoteSentDate: dateOrNull(quoteSentDate),
       elRequestedDate: dateOrNull(elRequestedDate),
       elDraftSharedDate: dateOrNull(elDraftSharedDate),
+      elDraftReturnedDate: dateOrNull(elDraftReturnedDate),
       elSignedSharedDate: dateOrNull(elSignedSharedDate),
       elCountersignedDate: dateOrNull(elCountersignedDate),
       advancePaymentDate: dateOrNull(advancePaymentDate),
