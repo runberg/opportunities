@@ -60,7 +60,11 @@ export async function extractSheetBuffer(buffer: Buffer, sheetIndex: number): Pr
     if (row.hidden) destRow.hidden = row.hidden
     row.eachCell({ includeEmpty: true }, (cell, colNum) => {
       const destCell = destRow.getCell(colNum)
-      destCell.value = cell.value
+      // Formula cells are flattened to their last-calculated value: the
+      // destination workbook only contains this one sheet, so a formula
+      // referencing another sheet (e.g. "=Sheet2!A1") would otherwise point
+      // at a sheet that no longer exists and render as a broken reference.
+      destCell.value = cell.type === ExcelJS.ValueType.Formula ? (cell.result ?? null) : cell.value
       destCell.style = structuredClone(cell.style) as ExcelJS.Style
     })
     destRow.commit()
