@@ -215,7 +215,7 @@ export function OpportunityDataTable({
                     </td>
                   </>
                 )}
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 text-center">
                   <StatusBadge status={row.status} short />
                   {row.statusSince && (
                     <div className="text-xs text-gray-400 mt-1 whitespace-nowrap">{statusAgeLabel(row.statusSince)}</div>
