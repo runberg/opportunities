@@ -716,70 +716,76 @@ function ELDatePanel({ data, form, setDate, setRevertTarget, onDirectPatch, onRe
   // forward action) — that keeps "has this ever happened" checks below safe across any number
   // of share ↔ return loops, since reverting never erases the memory that a prior loop happened.
 
-  let elDraftCardNode: React.ReactNode
-  if (isDraftReturned) {
-    elDraftCardNode = (
-      <ShareActionCard label="EL Draft Shared" date={elDraftDate} onDateChange={setElDraftDate}
-        docCount={elDocCount} docLabel="EL document"
-        saving={elDraftSharing} onShare={handleShareELDraft} error={elDraftShareError} buttonLabel="Share Updated EL Draft" />
-    )
-  } else if (isDraftShared) {
-    const draftRevertTarget = data.elDraftReturnedDate
-      ? { status: "EL_DRAFT_RETURNED", label: "EL Draft Returned" }
-      : { status: "EL_REQUEST_RECEIVED", label: "EL Requested" }
-    elDraftCardNode = (
-      <DateCard label="EL Draft Shared" formValue={form.elDraftSharedDate}
-        onChange={(v) => setDate("elDraftSharedDate", v)}
-        onRevert={() => setRevertTarget(draftRevertTarget)} />
-    )
-  } else if (data.elDraftSharedDate) {
-    elDraftCardNode = <DateCard label="EL Draft Shared" formValue={form.elDraftSharedDate} onChange={(v) => setDate("elDraftSharedDate", v)} />
-  } else if (data.status === "EL_REQUEST_RECEIVED") {
-    elDraftCardNode = (
-      <ShareActionCard label="EL Draft Shared" date={elDraftDate} onDateChange={setElDraftDate}
-        docCount={elDocCount} docLabel="EL document"
-        saving={elDraftSharing} onShare={handleShareELDraft} error={elDraftShareError} buttonLabel="Share EL Draft" />
-    )
-  } else {
-    elDraftCardNode = <LockedDateCard label="EL Draft Shared" />
+  function elDraftCardNode(): React.ReactNode {
+    if (isDraftReturned) {
+      return (
+        <ShareActionCard label="EL Draft Shared" date={elDraftDate} onDateChange={setElDraftDate}
+          docCount={elDocCount} docLabel="EL document"
+          saving={elDraftSharing} onShare={handleShareELDraft} error={elDraftShareError} buttonLabel="Share Updated EL Draft" />
+      )
+    }
+    if (isDraftShared) {
+      const draftRevertTarget = data.elDraftReturnedDate
+        ? { status: "EL_DRAFT_RETURNED", label: "EL Draft Returned" }
+        : { status: "EL_REQUEST_RECEIVED", label: "EL Requested" }
+      return (
+        <DateCard label="EL Draft Shared" formValue={form.elDraftSharedDate}
+          onChange={(v) => setDate("elDraftSharedDate", v)}
+          onRevert={() => setRevertTarget(draftRevertTarget)} />
+      )
+    }
+    if (data.elDraftSharedDate) {
+      return <DateCard label="EL Draft Shared" formValue={form.elDraftSharedDate} onChange={(v) => setDate("elDraftSharedDate", v)} />
+    }
+    if (data.status === "EL_REQUEST_RECEIVED") {
+      return (
+        <ShareActionCard label="EL Draft Shared" date={elDraftDate} onDateChange={setElDraftDate}
+          docCount={elDocCount} docLabel="EL document"
+          saving={elDraftSharing} onShare={handleShareELDraft} error={elDraftShareError} buttonLabel="Share EL Draft" />
+      )
+    }
+    return <LockedDateCard label="EL Draft Shared" />
   }
 
-  let elReturnedCardNode: React.ReactNode
-  if (isDraftShared) {
-    elReturnedCardNode = (
-      <ShareActionCard label="EL Draft Returned" date={elReturnedDate} onDateChange={setElReturnedDate}
-        saving={elReturning} onShare={handleReturnedWithComments} error={elReturnError} buttonLabel="Returned with Comments" />
-    )
-  } else if (isDraftReturned) {
-    elReturnedCardNode = (
-      <DateCard label="EL Draft Returned" formValue={form.elDraftReturnedDate}
-        onChange={(v) => setDate("elDraftReturnedDate", v)}
-        onRevert={() => setRevertTarget({ status: "EL_DRAFT_SHARED", label: "EL Draft Shared" })} />
-    )
-  } else if (data.elDraftReturnedDate) {
-    elReturnedCardNode = <DateCard label="EL Draft Returned" formValue={form.elDraftReturnedDate} onChange={(v) => setDate("elDraftReturnedDate", v)} />
-  } else {
-    elReturnedCardNode = <LockedDateCard label="EL Draft Returned" />
+  function elReturnedCardNode(): React.ReactNode {
+    if (isDraftShared) {
+      return (
+        <ShareActionCard label="EL Draft Returned" date={elReturnedDate} onDateChange={setElReturnedDate}
+          saving={elReturning} onShare={handleReturnedWithComments} error={elReturnError} buttonLabel="Returned with Comments" />
+      )
+    }
+    if (isDraftReturned) {
+      return (
+        <DateCard label="EL Draft Returned" formValue={form.elDraftReturnedDate}
+          onChange={(v) => setDate("elDraftReturnedDate", v)}
+          onRevert={() => setRevertTarget({ status: "EL_DRAFT_SHARED", label: "EL Draft Shared" })} />
+      )
+    }
+    if (data.elDraftReturnedDate) {
+      return <DateCard label="EL Draft Returned" formValue={form.elDraftReturnedDate} onChange={(v) => setDate("elDraftReturnedDate", v)} />
+    }
+    return <LockedDateCard label="EL Draft Returned" />
   }
 
-  let elSignedCardNode: React.ReactNode
-  if (data.elSignedSharedDate) {
-    const signedRevertTarget = (data.elDraftReturnedDate ?? "") >= (data.elDraftSharedDate ?? "")
-      ? { status: "EL_DRAFT_RETURNED", label: "EL Draft Returned", clearField: "elSignedSharedDate" }
-      : { status: "EL_DRAFT_SHARED", label: "EL Draft Shared", clearField: "elSignedSharedDate" }
-    elSignedCardNode = (
-      <DateCard label="EL Signed Shared" formValue={form.elSignedSharedDate}
-        onChange={(v) => setDate("elSignedSharedDate", v)}
-        onRevert={() => setRevertTarget(signedRevertTarget)} />
-    )
-  } else if (isDraftShared || isDraftReturned) {
-    elSignedCardNode = (
-      <ShareActionCard label="EL Signed Shared" date={elSignedDate} onDateChange={setElSignedDate}
-        docCount={elDocCount} docLabel="EL document"
-        saving={elSignedSharing} onShare={handleShareSignedEL} error={elSignedShareError} buttonLabel="Share Signed EL" />
-    )
-  } else {
-    elSignedCardNode = <LockedDateCard label="EL Signed Shared" />
+  function elSignedCardNode(): React.ReactNode {
+    if (data.elSignedSharedDate) {
+      const signedRevertTarget = (data.elDraftReturnedDate ?? "") >= (data.elDraftSharedDate ?? "")
+        ? { status: "EL_DRAFT_RETURNED", label: "EL Draft Returned", clearField: "elSignedSharedDate" }
+        : { status: "EL_DRAFT_SHARED", label: "EL Draft Shared", clearField: "elSignedSharedDate" }
+      return (
+        <DateCard label="EL Signed Shared" formValue={form.elSignedSharedDate}
+          onChange={(v) => setDate("elSignedSharedDate", v)}
+          onRevert={() => setRevertTarget(signedRevertTarget)} />
+      )
+    }
+    if (isDraftShared || isDraftReturned) {
+      return (
+        <ShareActionCard label="EL Signed Shared" date={elSignedDate} onDateChange={setElSignedDate}
+          docCount={elDocCount} docLabel="EL document"
+          saving={elSignedSharing} onShare={handleShareSignedEL} error={elSignedShareError} buttonLabel="Share Signed EL" />
+      )
+    }
+    return <LockedDateCard label="EL Signed Shared" />
   }
 
   return (
@@ -799,9 +805,9 @@ function ELDatePanel({ data, form, setDate, setRevertTarget, onDirectPatch, onRe
       ) : (
         <LockedDateCard label="EL Requested" />
       )}
-      {elDraftCardNode}
-      {elReturnedCardNode}
-      {elSignedCardNode}
+      {elDraftCardNode()}
+      {elReturnedCardNode()}
+      {elSignedCardNode()}
     </div>
   )
 }

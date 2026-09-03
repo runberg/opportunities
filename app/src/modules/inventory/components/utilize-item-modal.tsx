@@ -56,6 +56,11 @@ export function UtilizeItemModal({ item, utilization, onClose, onSaved }: Props)
     onClose()
   }
 
+  function submitLabel(): string {
+    if (saving) return "Saving…"
+    return editing ? "Save Changes" : "Record Utilization"
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (!item || !qtyValid || !date) return
@@ -162,7 +167,7 @@ export function UtilizeItemModal({ item, utilization, onClose, onSaved }: Props)
         {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
         <div className="flex gap-2 pt-1">
           <Button type="submit" disabled={saving || !qtyValid || !date}>
-            {saving ? "Saving…" : editing ? "Save Changes" : "Record Utilization"}
+            {submitLabel()}
           </Button>
           <Button type="button" variant="ghost" onClick={handleClose}>Cancel</Button>
         </div>

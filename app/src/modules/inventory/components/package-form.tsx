@@ -40,6 +40,11 @@ export function PackageForm({ open, pkg, onClose, onSaved }: Props) {
     onClose()
   }
 
+  function submitLabel(): string {
+    if (saving) return "Saving…"
+    return pkg ? "Save Changes" : "Create Package"
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (!name.trim()) return
@@ -98,7 +103,7 @@ export function PackageForm({ open, pkg, onClose, onSaved }: Props) {
         </div>
         {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
         <div className="flex gap-2 pt-1">
-          <Button type="submit" disabled={saving || !name.trim()}>{saving ? "Saving…" : pkg ? "Save Changes" : "Create Package"}</Button>
+          <Button type="submit" disabled={saving || !name.trim()}>{submitLabel()}</Button>
           <Button type="button" variant="ghost" onClick={handleClose}>Cancel</Button>
         </div>
       </form>

@@ -1200,6 +1200,76 @@ function DeliverableTabContent({ loading, deliverable, activeTab, showUpload, on
   )
 }
 
+// ─── Action buttons ───────────────────────────────────────────────────────────
+
+type ActionButtonsProps = {
+  readonly isReadOnly: boolean
+  readonly canApprove: boolean
+  readonly approvePanelOpen: boolean
+  readonly onOpenApprove: () => void
+  readonly canEditApproval: boolean
+  readonly editingApproval: boolean
+  readonly onEditApproval: () => void
+  readonly onRevoke: () => void
+  readonly revoking: boolean
+  readonly canDeliver: boolean
+  readonly deliverPanelOpen: boolean
+  readonly onOpenDeliver: () => void
+  readonly canRevertDelivered: boolean
+  readonly onRevertDelivered: () => void
+  readonly canCloseFinance: boolean
+  readonly closeFinancePanelOpen: boolean
+  readonly onOpenCloseFinance: () => void
+  readonly canRevertClosedFinance: boolean
+  readonly onRevertClosedFinance: () => void
+  readonly transitioning: boolean
+}
+
+function ActionButtons({
+  isReadOnly, canApprove, approvePanelOpen, onOpenApprove,
+  canEditApproval, editingApproval, onEditApproval, onRevoke, revoking,
+  canDeliver, deliverPanelOpen, onOpenDeliver,
+  canRevertDelivered, onRevertDelivered,
+  canCloseFinance, closeFinancePanelOpen, onOpenCloseFinance,
+  canRevertClosedFinance, onRevertClosedFinance,
+  transitioning,
+}: ActionButtonsProps) {
+  const anyAction = canApprove || canEditApproval || canDeliver || canRevertDelivered || canCloseFinance || canRevertClosedFinance
+  if (isReadOnly || !anyAction) return null
+
+  return (
+    <div className="flex items-center gap-2 mt-3">
+      {canApprove && !approvePanelOpen && (
+        <Button size="sm" variant="outline" onClick={onOpenApprove}>Approve</Button>
+      )}
+      {canEditApproval && !editingApproval && (
+        <>
+          <Button size="sm" variant="ghost" onClick={onEditApproval}>Edit Approval</Button>
+          <Button size="sm" variant="ghost" onClick={onRevoke} disabled={revoking}>
+            {revoking ? "Revoking…" : "Revoke Approval"}
+          </Button>
+        </>
+      )}
+      {canDeliver && !deliverPanelOpen && (
+        <Button size="sm" variant="outline" onClick={onOpenDeliver}>Mark Delivered</Button>
+      )}
+      {canRevertDelivered && (
+        <Button size="sm" variant="ghost" onClick={onRevertDelivered} disabled={transitioning}>
+          {transitioning ? "Saving…" : "Revert to Approved"}
+        </Button>
+      )}
+      {canCloseFinance && !closeFinancePanelOpen && (
+        <Button size="sm" variant="outline" onClick={onOpenCloseFinance}>Close Finance</Button>
+      )}
+      {canRevertClosedFinance && (
+        <Button size="sm" variant="ghost" onClick={onRevertClosedFinance} disabled={transitioning}>
+          {transitioning ? "Saving…" : "Revert to Delivered"}
+        </Button>
+      )}
+    </div>
+  )
+}
+
 // ─── Main Modal ───────────────────────────────────────────────────────────────
 
 type Props = {
@@ -1435,41 +1505,28 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, isRead
                 />
               )}
             </div>
-            {!isReadOnly && (canApprove || canEditApproval || canDeliver || canRevertDelivered || canCloseFinance || canRevertClosedFinance) && (
-              <div className="flex items-center gap-2 mt-3">
-                {canApprove && !approvePanelOpen && (
-                  <Button size="sm" variant="outline" onClick={() => setApprovePanelOpen(true)}>Approve</Button>
-                )}
-                {canEditApproval && !editingApproval && (
-                  <Button size="sm" variant="ghost" onClick={() => setEditingApproval(true)}>Edit Approval</Button>
-                )}
-                {canEditApproval && !editingApproval && (
-                  <Button size="sm" variant="ghost" onClick={handleRevoke} disabled={revoking}>
-                    {revoking ? "Revoking…" : "Revoke Approval"}
-                  </Button>
-                )}
-                {canDeliver && !deliverPanelOpen && (
-                  <Button size="sm" variant="outline" onClick={() => setDeliverPanelOpen(true)}>
-                    Mark Delivered
-                  </Button>
-                )}
-                {canRevertDelivered && (
-                  <Button size="sm" variant="ghost" onClick={handleRevertDelivered} disabled={transitioning}>
-                    {transitioning ? "Saving…" : "Revert to Approved"}
-                  </Button>
-                )}
-                {canCloseFinance && !closeFinancePanelOpen && (
-                  <Button size="sm" variant="outline" onClick={() => setCloseFinancePanelOpen(true)}>
-                    Close Finance
-                  </Button>
-                )}
-                {canRevertClosedFinance && (
-                  <Button size="sm" variant="ghost" onClick={handleRevertClosedFinance} disabled={transitioning}>
-                    {transitioning ? "Saving…" : "Revert to Delivered"}
-                  </Button>
-                )}
-              </div>
-            )}
+            <ActionButtons
+              isReadOnly={isReadOnly}
+              canApprove={canApprove}
+              approvePanelOpen={approvePanelOpen}
+              onOpenApprove={() => setApprovePanelOpen(true)}
+              canEditApproval={canEditApproval}
+              editingApproval={editingApproval}
+              onEditApproval={() => setEditingApproval(true)}
+              onRevoke={handleRevoke}
+              revoking={revoking}
+              canDeliver={canDeliver}
+              deliverPanelOpen={deliverPanelOpen}
+              onOpenDeliver={() => setDeliverPanelOpen(true)}
+              canRevertDelivered={canRevertDelivered}
+              onRevertDelivered={handleRevertDelivered}
+              canCloseFinance={canCloseFinance}
+              closeFinancePanelOpen={closeFinancePanelOpen}
+              onOpenCloseFinance={() => setCloseFinancePanelOpen(true)}
+              canRevertClosedFinance={canRevertClosedFinance}
+              onRevertClosedFinance={handleRevertClosedFinance}
+              transitioning={transitioning}
+            />
 
             {/* Milestone dates */}
             <div className="flex flex-wrap gap-6 mt-3 pt-3 border-t border-gray-700/60">
