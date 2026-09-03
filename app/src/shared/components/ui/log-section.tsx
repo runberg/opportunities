@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { MessageSquarePlus, Cpu } from "lucide-react"
-import { timeAgo, initials } from "@/shared/lib/utils"
+import { formatDateTime, initials } from "@/shared/lib/utils"
 import { Button } from "@/shared/components/ui/button"
 
 export interface LogEntry {
@@ -156,7 +156,7 @@ function UserEntry({ entry }: { readonly entry: LogEntry }) {
           <span className="text-sm font-medium text-gray-100">
             {entry.author?.name ?? "Unknown"}
           </span>
-          <span className="text-xs text-gray-400">{timeAgo(entry.createdAt)}</span>
+          <span className="text-xs text-gray-400">{formatDateTime(entry.createdAt)}</span>
         </div>
         <p className="text-sm text-gray-300 whitespace-pre-wrap">{entry.content}</p>
       </div>
@@ -174,7 +174,7 @@ function SystemEntry({ entry }: { readonly entry: LogEntry }) {
         <p className="text-xs text-gray-400 italic">{entry.content}</p>
         <p className="text-xs text-gray-500 mt-0.5">
           {entry.author && <span className="not-italic">{entry.author.name} · </span>}
-          {timeAgo(entry.createdAt)}
+          {formatDateTime(entry.createdAt)}
         </p>
       </div>
     </div>

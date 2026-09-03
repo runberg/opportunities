@@ -21,6 +21,7 @@ interface User {
   createdAt: Date | string
   opportunitiesAccess: SectionAccess
   adhocAccess: SectionAccess
+  inventoryAccess: SectionAccess
 }
 
 const ACCESS_LABELS: Record<SectionAccess, string> = {
@@ -84,6 +85,7 @@ export function AdminUsersClient({
     role: "USER",
     opportunitiesAccess: "FULL" as SectionAccess,
     adhocAccess: "FULL" as SectionAccess,
+    inventoryAccess: "FULL" as SectionAccess,
   })
   const [editForm, setEditForm] = useState({
     email: "",
@@ -92,13 +94,14 @@ export function AdminUsersClient({
     newPassword: "",
     opportunitiesAccess: "FULL" as SectionAccess,
     adhocAccess: "FULL" as SectionAccess,
+    inventoryAccess: "FULL" as SectionAccess,
   })
 
   async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError("")
 
-    if (newUser.role !== "ADMIN" && newUser.opportunitiesAccess === "NONE" && newUser.adhocAccess === "NONE") {
+    if (newUser.role !== "ADMIN" && newUser.opportunitiesAccess === "NONE" && newUser.adhocAccess === "NONE" && newUser.inventoryAccess === "NONE") {
       setError("A user must have access to at least one section.")
       return
     }
@@ -120,7 +123,7 @@ export function AdminUsersClient({
     }
 
     setShowCreate(false)
-    setNewUser({ email: "", password: "", role: "USER", opportunitiesAccess: "FULL", adhocAccess: "FULL" })
+    setNewUser({ email: "", password: "", role: "USER", opportunitiesAccess: "FULL", adhocAccess: "FULL", inventoryAccess: "FULL" })
     router.refresh()
   }
 
@@ -133,6 +136,7 @@ export function AdminUsersClient({
       newPassword: "",
       opportunitiesAccess: user.opportunitiesAccess,
       adhocAccess: user.adhocAccess,
+      inventoryAccess: user.inventoryAccess,
     })
     setError("")
   }
@@ -142,7 +146,7 @@ export function AdminUsersClient({
     if (!editUser) return
     setError("")
 
-    if (editForm.role !== "ADMIN" && editForm.opportunitiesAccess === "NONE" && editForm.adhocAccess === "NONE") {
+    if (editForm.role !== "ADMIN" && editForm.opportunitiesAccess === "NONE" && editForm.adhocAccess === "NONE" && editForm.inventoryAccess === "NONE") {
       setError("A user must have access to at least one section.")
       return
     }
@@ -185,6 +189,7 @@ export function AdminUsersClient({
               <SortableHeader label="Status" sortKey="active" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} />
               <th className="px-4 py-3 text-left font-medium text-gray-600 hidden lg:table-cell">Opportunities</th>
               <th className="px-4 py-3 text-left font-medium text-gray-600 hidden lg:table-cell">Ad Hoc</th>
+              <th className="px-4 py-3 text-left font-medium text-gray-600 hidden lg:table-cell">Inventory</th>
               <SortableHeader label="Created" sortKey="createdAt" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="hidden md:table-cell" />
               <th className="px-4 py-3" />
             </tr>
@@ -208,6 +213,9 @@ export function AdminUsersClient({
                 </td>
                 <td className="px-4 py-3 hidden lg:table-cell">
                   <AccessBadge level={user.adhocAccess} />
+                </td>
+                <td className="px-4 py-3 hidden lg:table-cell">
+                  <AccessBadge level={user.inventoryAccess} />
                 </td>
                 <td className="px-4 py-3 text-gray-400 hidden md:table-cell">{formatDate(user.createdAt)}</td>
                 <td className="px-4 py-3">
@@ -280,6 +288,14 @@ export function AdminUsersClient({
                   onChange={(v) => setNewUser((p) => ({ ...p, adhocAccess: v }))}
                 />
               </div>
+              <div>
+                <Label htmlFor="create-inventory-access">Inventory Access</Label>
+                <AccessSelect
+                  id="create-inventory-access"
+                  value={newUser.inventoryAccess}
+                  onChange={(v) => setNewUser((p) => ({ ...p, inventoryAccess: v }))}
+                />
+              </div>
             </>
           )}
           {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
@@ -333,6 +349,14 @@ export function AdminUsersClient({
                   id="edit-adhoc-access"
                   value={editForm.adhocAccess}
                   onChange={(v) => setEditForm((p) => ({ ...p, adhocAccess: v }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-inventory-access">Inventory Access</Label>
+                <AccessSelect
+                  id="edit-inventory-access"
+                  value={editForm.inventoryAccess}
+                  onChange={(v) => setEditForm((p) => ({ ...p, inventoryAccess: v }))}
                 />
               </div>
             </>

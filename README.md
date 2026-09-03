@@ -37,6 +37,14 @@ Built for small teams on a private network. All data stays on your own server.
 - **Status + pending filters** — multi-select status filter and waiting-on filter on all list views
 - **CSV export** — export filtered results from any list view or drill-down modal
 
+### Global Search
+
+A search bar in the top bar (press **⌘K** / **Ctrl+K** to jump to it) searches across Opportunities and Ad Hoc work packages at once, so you don't need to know which pipeline stage or module something is in before you can find it.
+
+- **Cross-module results** — a single query returns matching opportunities (with a badge showing which stage they're in — Quote, Engagement Letter, or Production) and Ad Hoc work packages side by side, grouped by type
+- **Jump straight to the record** — selecting a result opens the opportunity in its usual modal, or takes you to the matching agreement/work package in Ad Hoc Deliveries; opportunities are matched regardless of their current status
+- **Keyboard-friendly** — arrow keys to move through results, Enter to open, Escape to close
+
 ### Ad Hoc Agreements
 
 Manage agreements that fall outside the main sales pipeline — retainers, one-off work orders, or any engagement that needs its own budget and deliverable tracking.
@@ -44,13 +52,29 @@ Manage agreements that fall outside the main sales pipeline — retainers, one-o
 - **Agreement lifecycle** — DRAFT → SIGNED → CLOSED; the signed state is the active state (no separate activation step)
 - **Budget tracking** — set a total agreement amount; committed and remaining amounts update live as work packages are approved
 - **Work packages** — add deliverables once an agreement is signed; each work package has an approval amount, its own line items, and document attachments; documents support Delivery Note, Other, and generic types
+- **Work package lifecycle** — Not Approved → Approved (or Partially Approved, if line items exceed the approved amount) → Delivered → **Closed Finance**; once a work package is delivered, finance can close it out with a date (defaults to today, editable) and an optional note — visible afterwards as an inline-editable "Finance Note"; both the delivered→closed transition and its reverse are available to anyone with write access, matching how delivery itself can be reverted
+- **Status colors** — Not Approved (red), Partially Approved (amber), Approved (blue), Delivered (green), Closed Finance (gray)
 - **Work package IDs** — each work package is assigned a unique internal ID (`YYYYMMNNNN` format) once created; IDs are shown in the table and are the default sort key (highest first; packages without an ID sort to the top, newest first)
-- **Editable dates** — the Created date and all milestone dates (Partially Approved, Approved, Delivered) are directly editable on each work package
+- **Editable dates** — the Created date and all milestone dates (Partially Approved, Approved, Delivered, Closed Finance) are directly editable on each work package
 - **Comments and changelog** — each work package has a combined activity feed showing system events alongside user comments; comments can also be added directly from the table without opening the work package
 - **Search, filter, and pagination** — filter work packages by status badge and free-text search; results are paginated at 10 per page
 - **Agreement documents** — upload draft agreements on DRAFT agreements; upload counter-signed copies when marking as signed or at any time afterwards
 - **Signed date** — required when marking an agreement as signed; defaults to today
 - **Audit log** — all agreement, work package, and document events appear in the system log under the Ad Hoc filter
+
+### Inventory
+
+Track stock that gets drawn down over the life of a project — independent of, but optionally linked to, the opportunities pipeline.
+
+- **Packages → Items → Utilizations** — an Inventory Package (e.g. a shipment or stock allocation) holds one or more Items, each with a product name and an original/remaining quantity; drawing down an item's stock is recorded as a Utilization
+- **Compact, expandable list** — packages are shown as a vertical stack of cards; each item is a single line (product name, remaining/original quantity, utilization count) that expands to show its full utilization history (date, quantity, delivery note, linked opportunity, comment)
+- **Package-level opportunity link** — optionally link a whole package to any opportunity, regardless of its current status, via a searchable picker; shown as a clearly visible blue button once set, hidden behind "Show more" along with the package's free-text comment
+- **Utilize an item** — record a quantity (validated against what's remaining, both in the form and server-side, so two people can't oversell the same stock), a date, and optionally a delivery note and a linked opportunity — all editable afterwards, including attaching or replacing the delivery note later
+- **Per-utilization opportunity link** — independent of the package's own link; shows a **Reserved** (blue) tag if the linked opportunity isn't signed yet, or **Allocated** (green) once it is
+- **Delivery notes** — Word (.docx), PDF, or Excel only, with an optional display name; open in the same in-browser viewer used for every other document in the app rather than downloading
+- **Own access level** — Inventory has its own per-user access level (Full / Read-only / None), managed in Admin → Users alongside Opportunities and Ad Hoc access
+- **Admin-only deletion** — deleting a package, item, or utilization is restricted to admins; deleting a utilization restores its quantity back to the item
+- **Audit log** — package, item, and utilization events appear in the system log under the Inventory filter
 
 ### Email notifications
 - Users choose a notification level per module from their profile page (only visible when an admin has configured and enabled SMTP)

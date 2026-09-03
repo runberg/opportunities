@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useSearchParams } from "next/navigation"
 import type { AdhocAgreementStatus } from "@prisma/client"
 import { AgreementTabs } from "./agreement-tabs"
 import { AgreementForm } from "./agreement-form"
@@ -53,6 +54,9 @@ type Props = {
 export function AdhocClient({ initialAgreements, currentUserId, isAdmin, isReadOnly = false }: Props) {
   const [agreements, setAgreements] = useState(initialAgreements)
   const [showForm, setShowForm] = useState(false)
+  const searchParams = useSearchParams()
+  const initialAgreementId = searchParams.get("agreement") ?? undefined
+  const initialDeliverableId = searchParams.get("deliverable") ?? undefined
 
   async function refresh() {
     const res = await fetch("/api/adhoc/agreements")
@@ -86,6 +90,8 @@ export function AdhocClient({ initialAgreements, currentUserId, isAdmin, isReadO
           isAdmin={isAdmin}
           isReadOnly={isReadOnly}
           onRefresh={refresh}
+          initialAgreementId={initialAgreementId}
+          initialDeliverableId={initialDeliverableId}
         />
       )}
 

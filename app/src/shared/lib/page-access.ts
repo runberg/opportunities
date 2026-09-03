@@ -3,6 +3,8 @@ import { authOptions } from "@/shared/lib/auth"
 import { redirect } from "next/navigation"
 import type { Session } from "next-auth"
 
+export type SectionName = "opportunities" | "adhoc" | "inventory"
+
 export type SectionAccess = {
   session: Session
   isAdmin: boolean
@@ -16,18 +18,22 @@ export type SectionAccess = {
  * Returns { session, isAdmin, isReadOnly } for READ_ONLY or FULL access.
  */
 export async function requireSectionAccess(
-  section: "opportunities" | "adhoc",
+  section: SectionName,
   redirectOnNone = "/dashboard",
 ): Promise<SectionAccess> {
   const session = await getServerSession(authOptions)
   if (!session) redirect("/login")
   const isAdmin = session.user.role === "ADMIN"
-  const access = section === "opportunities"
-    ? session.user.opportunitiesAccess
-    : session.user.adhocAccess
+  const access = sectionAccessLevel(section, session)
   if (!isAdmin && access === "NONE") redirect(redirectOnNone)
   const isReadOnly = !isAdmin && access === "READ_ONLY"
   return { session, isAdmin, isReadOnly }
+}
+
+function sectionAccessLevel(section: SectionName, session: Session): string {
+  if (section === "opportunities") return session.user.opportunitiesAccess
+  if (section === "adhoc") return session.user.adhocAccess
+  return session.user.inventoryAccess
 }
 
 /**
@@ -35,7 +41,7 @@ export async function requireSectionAccess(
  * Use for write-only pages (create, edit) where READ_ONLY access should redirect.
  */
 export async function requireFullSectionAccess(
-  section: "opportunities" | "adhoc",
+  section: SectionName,
   redirectTo: string,
 ): Promise<Pick<SectionAccess, "session" | "isAdmin">> {
   const { session, isAdmin, isReadOnly } = await requireSectionAccess(section)

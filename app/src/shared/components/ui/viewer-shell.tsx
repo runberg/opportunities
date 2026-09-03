@@ -23,7 +23,7 @@ export function ViewerShell({ fileUrl, docName, onClose, tabs, children }: Viewe
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black/90">
       <div className="flex items-center justify-between gap-4 px-4 py-3 bg-gray-900 text-white shrink-0">
-        <span className="text-sm font-medium text-gray-100 truncate">{docName}</span>
+        <span className="text-sm font-medium text-gray-100 truncate" title={docName}>{docName}</span>
         <div className="flex items-center gap-2 shrink-0">
           <a
             href={fileUrl}

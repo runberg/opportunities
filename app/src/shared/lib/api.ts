@@ -34,11 +34,17 @@ export const ACCESS_LEVELS = ["FULL", "READ_ONLY", "NONE"] as const
  */
 export function hasSectionAccess(
   session: Session,
-  section: "opportunities" | "adhoc",
+  section: "opportunities" | "adhoc" | "inventory",
   minimum: "READ_ONLY" | "FULL",
 ): boolean {
   if (session.user.role === "ADMIN") return true
-  const level = section === "opportunities" ? session.user.opportunitiesAccess : session.user.adhocAccess
+  const level = sectionAccessLevel(session, section)
   if (minimum === "READ_ONLY") return level === "FULL" || level === "READ_ONLY"
   return level === "FULL"
+}
+
+function sectionAccessLevel(session: Session, section: "opportunities" | "adhoc" | "inventory"): string {
+  if (section === "opportunities") return session.user.opportunitiesAccess
+  if (section === "adhoc") return session.user.adhocAccess
+  return session.user.inventoryAccess
 }

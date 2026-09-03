@@ -29,7 +29,7 @@ export const authOptions: NextAuthOptions = {
 
         const user = await db.user.findUnique({
           where: { email: credentials.email },
-          select: { id: true, name: true, email: true, password: true, role: true, active: true, opportunitiesAccess: true, adhocAccess: true },
+          select: { id: true, name: true, email: true, password: true, role: true, active: true, opportunitiesAccess: true, adhocAccess: true, inventoryAccess: true },
         })
 
         if (!user?.active) {
@@ -51,6 +51,7 @@ export const authOptions: NextAuthOptions = {
           role: user.role,
           opportunitiesAccess: user.opportunitiesAccess,
           adhocAccess: user.adhocAccess,
+          inventoryAccess: user.inventoryAccess,
         }
       },
     }),
@@ -64,20 +65,22 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id
-        const u = user as unknown as { role: string; opportunitiesAccess: string; adhocAccess: string }
+        const u = user as unknown as { role: string; opportunitiesAccess: string; adhocAccess: string; inventoryAccess: string }
         token.role = u.role
         token.opportunitiesAccess = u.opportunitiesAccess
         token.adhocAccess = u.adhocAccess
+        token.inventoryAccess = u.inventoryAccess
       } else if (token.id) {
         const dbUser = await db.user.findUnique({
           where: { id: token.id as string },
-          select: { name: true, role: true, opportunitiesAccess: true, adhocAccess: true, active: true },
+          select: { name: true, role: true, opportunitiesAccess: true, adhocAccess: true, inventoryAccess: true, active: true },
         })
         if (dbUser?.active) {
           token.name = dbUser.name
           token.role = dbUser.role
           token.opportunitiesAccess = dbUser.opportunitiesAccess
           token.adhocAccess = dbUser.adhocAccess
+          token.inventoryAccess = dbUser.inventoryAccess
         }
       }
       return token
@@ -88,6 +91,7 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role as string
         session.user.opportunitiesAccess = token.opportunitiesAccess as string
         session.user.adhocAccess = token.adhocAccess as string
+        session.user.inventoryAccess = token.inventoryAccess as string
       }
       return session
     },

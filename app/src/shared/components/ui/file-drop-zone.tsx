@@ -55,7 +55,7 @@ export function FileDropZone({
         />
         <FileUp size={15} className={upIconCls} />
         {file
-          ? <span className="font-medium text-green-400 truncate">{file.name}</span>
+          ? <span className="font-medium text-green-400 truncate" title={file.name}>{file.name}</span>
           : <span className="text-gray-400"><span className="font-medium text-gray-300">Drop file</span> or click to browse</span>
         }
       </button>

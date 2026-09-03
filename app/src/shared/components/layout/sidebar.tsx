@@ -11,6 +11,7 @@ import {
   ScrollText,
   Factory,
   Package,
+  Boxes,
   Users,
   Trash2,
   ClipboardList,
@@ -29,15 +30,17 @@ interface SidebarProps {
   readonly currentUserId: string
   readonly opportunitiesAccess: string
   readonly adhocAccess: string
+  readonly inventoryAccess: string
 }
 
-export function Sidebar({ userName, userRole, currentUserId, opportunitiesAccess, adhocAccess }: SidebarProps) {
+export function Sidebar({ userName, userRole, currentUserId, opportunitiesAccess, adhocAccess, inventoryAccess }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const isAdmin = userRole === "ADMIN"
   const canCreateOpportunity = isAdmin || opportunitiesAccess === "FULL"
   const showOpportunities = isAdmin || opportunitiesAccess !== "NONE"
   const showAdhoc = isAdmin || adhocAccess !== "NONE"
+  const showInventory = isAdmin || inventoryAccess !== "NONE"
   const [newModalOpen, setNewModalOpen] = useState(false)
   const [justCreatedId, setJustCreatedId] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
@@ -120,6 +123,18 @@ export function Sidebar({ userName, userRole, currentUserId, opportunitiesAccess
             <Link href="/adhoc" className={linkCls("/adhoc")}>
               <Package size={18} />
               Ad Hoc Deliveries
+            </Link>
+          </>
+        )}
+
+        {showInventory && (
+          <>
+            <div className="pt-4 pb-1 px-3">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#3d5570]">Inventory</span>
+            </div>
+            <Link href="/inventory" className={linkCls("/inventory")}>
+              <Boxes size={18} />
+              Inventory
             </Link>
           </>
         )}

@@ -7,6 +7,7 @@ declare module "next-auth" {
       role: string
       opportunitiesAccess: string
       adhocAccess: string
+      inventoryAccess: string
     } & DefaultSession["user"]
   }
 }
@@ -17,5 +18,6 @@ declare module "next-auth/jwt" {
     role: string
     opportunitiesAccess: string
     adhocAccess: string
+    inventoryAccess: string
   }
 }

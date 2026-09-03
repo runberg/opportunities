@@ -7,6 +7,7 @@ export async function writeLog(opts: {
   userId?: string | null
   opportunityId?: string | null
   adhocDeliverableId?: string | null
+  inventoryPackageId?: string | null
 }) {
   try {
     await db.systemLog.create({ data: opts })

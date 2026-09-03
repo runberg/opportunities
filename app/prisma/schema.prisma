@@ -28,6 +28,7 @@ model User {
   active                    Boolean           @default(true)
   opportunitiesAccess       SectionAccess     @default(FULL)
   adhocAccess               SectionAccess     @default(FULL)
+  inventoryAccess           SectionAccess     @default(FULL)
   opportunityNotifications  NotificationLevel @default(NONE)
   adhocNotifications        NotificationLevel @default(NONE)
   createdAt                 DateTime          @default(now())
@@ -41,6 +42,8 @@ model User {
   adhocDeliverables       AdhocDeliverable[]
   adhocDocuments          AdhocDocument[]
   adhocAgreementDocuments AdhocAgreementDocument[]
+  inventoryPackages       InventoryPackage[]
+  inventoryUtilizations   InventoryUtilization[]
 }
 
 enum Role {
@@ -83,6 +86,8 @@ model Opportunity {
   documents   Document[]
   systemLogs  SystemLog[]
   deliveries  ExpectedDelivery[]
+  inventoryPackages InventoryPackage[]
+  inventoryUtilizations InventoryUtilization[]
 }
 
 enum OpportunityStatus {
@@ -182,6 +187,9 @@ model SystemLog {
 
   adhocDeliverableId String?
   adhocDeliverable   AdhocDeliverable? @relation(fields: [adhocDeliverableId], references: [id], onDelete: SetNull)
+
+  inventoryPackageId String?
+  inventoryPackage   InventoryPackage? @relation(fields: [inventoryPackageId], references: [id], onDelete: SetNull)
 }
 
 enum SystemLogType {
@@ -204,6 +212,15 @@ enum SystemLogType {
   ADHOC_LINE_ITEM_DELETED
   ADHOC_DOCUMENT_UPLOADED
   ADHOC_DOCUMENT_DELETED
+  INVENTORY_PACKAGE_CREATED
+  INVENTORY_PACKAGE_UPDATED
+  INVENTORY_PACKAGE_DELETED
+  INVENTORY_ITEM_CREATED
+  INVENTORY_ITEM_UPDATED
+  INVENTORY_ITEM_DELETED
+  INVENTORY_ITEM_UTILIZED
+  INVENTORY_UTILIZATION_UPDATED
+  INVENTORY_UTILIZATION_DELETED
 }
 
 // ─── Ad Hoc ──────────────────────────────────────────────────────────────────
@@ -244,6 +261,8 @@ model AdhocDeliverable {
   partiallyApprovedAt DateTime?
   approvedAt          DateTime?
   deliveredAt         DateTime?
+  closedFinanceAt     DateTime?
+  closedFinanceNote   String?
   createdAt           DateTime               @default(now())
   updatedAt           DateTime               @updatedAt
 
@@ -264,6 +283,7 @@ enum AdhocDeliverableStatus {
   PARTIALLY_APPROVED
   APPROVED
   DELIVERED
+  CLOSED_FINANCE
 }
 
 model AdhocLineItem {
@@ -323,6 +343,64 @@ model AdhocAgreementDocument {
 enum AdhocAgreementDocumentType {
   DRAFT
   COUNTERSIGNED
+}
+
+// ─── Inventory ───────────────────────────────────────────────────────────────
+
+model InventoryPackage {
+  id        String   @id @default(cuid())
+  name      String
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdById String
+  createdBy   User    @relation(fields: [createdById], references: [id])
+
+  opportunityId String?
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+
+  items      InventoryItem[]
+  systemLogs SystemLog[]
+}
+
+model InventoryItem {
+  id                String   @id @default(cuid())
+  productName       String
+  originalQuantity  Int
+  remainingQuantity Int
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  packageId String
+  package   InventoryPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  utilizations InventoryUtilization[]
+}
+
+model InventoryUtilization {
+  id       String   @id @default(cuid())
+  quantity Int
+  date     DateTime
+  comment  String?
+  // Delivery note — optional, at most one per utilization (attach/replace later by editing).
+  displayName  String?
+  filename     String?
+  originalName String?
+  mimeType     String?
+  size         Int?
+  createdAt    DateTime @default(now())
+
+  itemId String
+  item   InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id])
+
+  // Optional link to the opportunity this utilization was drawn against — separate from
+  // the package's own optional link, and independently editable later.
+  opportunityId String?
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

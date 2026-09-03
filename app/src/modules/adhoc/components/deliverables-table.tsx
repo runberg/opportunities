@@ -24,9 +24,10 @@ const STATUS_LABEL: Record<string, string> = {
   PARTIALLY_APPROVED: "Partial",
   APPROVED: "Approved",
   DELIVERED: "Delivered",
+  CLOSED_FINANCE: "Closed Finance",
 }
 
-const ALL_STATUSES: DeliverableStatus[] = ["NOT_APPROVED", "PARTIALLY_APPROVED", "APPROVED", "DELIVERED"]
+const ALL_STATUSES: DeliverableStatus[] = ["NOT_APPROVED", "PARTIALLY_APPROVED", "APPROVED", "DELIVERED", "CLOSED_FINANCE"]
 
 const STATUS_GROUPS: FilterStatusGroup[] = [
   { label: "", statuses: ALL_STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s] })) },
@@ -161,12 +162,15 @@ type Props = {
   readonly isAdmin: boolean
   readonly isReadOnly?: boolean
   readonly onRefresh: () => Promise<void>
+  readonly initialOpenId?: string
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function DeliverablesTable({ agreement, currentUserId, isAdmin, isReadOnly = false, onRefresh }: Props) {
-  const [openDeliverableId, setOpenDeliverableId] = useState<string | null>(null)
+export function DeliverablesTable({
+  agreement, currentUserId, isAdmin, isReadOnly = false, onRefresh, initialOpenId,
+}: Props) {
+  const [openDeliverableId, setOpenDeliverableId] = useState<string | null>(initialOpenId ?? null)
   const [commentTarget, setCommentTarget] = useState<DeliverableRow | null>(null)
   const [adding, setAdding] = useState(false)
   const [newTitle, setNewTitle] = useState("")

@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { findAllAgreements } from "@/app/api/adhoc/_helpers"
 import { AdhocClient } from "@/modules/adhoc/components/adhoc-client"
 import { requireSectionAccess } from "@/shared/lib/page-access"
@@ -28,11 +29,13 @@ export default async function AdHocPage() {
   }))
 
   return (
-    <AdhocClient
-      initialAgreements={serialized}
-      currentUserId={session.user.id}
-      isAdmin={isAdmin}
-      isReadOnly={isReadOnly}
-    />
+    <Suspense>
+      <AdhocClient
+        initialAgreements={serialized}
+        currentUserId={session.user.id}
+        isAdmin={isAdmin}
+        isReadOnly={isReadOnly}
+      />
+    </Suspense>
   )
 }

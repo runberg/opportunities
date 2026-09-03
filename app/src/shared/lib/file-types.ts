@@ -9,3 +9,12 @@ export const WORD_DOCX_MIME = "application/vnd.openxmlformats-officedocument.wor
 export function isViewableMime(mimeType: string): boolean {
   return mimeType === "application/pdf" || EXCEL_MIMES.has(mimeType) || mimeType === WORD_DOCX_MIME
 }
+
+// Word (.docx only — old .doc has no in-browser preview), PDF, and Excel — the set of
+// types that are always viewable in-app via isViewableMime, so anything uploaded here
+// is guaranteed to be openable in the viewer rather than download-only.
+export const DELIVERY_NOTE_MIMES = new Set([
+  "application/pdf",
+  ...EXCEL_MIMES,
+  WORD_DOCX_MIME,
+])

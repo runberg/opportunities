@@ -30,14 +30,14 @@ export function DocNameCell({
       <button
         type="button"
         onClick={onView}
-        title={viewTitle(doc.mimeType)}
+        title={`${doc.displayName} · ${viewTitle(doc.mimeType)}`}
         className="font-medium text-gray-100 truncate block text-left w-full cursor-pointer hover:underline"
       >
         {doc.displayName}
       </button>
     )
   } else {
-    nameEl = <div className="font-medium text-gray-100 truncate">{doc.displayName}</div>
+    nameEl = <div className="font-medium text-gray-100 truncate" title={doc.displayName}>{doc.displayName}</div>
   }
 
   return (
@@ -46,7 +46,9 @@ export function DocNameCell({
         <FileTypeIcon mimeType={doc.mimeType} />
         <div className="min-w-0">
           {nameEl}
-          <div className="text-xs text-gray-400 font-normal truncate">{truncateFilename(doc.originalName)}</div>
+          <div className="text-xs text-gray-400 font-normal truncate" title={doc.originalName}>
+            {truncateFilename(doc.originalName)}
+          </div>
         </div>
       </div>
     </td>

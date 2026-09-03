@@ -11,6 +11,7 @@ const createSchema = z.object({
   role: z.enum(["ADMIN", "USER"]).optional(),
   opportunitiesAccess: z.enum(ACCESS_LEVELS).optional(),
   adhocAccess: z.enum(ACCESS_LEVELS).optional(),
+  inventoryAccess: z.enum(ACCESS_LEVELS).optional(),
 })
 
 export async function POST(req: NextRequest) {
@@ -25,7 +26,8 @@ export async function POST(req: NextRequest) {
 
   const opportunitiesAccess = parsed.data.opportunitiesAccess ?? "FULL"
   const adhocAccess = parsed.data.adhocAccess ?? "FULL"
-  if (opportunitiesAccess === "NONE" && adhocAccess === "NONE") {
+  const inventoryAccess = parsed.data.inventoryAccess ?? "FULL"
+  if (opportunitiesAccess === "NONE" && adhocAccess === "NONE" && inventoryAccess === "NONE") {
     return NextResponse.json(
       { error: "A user must have access to at least one section." },
       { status: 400 }
@@ -46,8 +48,9 @@ export async function POST(req: NextRequest) {
       role: parsed.data.role ?? "USER",
       opportunitiesAccess,
       adhocAccess,
+      inventoryAccess,
     },
-    select: { id: true, email: true, role: true, active: true, createdAt: true, opportunitiesAccess: true, adhocAccess: true },
+    select: { id: true, email: true, role: true, active: true, createdAt: true, opportunitiesAccess: true, adhocAccess: true, inventoryAccess: true },
   })
 
   await writeLog({

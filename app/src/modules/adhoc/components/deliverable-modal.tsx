@@ -7,7 +7,7 @@ import { FileViewerModals } from "@/shared/components/ui/file-viewer-modals"
 import { useFileViewer } from "@/shared/lib/use-file-viewer"
 import { LogSection, type LogEntry } from "@/shared/components/ui/log-section"
 import { DatePicker } from "@/shared/components/ui/date-picker"
-import { formatAmount, nameFromFile } from "@/shared/lib/utils"
+import { formatAmount, nameFromFile, todayISO } from "@/shared/lib/utils"
 import { useDropZone, useWindowDragExpand } from "@/shared/lib/use-drop-zone"
 import { FileDropZone } from "@/shared/components/ui/file-drop-zone"
 import { AdhocDocList } from "./adhoc-doc-list"
@@ -57,10 +57,12 @@ type Deliverable = {
   approvedAmount: string
   approverName: string | null
   deliveryNoteRef: string | null
-  status: "NOT_APPROVED" | "PARTIALLY_APPROVED" | "APPROVED" | "DELIVERED"
+  status: "NOT_APPROVED" | "PARTIALLY_APPROVED" | "APPROVED" | "DELIVERED" | "CLOSED_FINANCE"
   partiallyApprovedAt: string | null
   approvedAt: string | null
   deliveredAt: string | null
+  closedFinanceAt: string | null
+  closedFinanceNote: string | null
   createdAt: string
   createdBy: { id: string; name: string }
   agreement: { id: string; title: string; status: string }
@@ -77,6 +79,7 @@ const STATUS_LABEL: Record<string, string> = {
   PARTIALLY_APPROVED: "Partially Approved",
   APPROVED: "Approved",
   DELIVERED: "Delivered",
+  CLOSED_FINANCE: "Closed Finance",
 }
 
 function lineItemTotal(items: LineItem[]) {
@@ -728,7 +731,7 @@ function DocumentsTab({
                     id="dm-dn-ref"
                     value={dnRef}
                     onChange={(e) => setDnRef(e.target.value)}
-                    placeholder="e.g. DN-2026-001"
+                    placeholder="BT-XXXXXXXXXX"
                     className="w-full px-3 py-2 border border-gray-600 rounded-lg text-sm bg-gray-800 text-gray-100 focus:outline-none focus:ring-1 focus:ring-gray-500"
                   />
                 </div>
@@ -786,13 +789,15 @@ function EditableTextField({
   value,
   deliverableId,
   isReadOnly = false,
+  placeholder,
   onSaved,
 }: {
   readonly label: string
-  readonly fieldName: "approverName" | "deliveryNoteRef"
+  readonly fieldName: "approverName" | "deliveryNoteRef" | "closedFinanceNote"
   readonly value: string | null
   readonly deliverableId: string
   readonly isReadOnly?: boolean
+  readonly placeholder?: string
   readonly onSaved: () => Promise<void>
 }) {
   const [editing, setEditing] = useState(false)
@@ -839,6 +844,7 @@ function EditableTextField({
             autoFocus
             className="rounded border border-gray-600 bg-gray-800 px-1.5 py-0.5 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 w-36"
             value={draft}
+            placeholder={placeholder}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") { void save() }
@@ -919,7 +925,7 @@ function DeliverPanel({
             autoFocus
             type="text"
             className="w-44 rounded border border-gray-600 bg-gray-800 px-2 py-1.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="e.g. DN-2026-001"
+            placeholder="BT-XXXXXXXXXX"
             value={dnRef}
             onChange={(e) => setDnRef(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") void handleConfirm() }}
@@ -976,6 +982,77 @@ function DeliverPanel({
   )
 }
 
+// ─── Close Finance panel ──────────────────────────────────────────────────────
+
+function ClosedFinancePanel({
+  deliverable,
+  onDone,
+  onClose,
+}: {
+  readonly deliverable: Deliverable
+  readonly onDone: () => Promise<void>
+  readonly onClose: () => void
+}) {
+  const [date, setDate] = useState(todayISO())
+  const [note, setNote] = useState(deliverable.closedFinanceNote ?? "")
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleConfirm() {
+    setSaving(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/adhoc/deliverables/${deliverable.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "CLOSED_FINANCE", closedFinanceAt: date, closedFinanceNote: note.trim() || null }),
+      })
+      if (!res.ok) { setError((await res.json() as { error?: string }).error ?? "Save failed"); return }
+      onClose()
+      await onDone()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="mt-3 pt-3 border-t border-gray-700 space-y-3">
+      <div className="flex flex-wrap gap-3 items-start">
+        <div>
+          <label htmlFor="close-finance-date" className="block text-xs text-gray-400 mb-1">Date *</label>
+          <DatePicker
+            value={date}
+            onChange={setDate}
+            clearable={false}
+            triggerClassName="text-sm border border-gray-600 bg-gray-800 text-gray-100 rounded px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center min-w-[140px]"
+          />
+        </div>
+        <div className="flex-1 min-w-60">
+          <label htmlFor="close-finance-note" className="block text-xs text-gray-400 mb-1">
+            Note <span className="text-gray-600">(optional)</span>
+          </label>
+          <textarea
+            id="close-finance-note"
+            rows={2}
+            className="w-full rounded border border-gray-600 bg-gray-800 px-2 py-1.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {error && <p className="text-xs text-red-600">{error}</p>}
+
+      <div className="flex gap-2">
+        <Button size="sm" variant="primary" onClick={() => void handleConfirm()} disabled={saving || !date}>
+          {saving ? "Saving…" : "Confirm Close"}
+        </Button>
+        <Button size="sm" variant="ghost" onClick={onClose}>Cancel</Button>
+      </div>
+    </div>
+  )
+}
+
 // ─── Milestone date field ─────────────────────────────────────────────────────
 
 function DateField({
@@ -990,7 +1067,7 @@ function DateField({
   readonly label: string
   readonly value: string | null
   readonly deliverableId: string
-  readonly field: "createdAt" | "partiallyApprovedAt" | "approvedAt" | "deliveredAt"
+  readonly field: "createdAt" | "partiallyApprovedAt" | "approvedAt" | "deliveredAt" | "closedFinanceAt"
   readonly nullable?: boolean
   readonly isReadOnly?: boolean
   readonly onSaved: () => Promise<void>
@@ -1144,6 +1221,7 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, isRead
   const [editingApproval, setEditingApproval] = useState(false)
   const [approvePanelOpen, setApprovePanelOpen] = useState(false)
   const [deliverPanelOpen, setDeliverPanelOpen] = useState(false)
+  const [closeFinancePanelOpen, setCloseFinancePanelOpen] = useState(false)
 
   const [titleDraft, setTitleDraft] = useState("")
   const [descDraft, setDescDraft] = useState("")
@@ -1167,6 +1245,7 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, isRead
     setApprovePanelOpen(false)
     setEditingApproval(false)
     setDeliverPanelOpen(false)
+    setCloseFinancePanelOpen(false)
   }, [deliverable?.status])
 
   useWindowDragExpand(() => {
@@ -1234,11 +1313,28 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, isRead
     }
   }
 
-  const isLocked = (deliverable?.status === "DELIVERED" && !isAdmin) || isReadOnly
+  async function handleRevertClosedFinance() {
+    if (!deliverable) return
+    setTransitioning(true)
+    try {
+      await fetch(`/api/adhoc/deliverables/${deliverable.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "DELIVERED", closedFinanceAt: null }),
+      })
+      await refresh()
+    } finally {
+      setTransitioning(false)
+    }
+  }
+
+  const isLocked = ((deliverable?.status === "DELIVERED" || deliverable?.status === "CLOSED_FINANCE") && !isAdmin) || isReadOnly
   const canApprove = deliverable?.status === "NOT_APPROVED"
   const canEditApproval = deliverable?.status === "PARTIALLY_APPROVED" || deliverable?.status === "APPROVED"
   const canDeliver = deliverable?.status === "APPROVED"
   const canRevertDelivered = deliverable?.status === "DELIVERED"
+  const canCloseFinance = deliverable?.status === "DELIVERED"
+  const canRevertClosedFinance = deliverable?.status === "CLOSED_FINANCE"
   const missingApprovalDoc =
     canEditApproval &&
     (deliverable?.documents.filter((d) => d.type === "APPROVAL").length ?? 0) === 0
@@ -1317,18 +1413,29 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, isRead
                   onSaved={refresh}
                 />
               )}
-              {(deliverable.status === "DELIVERED" || deliverable.deliveryNoteRef) && (
+              {(deliverable.status === "DELIVERED" || deliverable.status === "CLOSED_FINANCE" || deliverable.deliveryNoteRef) && (
                 <EditableTextField
                   label="DN Ref."
                   fieldName="deliveryNoteRef"
                   value={deliverable.deliveryNoteRef}
                   deliverableId={deliverable.id}
                   isReadOnly={isReadOnly}
+                  placeholder="BT-XXXXXXXXXX"
+                  onSaved={refresh}
+                />
+              )}
+              {(deliverable.status === "CLOSED_FINANCE" || deliverable.closedFinanceNote) && (
+                <EditableTextField
+                  label="Finance Note"
+                  fieldName="closedFinanceNote"
+                  value={deliverable.closedFinanceNote}
+                  deliverableId={deliverable.id}
+                  isReadOnly={isReadOnly}
                   onSaved={refresh}
                 />
               )}
             </div>
-            {!isReadOnly && (canApprove || canEditApproval || canDeliver || canRevertDelivered) && (
+            {!isReadOnly && (canApprove || canEditApproval || canDeliver || canRevertDelivered || canCloseFinance || canRevertClosedFinance) && (
               <div className="flex items-center gap-2 mt-3">
                 {canApprove && !approvePanelOpen && (
                   <Button size="sm" variant="outline" onClick={() => setApprovePanelOpen(true)}>Approve</Button>
@@ -1351,6 +1458,16 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, isRead
                     {transitioning ? "Saving…" : "Revert to Approved"}
                   </Button>
                 )}
+                {canCloseFinance && !closeFinancePanelOpen && (
+                  <Button size="sm" variant="outline" onClick={() => setCloseFinancePanelOpen(true)}>
+                    Close Finance
+                  </Button>
+                )}
+                {canRevertClosedFinance && (
+                  <Button size="sm" variant="ghost" onClick={handleRevertClosedFinance} disabled={transitioning}>
+                    {transitioning ? "Saving…" : "Revert to Delivered"}
+                  </Button>
+                )}
               </div>
             )}
 
@@ -1360,6 +1477,7 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, isRead
               <DateField label="Partially Approved" value={deliverable.partiallyApprovedAt} deliverableId={deliverable.id} field="partiallyApprovedAt" isReadOnly={isReadOnly} onSaved={refresh} />
               <DateField label="Approved" value={deliverable.approvedAt} deliverableId={deliverable.id} field="approvedAt" isReadOnly={isReadOnly} onSaved={refresh} />
               <DateField label="Delivered" value={deliverable.deliveredAt} deliverableId={deliverable.id} field="deliveredAt" isReadOnly={isReadOnly} onSaved={refresh} />
+              <DateField label="Closed Finance" value={deliverable.closedFinanceAt} deliverableId={deliverable.id} field="closedFinanceAt" isReadOnly={isReadOnly} onSaved={refresh} />
             </div>
 
             {missingApprovalDoc && !editingApproval && (
@@ -1385,6 +1503,14 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, isRead
                 deliverable={deliverable}
                 onDone={refresh}
                 onClose={() => setDeliverPanelOpen(false)}
+              />
+            )}
+
+            {canCloseFinance && closeFinancePanelOpen && (
+              <ClosedFinancePanel
+                deliverable={deliverable}
+                onDone={refresh}
+                onClose={() => setCloseFinancePanelOpen(false)}
               />
             )}
           </div>

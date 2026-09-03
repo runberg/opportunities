@@ -28,7 +28,11 @@ const STATUS_LABEL: Record<string, string> = {
   CLOSED: "Closed",
 }
 
-function defaultTabIndex(agreements: AgreementRow[]) {
+function defaultTabIndex(agreements: AgreementRow[], initialAgreementId?: string) {
+  if (initialAgreementId) {
+    const targetIdx = agreements.findIndex((a) => a.id === initialAgreementId)
+    if (targetIdx >= 0) return targetIdx
+  }
   const idx = agreements.findIndex((a) => a.status === "SIGNED" || a.status === "ACTIVE")
   return Math.max(0, idx)
 }
@@ -310,10 +314,15 @@ type Props = {
   readonly isAdmin: boolean
   readonly isReadOnly?: boolean
   readonly onRefresh: () => Promise<void>
+  readonly initialAgreementId?: string
+  readonly initialDeliverableId?: string
 }
 
-export function AgreementTabs({ agreements, currentUserId, isAdmin, isReadOnly = false, onRefresh }: Props) {
-  const [activeTab, setActiveTab] = useState(() => defaultTabIndex(agreements))
+export function AgreementTabs({
+  agreements, currentUserId, isAdmin, isReadOnly = false, onRefresh,
+  initialAgreementId, initialDeliverableId,
+}: Props) {
+  const [activeTab, setActiveTab] = useState(() => defaultTabIndex(agreements, initialAgreementId))
   const [showDetails, setShowDetails] = useState(false)
   const [showSignDialog, setShowSignDialog] = useState(false)
   const [transitioning, setTransitioning] = useState(false)
@@ -459,6 +468,7 @@ export function AgreementTabs({ agreements, currentUserId, isAdmin, isReadOnly =
         isAdmin={isAdmin}
         isReadOnly={isReadOnly}
         onRefresh={onRefresh}
+        initialOpenId={agreement.id === initialAgreementId ? initialDeliverableId : undefined}
       />
 
       {showSignDialog && (

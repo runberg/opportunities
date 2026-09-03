@@ -60,7 +60,7 @@ async function generateInternalId(): Promise<string> {
 }
 
 function validateBody(body: Record<string, unknown>): string | null {
-  const { title, status, createdAt, partiallyApprovedAt, approvedAt, deliveredAt } = body
+  const { title, status, createdAt, partiallyApprovedAt, approvedAt, deliveredAt, closedFinanceAt } = body
   if (title !== undefined && (typeof title !== "string" || title.trim() === ""))
     return "Title cannot be empty"
   if (status !== undefined && !VALID_STATUSES.includes(status as AdhocDeliverableStatus))
@@ -69,7 +69,11 @@ function validateBody(body: Record<string, unknown>): string | null {
     if (createdAt === null || typeof createdAt !== "string" || Number.isNaN(Date.parse(createdAt)))
       return "createdAt must be a valid date"
   }
-  for (const [field, value] of [["partiallyApprovedAt", partiallyApprovedAt], ["approvedAt", approvedAt], ["deliveredAt", deliveredAt]] as const) {
+  const dateFields = [
+    ["partiallyApprovedAt", partiallyApprovedAt], ["approvedAt", approvedAt],
+    ["deliveredAt", deliveredAt], ["closedFinanceAt", closedFinanceAt],
+  ] as const
+  for (const [field, value] of dateFields) {
     if (value !== undefined && value !== null) {
       if (typeof value !== "string" || Number.isNaN(Date.parse(value as string)))
         return `${field} must be a valid date or null`
@@ -106,6 +110,7 @@ function autoStatusDates(
   if (newStatus === "PARTIALLY_APPROVED" && !("partiallyApprovedAt" in body)) dates.partiallyApprovedAt = now
   if (newStatus === "APPROVED" && !("approvedAt" in body)) dates.approvedAt = now
   if (newStatus === "DELIVERED" && !("deliveredAt" in body)) dates.deliveredAt = now
+  if (newStatus === "CLOSED_FINANCE" && !("closedFinanceAt" in body)) dates.closedFinanceAt = now
   return dates
 }
 
@@ -218,12 +223,14 @@ function buildUpdateData(body: Record<string, unknown>, deliverable: { status: s
     ...(description !== undefined && { description: (description as string | null)?.trim() || null }),
     ...("approverName" in body && { approverName: (body.approverName as string | null)?.trim() || null }),
     ...("deliveryNoteRef" in body && { deliveryNoteRef: (body.deliveryNoteRef as string | null)?.trim() || null }),
+    ...("closedFinanceNote" in body && { closedFinanceNote: (body.closedFinanceNote as string | null)?.trim() || null }),
     ...(newStatus !== undefined && { status: newStatus }),
     ...(newStatus !== undefined && autoStatusDates(newStatus, deliverable, body)),
     ...("createdAt" in body && body.createdAt !== null && { createdAt: new Date(body.createdAt as string) }),
     ...("partiallyApprovedAt" in body && { partiallyApprovedAt: parseDateField(body.partiallyApprovedAt) }),
     ...("approvedAt" in body && { approvedAt: parseDateField(body.approvedAt) }),
     ...("deliveredAt" in body && { deliveredAt: parseDateField(body.deliveredAt) }),
+    ...("closedFinanceAt" in body && { closedFinanceAt: parseDateField(body.closedFinanceAt) }),
   }
 }
 
@@ -249,8 +256,10 @@ export async function PATCH(
   const body = await req.json() as Record<string, unknown>
 
   const isRevertingDelivered = deliverable.status === "DELIVERED" && body.status === "APPROVED"
-  if (deliverable.status === "DELIVERED" && session.user.role !== "ADMIN" && !isRevertingDelivered)
-    return NextResponse.json({ error: "Only admins can edit a delivered work package" }, { status: 403 })
+  const isRevertingClosedFinance = deliverable.status === "CLOSED_FINANCE" && body.status === "DELIVERED"
+  const isLockedStatus = deliverable.status === "DELIVERED" || deliverable.status === "CLOSED_FINANCE"
+  if (isLockedStatus && session.user.role !== "ADMIN" && !isRevertingDelivered && !isRevertingClosedFinance)
+    return NextResponse.json({ error: "Only admins can edit a locked work package" }, { status: 403 })
 
   if (body.approve === true)
     return handleApprove(id, body.approvedAmount, body.approverName, session.user.id, deliverable.lineItems, deliverable)
