@@ -10,3 +10,4 @@ app/tsconfig.tsbuildinfo
 data/
 postgres_data/
 *.log
+.claude/
