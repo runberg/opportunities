@@ -1,11 +1,15 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { X } from "lucide-react"
 import { Dialog } from "@/shared/components/ui/dialog"
 import { Button } from "@/shared/components/ui/button"
 import { Input } from "@/shared/components/ui/input"
 import { Label } from "@/shared/components/ui/label"
 import { Textarea } from "@/shared/components/ui/textarea"
+import { FileDropZone } from "@/shared/components/ui/file-drop-zone"
+import { FileTypeIcon } from "@/shared/components/ui/file-type-icon"
+import { useDropZone } from "@/shared/lib/use-drop-zone"
 import { OpportunityPicker } from "./opportunity-picker"
 import type { PackageRow } from "./inventory-client"
 
@@ -21,8 +25,12 @@ export function PackageForm({ open, pkg, onClose, onSaved }: Props) {
   const [comment, setComment] = useState("")
   const [opportunityId, setOpportunityId] = useState<string | null>(null)
   const [opportunityLabel, setOpportunityLabel] = useState<string | null>(null)
+  const [file, setFile] = useState<File | null>(null)
+  const [removeExistingFile, setRemoveExistingFile] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
+
+  const { dragging, onDragOver, onDragLeave, onDrop } = useDropZone(setFile)
 
   // Resync form fields whenever the target package changes — this dialog is a single
   // persistent instance (not remounted per target), so useState initializers alone only
@@ -32,6 +40,8 @@ export function PackageForm({ open, pkg, onClose, onSaved }: Props) {
     setComment(pkg?.comment ?? "")
     setOpportunityId(pkg?.opportunity?.id ?? null)
     setOpportunityLabel(pkg?.opportunity ? `${pkg.opportunity.title} — ${pkg.opportunity.customer}` : null)
+    setFile(null)
+    setRemoveExistingFile(false)
     setError("")
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pkg?.id, open])
@@ -45,19 +55,24 @@ export function PackageForm({ open, pkg, onClose, onSaved }: Props) {
     return pkg ? "Save Changes" : "Create Package"
   }
 
+  const existingFile = pkg?.originalName && pkg?.mimeType && !removeExistingFile ? pkg : null
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (!name.trim()) return
     setSaving(true)
     setError("")
 
+    const fd = new FormData()
+    fd.append("name", name.trim())
+    fd.append("comment", comment.trim())
+    fd.append("opportunityId", opportunityId ?? "")
+    if (file) fd.append("file", file)
+    if (removeExistingFile) fd.append("removeFile", "true")
+
     const url = pkg ? `/api/inventory/packages/${pkg.id}` : "/api/inventory/packages"
     const method = pkg ? "PATCH" : "POST"
-    const res = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name.trim(), comment: comment.trim() || null, opportunityId }),
-    })
+    const res = await fetch(url, { method, body: fd })
 
     setSaving(false)
     if (!res.ok) {
@@ -65,8 +80,8 @@ export function PackageForm({ open, pkg, onClose, onSaved }: Props) {
       return
     }
 
-    handleClose()
     await onSaved()
+    handleClose()
   }
 
   return (
@@ -84,12 +99,46 @@ export function PackageForm({ open, pkg, onClose, onSaved }: Props) {
           />
         </div>
         <div>
-          <Label htmlFor="pkg-opportunity">Linked Opportunity <span className="font-normal text-gray-500">(optional)</span></Label>
-          <OpportunityPicker
-            value={opportunityId}
-            label={opportunityLabel}
-            onChange={(o) => { setOpportunityId(o?.id ?? null); setOpportunityLabel(o ? `${o.title} — ${o.customer}` : null) }}
-          />
+          <Label htmlFor="pkg-opportunity">
+            Opportunity <span className="font-normal text-gray-500">(optional — link, attach a document, or both)</span>
+          </Label>
+          <div className="space-y-2">
+            <OpportunityPicker
+              value={opportunityId}
+              label={opportunityLabel}
+              onChange={(o) => { setOpportunityId(o?.id ?? null); setOpportunityLabel(o ? `${o.title} — ${o.customer}` : null) }}
+            />
+            {existingFile ? (
+              <div className="flex items-center justify-between px-3 py-2 border border-gray-600 rounded-lg bg-gray-800 text-sm">
+                <span className="inline-flex items-center gap-1.5 min-w-0">
+                  <span className="inline-flex items-center justify-center w-[13px] h-4 shrink-0 [&_svg]:w-[13px] [&_svg]:h-4">
+                    <FileTypeIcon mimeType={existingFile.mimeType!} />
+                  </span>
+                  <span className="text-gray-100 truncate">{existingFile.originalName}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setRemoveExistingFile(true)}
+                  className="text-gray-400 hover:text-gray-200 shrink-0 ml-2"
+                  title="Remove file"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ) : (
+              <FileDropZone
+                file={file}
+                dragging={dragging}
+                onDragOver={onDragOver}
+                onDragLeave={onDragLeave}
+                onDrop={onDrop}
+                onFile={setFile}
+                accept=".pdf,.xlsx,.xls,.docx"
+                compact
+              />
+            )}
+            <p className="text-xs text-gray-500">EL, quote, or other document — Word (.docx), PDF, or Excel</p>
+          </div>
         </div>
         <div>
           <Label htmlFor="pkg-comment">Comments <span className="font-normal text-gray-500">(optional)</span></Label>

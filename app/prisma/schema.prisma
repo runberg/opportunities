@@ -360,6 +360,13 @@ model InventoryPackage {
   opportunityId String?
   opportunity   Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
 
+  // Optional supporting document (EL, quote, or other) — independent of the
+  // opportunity link above, so a package can have either, both, or neither.
+  filename     String?
+  originalName String?
+  mimeType     String?
+  size         Int?
+
   items      InventoryItem[]
   systemLogs SystemLog[]
 }
@@ -383,6 +390,10 @@ model InventoryUtilization {
   quantity Int
   date     DateTime
   comment  String?
+  // Reserved/Allocated — defaults from the linked opportunity's signed status when one is
+  // picked, but is a real, independently stored field the user can override at any time,
+  // with or without a linked opportunity.
+  allocationStatus InventoryAllocationStatus @default(RESERVED)
   // Delivery note — optional, at most one per utilization (attach/replace later by editing).
   displayName  String?
   filename     String?
@@ -401,6 +412,11 @@ model InventoryUtilization {
   // the package's own optional link, and independently editable later.
   opportunityId String?
   opportunity   Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+}
+
+enum InventoryAllocationStatus {
+  RESERVED
+  ALLOCATED
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

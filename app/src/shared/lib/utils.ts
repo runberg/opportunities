@@ -175,6 +175,11 @@ export const PRODUCTION_STATUSES = [
   "DELIVERED",
 ] as const
 
+/** True once an opportunity's EL is fully signed (or it's moved on to Production). */
+export function isOpportunitySigned(status: string): boolean {
+  return status === "EL_FULLY_SIGNED" || (PRODUCTION_STATUSES as readonly string[]).includes(status)
+}
+
 // Grouped for the filter dropdowns
 export const STATUS_GROUPS = [
   {

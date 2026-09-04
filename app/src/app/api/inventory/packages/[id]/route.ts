@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/shared/lib/db"
 import { requireSession, hasSectionAccess } from "@/shared/lib/api"
 import { writeLog } from "@/shared/lib/system-log"
+import { saveUploadedFile, deleteUploadedFile } from "@/shared/lib/upload"
+import { parsePackageForm } from "../../_helpers"
 
 export async function PATCH(
   req: NextRequest,
@@ -17,23 +19,22 @@ export async function PATCH(
   const pkg = await db.inventoryPackage.findUnique({ where: { id } })
   if (!pkg) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
-  const body = await req.json()
-  const { name, comment, opportunityId } = body
+  const formData = await req.formData()
+  const parsed = await parsePackageForm(formData)
+  if ("error" in parsed) return NextResponse.json({ error: parsed.error }, { status: 400 })
+  const { name, comment, opportunityId, file } = parsed
+  const removeFile = formData.get("removeFile") === "true"
 
-  if (name !== undefined && (typeof name !== "string" || name.trim() === ""))
-    return NextResponse.json({ error: "Name is required" }, { status: 400 })
-
-  if (opportunityId) {
-    const opportunity = await db.opportunity.findUnique({ where: { id: opportunityId } })
-    if (!opportunity) return NextResponse.json({ error: "Opportunity not found" }, { status: 400 })
-  }
+  const saved = file && file.size > 0 ? await saveUploadedFile(file) : null
 
   const updated = await db.inventoryPackage.update({
     where: { id },
     data: {
-      ...(name !== undefined && { name: name.trim() }),
-      ...(comment !== undefined && { comment: typeof comment === "string" ? comment.trim() || null : null }),
-      ...(opportunityId !== undefined && { opportunityId: opportunityId || null }),
+      name,
+      comment,
+      opportunityId,
+      ...(saved && { filename: saved.filename, originalName: saved.originalName, mimeType: file!.type, size: file!.size }),
+      ...(removeFile && !saved && { filename: null, originalName: null, mimeType: null, size: null }),
     },
     include: {
       createdBy: { select: { id: true, name: true } },
@@ -41,6 +42,8 @@ export async function PATCH(
       items: { include: { utilizations: { include: { createdBy: { select: { id: true, name: true } } } } } },
     },
   })
+
+  if (pkg.filename && (saved || removeFile)) await deleteUploadedFile(pkg.filename)
 
   await writeLog({
     type: "INVENTORY_PACKAGE_UPDATED",
@@ -67,6 +70,7 @@ export async function DELETE(
   if (!pkg) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
   await db.inventoryPackage.delete({ where: { id } })
+  if (pkg.filename) await deleteUploadedFile(pkg.filename)
 
   await writeLog({
     type: "INVENTORY_PACKAGE_DELETED",

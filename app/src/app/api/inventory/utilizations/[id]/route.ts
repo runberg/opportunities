@@ -4,6 +4,9 @@ import { requireSession, hasSectionAccess } from "@/shared/lib/api"
 import { writeLog } from "@/shared/lib/system-log"
 import { saveUploadedFile, deleteUploadedFile, MAX_UPLOAD_BYTES } from "@/shared/lib/upload"
 import { DELIVERY_NOTE_MIMES } from "@/shared/lib/file-types"
+import { InventoryAllocationStatus } from "@prisma/client"
+
+const ALLOCATION_STATUSES = Object.values(InventoryAllocationStatus)
 
 type ParsedEdit = {
   quantity: number
@@ -11,6 +14,7 @@ type ParsedEdit = {
   commentRaw: string | null
   displayNameRaw: string | null
   opportunityIdRaw: string | null
+  allocationStatusRaw: string | null
   file: File | null
 }
 
@@ -21,6 +25,7 @@ async function parseEditForm(formData: FormData, existingQuantity: number): Prom
   const commentRaw = formData.get("comment") as string | null
   const displayNameRaw = formData.get("displayName") as string | null
   const opportunityIdRaw = formData.get("opportunityId") as string | null
+  const allocationStatusRaw = formData.get("allocationStatus") as string | null
   const file = formData.get("file") as File | null
 
   const quantity = quantityRaw !== null ? Number(quantityRaw) : existingQuantity
@@ -28,6 +33,8 @@ async function parseEditForm(formData: FormData, existingQuantity: number): Prom
     return { error: "Quantity must be a positive whole number" }
   if (dateRaw !== null && Number.isNaN(Date.parse(dateRaw)))
     return { error: "Invalid date" }
+  if (allocationStatusRaw !== null && !ALLOCATION_STATUSES.includes(allocationStatusRaw as InventoryAllocationStatus))
+    return { error: "Invalid allocation status" }
 
   if (file && file.size > 0) {
     if (!DELIVERY_NOTE_MIMES.has(file.type))
@@ -40,7 +47,7 @@ async function parseEditForm(formData: FormData, existingQuantity: number): Prom
   if (opportunityId && !(await db.opportunity.findUnique({ where: { id: opportunityId } })))
     return { error: "Opportunity not found" }
 
-  return { quantity, dateRaw, commentRaw, displayNameRaw, opportunityIdRaw, file }
+  return { quantity, dateRaw, commentRaw, displayNameRaw, opportunityIdRaw, allocationStatusRaw, file }
 }
 
 export async function PATCH(
@@ -59,7 +66,7 @@ export async function PATCH(
 
   const parsed = await parseEditForm(await req.formData(), existing.quantity)
   if ("error" in parsed) return NextResponse.json({ error: parsed.error }, { status: 400 })
-  const { quantity, dateRaw, commentRaw, displayNameRaw, opportunityIdRaw, file } = parsed
+  const { quantity, dateRaw, commentRaw, displayNameRaw, opportunityIdRaw, allocationStatusRaw, file } = parsed
 
   const saved = file && file.size > 0 ? await saveUploadedFile(file) : null
 
@@ -82,6 +89,7 @@ export async function PATCH(
           ...(commentRaw !== null && { comment: commentRaw.trim() || null }),
           ...(displayNameRaw !== null && { displayName: displayNameRaw.trim() || null }),
           ...(opportunityIdRaw !== null && { opportunityId: opportunityIdRaw.trim() || null }),
+          ...(allocationStatusRaw !== null && { allocationStatus: allocationStatusRaw as InventoryAllocationStatus }),
           ...(saved && { filename: saved.filename, originalName: saved.originalName, mimeType: file!.type, size: file!.size }),
         },
         include: {

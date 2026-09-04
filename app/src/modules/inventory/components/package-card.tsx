@@ -3,6 +3,9 @@
 import { useState } from "react"
 import { ChevronDown, ChevronUp, Pencil, Trash2, Plus, Briefcase } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
+import { FileTypeIcon } from "@/shared/components/ui/file-type-icon"
+import { FileViewerModals } from "@/shared/components/ui/file-viewer-modals"
+import { useFileViewer } from "@/shared/lib/use-file-viewer"
 import { ItemRow } from "./item-row"
 import type { PackageRow, ItemRow as ItemRowType, UtilizationRow } from "./inventory-client"
 
@@ -14,16 +17,18 @@ type Props = {
   readonly onEditPackage: (pkg: PackageRow) => void
   readonly onUtilize: (item: ItemRowType) => void
   readonly onEditUtilization: (item: ItemRowType, utilization: UtilizationRow) => void
+  readonly onEditItem: (item: ItemRowType) => void
   readonly onOpenOpportunity: (opportunityId: string) => void
 }
 
-export function PackageCard({ pkg, isReadOnly, isAdmin, onRefresh, onEditPackage, onUtilize, onEditUtilization, onOpenOpportunity }: Props) {
+export function PackageCard({ pkg, isReadOnly, isAdmin, onRefresh, onEditPackage, onUtilize, onEditUtilization, onEditItem, onOpenOpportunity }: Props) {
   const [showMore, setShowMore] = useState(false)
   const [adding, setAdding] = useState(false)
   const [newProduct, setNewProduct] = useState("")
   const [newQty, setNewQty] = useState("")
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
+  const viewers = useFileViewer()
 
   async function addItem() {
     const qty = Number(newQty)
@@ -106,16 +111,33 @@ export function PackageCard({ pkg, isReadOnly, isAdmin, onRefresh, onEditPackage
       {showMore && (
         <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
           <div>
-            <p className="text-xs text-gray-400 mb-1">Linked Opportunity</p>
-            {pkg.opportunity ? (
-              <button
-                type="button"
-                onClick={() => onOpenOpportunity(pkg.opportunity!.id)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-[#006fff] hover:bg-[#005ee6] transition-colors"
-              >
-                <Briefcase size={14} />
-                {pkg.opportunity.title} — {pkg.opportunity.customer}
-              </button>
+            <p className="text-xs text-gray-400 mb-1">Opportunity</p>
+            {pkg.opportunity || pkg.originalName ? (
+              <div className="flex flex-wrap items-center gap-2">
+                {pkg.opportunity && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenOpportunity(pkg.opportunity!.id)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-[#006fff] hover:bg-[#005ee6] transition-colors"
+                  >
+                    <Briefcase size={14} />
+                    {pkg.opportunity.title} — {pkg.opportunity.customer}
+                  </button>
+                )}
+                {pkg.filename && pkg.originalName && pkg.mimeType && (
+                  <button
+                    type="button"
+                    onClick={() => viewers.openViewer({ id: pkg.id, displayName: pkg.originalName!, mimeType: pkg.mimeType! })}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-gray-700 hover:bg-gray-800 transition-colors truncate max-w-[16rem]"
+                    title={pkg.originalName}
+                  >
+                    <span className="inline-flex items-center justify-center w-[13px] h-4 shrink-0 [&_svg]:w-[13px] [&_svg]:h-4">
+                      <FileTypeIcon mimeType={pkg.mimeType} />
+                    </span>
+                    <span className="truncate">{pkg.originalName}</span>
+                  </button>
+                )}
+              </div>
             ) : (
               <p className="text-sm text-gray-400">None</p>
             )}
@@ -141,6 +163,7 @@ export function PackageCard({ pkg, isReadOnly, isAdmin, onRefresh, onEditPackage
             onEditUtilization={onEditUtilization}
             onDeleteUtilization={deleteUtilization}
             onDeleteItem={deleteItem}
+            onEditItem={onEditItem}
             onOpenOpportunity={onOpenOpportunity}
           />
         ))}
@@ -188,6 +211,8 @@ export function PackageCard({ pkg, isReadOnly, isAdmin, onRefresh, onEditPackage
           </Button>
         )
       )}
+
+      <FileViewerModals viewers={viewers} urlFor={(id) => `/api/inventory/packages/${id}/file`} />
     </div>
   )
 }

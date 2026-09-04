@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
         { reference: { contains: q, mode: "insensitive" } },
       ],
     },
-    select: { id: true, title: true, customer: true, internalId: true },
+    select: { id: true, title: true, customer: true, internalId: true, status: true },
     orderBy: { updatedAt: "desc" },
     take: RESULT_LIMIT,
   })

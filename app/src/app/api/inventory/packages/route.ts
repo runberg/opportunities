@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/shared/lib/db"
 import { requireSession, hasSectionAccess } from "@/shared/lib/api"
 import { writeLog } from "@/shared/lib/system-log"
-import { findAllPackages } from "../_helpers"
+import { saveUploadedFile } from "@/shared/lib/upload"
+import { findAllPackages, parsePackageForm } from "../_helpers"
 
 export async function GET() {
   const result = await requireSession()
@@ -20,23 +21,22 @@ export async function POST(req: NextRequest) {
   if (!hasSectionAccess(session, "inventory", "FULL"))
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
-  const body = await req.json()
-  const { name, comment, opportunityId } = body
+  const parsed = await parsePackageForm(await req.formData())
+  if ("error" in parsed) return NextResponse.json({ error: parsed.error }, { status: 400 })
+  const { name, comment, opportunityId, file } = parsed
 
-  if (!name || typeof name !== "string" || name.trim() === "")
-    return NextResponse.json({ error: "Name is required" }, { status: 400 })
-
-  if (opportunityId) {
-    const opportunity = await db.opportunity.findUnique({ where: { id: opportunityId } })
-    if (!opportunity) return NextResponse.json({ error: "Opportunity not found" }, { status: 400 })
-  }
+  const saved = file && file.size > 0 ? await saveUploadedFile(file) : null
 
   const pkg = await db.inventoryPackage.create({
     data: {
-      name: name.trim(),
-      comment: typeof comment === "string" ? comment.trim() || null : null,
-      opportunityId: opportunityId || null,
+      name,
+      comment,
+      opportunityId,
       createdById: session.user.id,
+      filename: saved?.filename ?? null,
+      originalName: saved?.originalName ?? null,
+      mimeType: saved && file ? file.type : null,
+      size: saved && file ? file.size : null,
     },
     include: {
       createdBy: { select: { id: true, name: true } },

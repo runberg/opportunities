@@ -4,6 +4,9 @@ import { requireSession, hasSectionAccess } from "@/shared/lib/api"
 import { writeLog } from "@/shared/lib/system-log"
 import { saveUploadedFile, MAX_UPLOAD_BYTES } from "@/shared/lib/upload"
 import { DELIVERY_NOTE_MIMES } from "@/shared/lib/file-types"
+import { InventoryAllocationStatus } from "@prisma/client"
+
+const ALLOCATION_STATUSES = Object.values(InventoryAllocationStatus)
 
 type ParsedForm = {
   quantity: number
@@ -11,6 +14,7 @@ type ParsedForm = {
   comment: string | null
   displayName: string | null
   opportunityId: string | null
+  allocationStatus: InventoryAllocationStatus
   file: File | null
 }
 
@@ -21,12 +25,15 @@ async function parseUtilizationForm(formData: FormData): Promise<{ error: string
   const comment = (formData.get("comment") as string | null)?.trim() || null
   const displayName = (formData.get("displayName") as string | null)?.trim() || null
   const opportunityId = (formData.get("opportunityId") as string | null)?.trim() || null
+  const allocationStatusRaw = formData.get("allocationStatus") as string | null
   const file = formData.get("file") as File | null
 
   if (!Number.isInteger(quantity) || quantity <= 0)
     return { error: "Quantity must be a positive whole number" }
   if (!dateRaw || Number.isNaN(Date.parse(dateRaw)))
     return { error: "A valid date is required" }
+  if (!allocationStatusRaw || !ALLOCATION_STATUSES.includes(allocationStatusRaw as InventoryAllocationStatus))
+    return { error: "Invalid allocation status" }
 
   if (file && file.size > 0) {
     if (!DELIVERY_NOTE_MIMES.has(file.type))
@@ -38,7 +45,7 @@ async function parseUtilizationForm(formData: FormData): Promise<{ error: string
   if (opportunityId && !(await db.opportunity.findUnique({ where: { id: opportunityId } })))
     return { error: "Opportunity not found" }
 
-  return { quantity, dateRaw, comment, displayName, opportunityId, file }
+  return { quantity, dateRaw, comment, displayName, opportunityId, allocationStatus: allocationStatusRaw as InventoryAllocationStatus, file }
 }
 
 export async function POST(
@@ -57,7 +64,7 @@ export async function POST(
 
   const parsed = await parseUtilizationForm(await req.formData())
   if ("error" in parsed) return NextResponse.json({ error: parsed.error }, { status: 400 })
-  const { quantity, dateRaw, comment, displayName, opportunityId, file } = parsed
+  const { quantity, dateRaw, comment, displayName, opportunityId, allocationStatus, file } = parsed
 
   const saved = file && file.size > 0 ? await saveUploadedFile(file) : null
 
@@ -79,6 +86,7 @@ export async function POST(
           comment,
           displayName,
           opportunityId,
+          allocationStatus,
           filename: saved?.filename ?? null,
           originalName: saved?.originalName ?? null,
           mimeType: saved && file ? file.type : null,

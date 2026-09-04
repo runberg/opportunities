@@ -8,9 +8,9 @@ import { Textarea } from "@/shared/components/ui/textarea"
 import { DatePicker } from "@/shared/components/ui/date-picker"
 import { FileDropZone } from "@/shared/components/ui/file-drop-zone"
 import { useDropZone } from "@/shared/lib/use-drop-zone"
-import { todayISO } from "@/shared/lib/utils"
+import { cn, isOpportunitySigned, todayISO } from "@/shared/lib/utils"
 import { OpportunityPicker } from "./opportunity-picker"
-import type { ItemRow, UtilizationRow } from "./inventory-client"
+import type { AllocationStatus, ItemRow, UtilizationRow } from "./inventory-client"
 
 type Props = {
   readonly item: ItemRow | null
@@ -28,6 +28,7 @@ export function UtilizeItemModal({ item, utilization, onClose, onSaved }: Props)
   const [file, setFile] = useState<File | null>(null)
   const [opportunityId, setOpportunityId] = useState<string | null>(null)
   const [opportunityLabel, setOpportunityLabel] = useState<string | null>(null)
+  const [allocationStatus, setAllocationStatus] = useState<AllocationStatus>("RESERVED")
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
 
@@ -42,6 +43,7 @@ export function UtilizeItemModal({ item, utilization, onClose, onSaved }: Props)
     setFile(null)
     setOpportunityId(utilization?.opportunity?.id ?? null)
     setOpportunityLabel(utilization?.opportunity ? `${utilization.opportunity.title} — ${utilization.opportunity.customer}` : null)
+    setAllocationStatus(utilization?.allocationStatus ?? "RESERVED")
     setError("")
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item?.id, utilization?.id])
@@ -73,6 +75,7 @@ export function UtilizeItemModal({ item, utilization, onClose, onSaved }: Props)
     fd.append("comment", comment.trim())
     fd.append("displayName", displayName.trim())
     fd.append("opportunityId", opportunityId ?? "")
+    fd.append("allocationStatus", allocationStatus)
     if (file) fd.append("file", file)
 
     const url = editing ? `/api/inventory/utilizations/${utilization!.id}` : `/api/inventory/items/${item.id}/utilizations`
@@ -85,8 +88,11 @@ export function UtilizeItemModal({ item, utilization, onClose, onSaved }: Props)
       return
     }
 
-    handleClose()
+    // Wait for the parent's data to refresh before closing — otherwise a fast second
+    // "Utilize" click can reopen this modal against the stale (pre-refresh) item prop,
+    // showing an outdated remaining-quantity max.
     await onSaved()
+    handleClose()
   }
 
   return (
@@ -121,6 +127,53 @@ export function UtilizeItemModal({ item, utilization, onClose, onSaved }: Props)
           <DatePicker value={date} onChange={setDate} clearable={false} />
         </div>
         <div>
+          <Label htmlFor="util-opportunity">Opportunity <span className="font-normal text-gray-500">(optional)</span></Label>
+          <OpportunityPicker
+            value={opportunityId}
+            label={opportunityLabel}
+            onChange={(o) => {
+              setOpportunityId(o?.id ?? null)
+              setOpportunityLabel(o ? `${o.title} — ${o.customer}` : null)
+              if (o) setAllocationStatus(isOpportunitySigned(o.status) ? "ALLOCATED" : "RESERVED")
+            }}
+          />
+        </div>
+        <div>
+          <Label htmlFor="util-allocation-reserved">Allocation Status</Label>
+          <div className="flex gap-2">
+            <button
+              id="util-allocation-reserved"
+              type="button"
+              onClick={() => setAllocationStatus("RESERVED")}
+              className={cn(
+                "flex-1 px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors",
+                allocationStatus === "RESERVED"
+                  ? "bg-blue-600 text-white border-blue-600"
+                  : "bg-gray-800 text-gray-300 border-gray-600 hover:border-gray-500"
+              )}
+            >
+              Reserved
+            </button>
+            <button
+              type="button"
+              onClick={() => setAllocationStatus("ALLOCATED")}
+              className={cn(
+                "flex-1 px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors",
+                allocationStatus === "ALLOCATED"
+                  ? "bg-green-600 text-white border-green-600"
+                  : "bg-gray-800 text-gray-300 border-gray-600 hover:border-gray-500"
+              )}
+            >
+              Allocated
+            </button>
+          </div>
+          <p className="text-xs text-gray-500 mt-1">
+            {opportunityId
+              ? "Defaults from the linked opportunity's signed status — change it anytime."
+              : "No opportunity linked, but you can still record whether this is reserved or allocated."}
+          </p>
+        </div>
+        <div>
           <Label htmlFor="util-file">
             Delivery Note <span className="font-normal text-gray-500">(optional{editing && utilization?.originalName ? ` — replaces "${utilization.originalName}"` : ""})</span>
           </Label>
@@ -145,14 +198,6 @@ export function UtilizeItemModal({ item, utilization, onClose, onSaved }: Props)
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder="BT-XXXXXXXXXX"
             className="w-full px-3 py-2 border border-gray-600 rounded-lg text-sm bg-gray-800 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-        </div>
-        <div>
-          <Label htmlFor="util-opportunity">Opportunity <span className="font-normal text-gray-500">(optional)</span></Label>
-          <OpportunityPicker
-            value={opportunityId}
-            label={opportunityLabel}
-            onChange={(o) => { setOpportunityId(o?.id ?? null); setOpportunityLabel(o ? `${o.title} — ${o.customer}` : null) }}
           />
         </div>
         <div>

@@ -9,6 +9,7 @@ type OpportunityOption = {
   title: string
   customer: string
   internalId: string | null
+  status: string
 }
 
 export function OpportunityPicker({
@@ -40,7 +41,7 @@ export function OpportunityPicker({
       const res = await fetch(`/api/inventory/opportunities?q=${encodeURIComponent(q)}`)
       if (res.ok) {
         const data = await res.json()
-        setResults(data.items.map((o: OpportunityOption) => ({ id: o.id, title: o.title, customer: o.customer, internalId: o.internalId })))
+        setResults(data.items.map((o: OpportunityOption) => ({ id: o.id, title: o.title, customer: o.customer, internalId: o.internalId, status: o.status })))
       }
     }, 300)
     return () => clearTimeout(timer)

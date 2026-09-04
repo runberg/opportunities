@@ -8,14 +8,18 @@ import { OpportunityModal } from "@/modules/opportunities/components/opportunity
 import { PackageCard } from "./package-card"
 import { PackageForm } from "./package-form"
 import { UtilizeItemModal } from "./utilize-item-modal"
+import { EditItemModal } from "./edit-item-modal"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+export type AllocationStatus = "RESERVED" | "ALLOCATED"
 
 export type UtilizationRow = {
   id: string
   quantity: number
   date: string
   comment: string | null
+  allocationStatus: AllocationStatus
   displayName: string | null
   filename: string | null
   originalName: string | null
@@ -43,6 +47,10 @@ export type PackageRow = {
   updatedAt: string
   createdBy: { id: string; name: string }
   opportunity: { id: string; title: string; customer: string; internalId: string | null } | null
+  filename: string | null
+  originalName: string | null
+  mimeType: string | null
+  size: number | null
   items: ItemRow[]
 }
 
@@ -65,6 +73,7 @@ export function InventoryClient({
   const [formTarget, setFormTarget] = useState<PackageRow | "new" | null>(null)
   const [utilizeItem, setUtilizeItem] = useState<ItemRow | null>(null)
   const [utilizeEntry, setUtilizeEntry] = useState<UtilizationRow | null>(null)
+  const [editItemTarget, setEditItemTarget] = useState<ItemRow | null>(null)
   const [openOpportunityId, setOpenOpportunityId] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
 
@@ -115,6 +124,7 @@ export function InventoryClient({
             onEditPackage={setFormTarget}
             onUtilize={openUtilize}
             onEditUtilization={openEditUtilization}
+            onEditItem={setEditItemTarget}
             onOpenOpportunity={setOpenOpportunityId}
           />
         ))
@@ -131,6 +141,12 @@ export function InventoryClient({
         item={utilizeItem}
         utilization={utilizeEntry}
         onClose={() => { setUtilizeItem(null); setUtilizeEntry(null) }}
+        onSaved={refresh}
+      />
+
+      <EditItemModal
+        item={editItemTarget}
+        onClose={() => setEditItemTarget(null)}
         onSaved={refresh}
       />
 
