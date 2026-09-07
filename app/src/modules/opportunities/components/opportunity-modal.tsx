@@ -551,13 +551,16 @@ function ViewMode({ data, currentUserId, isAdmin, isReadOnly, onRefresh, onSilen
         </div>
       )}
 
-      {/* Documents, Production, Log */}
-      <DocumentsSection data={data} currentUserId={currentUserId} isAdmin={isAdmin}
-        isReadOnly={isReadOnly} isEL={isEL} isProduction={isProduction} onRefresh={onRefresh} />
-
+      {/* Production, Documents, Log — once in Production, that section leads since it's
+          the most relevant to the current stage, with EL then Quote documents below it. */}
       {isProduction && (
         <ProductionSection data={data} deliveries={data.deliveries} currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} />
       )}
+
+      <div className={isProduction ? "mt-6" : undefined}>
+        <DocumentsSection data={data} currentUserId={currentUserId} isAdmin={isAdmin}
+          isReadOnly={isReadOnly} isEL={isEL} isProduction={isProduction} onRefresh={onRefresh} />
+      </div>
 
       <LogSection commentEndpoint={`/api/opportunities/${data.id}/comments`} entries={data.comments}
         currentUser={{ id: currentUserId, name: "" }} isReadOnly={isReadOnly} onRefresh={onRefresh} />
