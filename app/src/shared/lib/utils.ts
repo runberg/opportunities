@@ -124,6 +124,45 @@ export function statusSinceDate(status: string, fields: {
   return value ?? fields.updatedAt
 }
 
+// Statuses whose "since" date is a real timestamp rather than a pure calendar-date field —
+// everything else in STATUS_ENTERED_FIELD is a date-only milestone (see dateOrNull in the
+// opportunities API route: date-only strings are stored anchored at UTC midnight, which has
+// no meaningful time-of-day, so diffing them against Date.now() would be skewed by the gap
+// between UTC midnight and the viewer's local midnight).
+const TIMESTAMP_STATUS_FIELDS = new Set(["createdAt", "updatedAt"])
+
+/** True when a status's "since" date comes from a pure calendar-date field rather than a
+ * real timestamp — determines whether to use statusAgeLabel or calendarAgeLabel. */
+export function isCalendarDateStatus(status: string): boolean {
+  const field = STATUS_ENTERED_FIELD[status]
+  return field !== undefined && !TIMESTAMP_STATUS_FIELDS.has(field)
+}
+
+/** Compact "how long ago" label for a pure calendar-date value (no time-of-day stored) —
+ * compares calendar dates instead of raw elapsed milliseconds, so it isn't skewed by the
+ * gap between UTC midnight (how the date is anchored in storage) and the viewer's local
+ * midnight. See isCalendarDateStatus. */
+export function calendarAgeLabel(date: Date | string): string {
+  const stored = new Date(date)
+  const today = new Date()
+  const diffDays = Math.round(
+    (Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) -
+      Date.UTC(stored.getUTCFullYear(), stored.getUTCMonth(), stored.getUTCDate())) / 86_400_000
+  )
+  if (diffDays <= 0) return "Today"
+  if (diffDays === 1) return "Yesterday"
+  if (diffDays < 7) return `${plural(diffDays, "day")} ago`
+  const weeks = Math.floor(diffDays / 7)
+  if (weeks < 5) {
+    const remDays = diffDays % 7
+    return remDays > 0 ? `${plural(weeks, "week")} ${plural(remDays, "day")} ago` : `${plural(weeks, "week")} ago`
+  }
+  const months = Math.floor(diffDays / 30)
+  if (months < 12) return `${plural(months, "month")} ago`
+  const years = Math.floor(diffDays / 365)
+  return `${plural(years, "year")} ago`
+}
+
 export function initials(name: string): string {
   // Handle email addresses: use local part before @
   const local = name.includes("@") ? name.split("@")[0] : name

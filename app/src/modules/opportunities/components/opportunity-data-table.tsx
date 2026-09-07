@@ -2,7 +2,7 @@
 
 import { useRef, useEffect } from "react"
 import { Check, Minus } from "lucide-react"
-import { cn, formatDate, statusAgeLabel } from "@/shared/lib/utils"
+import { cn, formatDate, statusAgeLabel, calendarAgeLabel, isCalendarDateStatus } from "@/shared/lib/utils"
 import { StatusBadge } from "@/modules/opportunities/components/status-badge"
 import { SortableHeader, type SortDir } from "@/shared/components/ui/sortable-header"
 
@@ -218,7 +218,9 @@ export function OpportunityDataTable({
                 <td className="px-4 py-3 text-center">
                   <StatusBadge status={row.status} short />
                   {row.statusSince && (
-                    <div className="text-xs text-gray-400 mt-1 whitespace-nowrap">{statusAgeLabel(row.statusSince)}</div>
+                    <div className="text-xs text-gray-400 mt-1 whitespace-nowrap">
+                      {isCalendarDateStatus(row.status) ? calendarAgeLabel(row.statusSince) : statusAgeLabel(row.statusSince)}
+                    </div>
                   )}
                 </td>
                 {renderAction && (
