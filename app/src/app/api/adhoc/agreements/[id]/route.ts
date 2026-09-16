@@ -87,7 +87,12 @@ export async function PATCH(
   const agreement = await db.adhocAgreement.findUnique({ where: { id } })
   if (!agreement) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
-  const body = await req.json()
+  const body = await req.json() as {
+    title?: string
+    totalAmount?: string | number
+    status?: string
+    signedDate?: unknown
+  }
   const validationError = validatePatch(body)
   if (validationError) return NextResponse.json({ error: validationError }, { status: 400 })
 
