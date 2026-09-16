@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Dialog } from "@/shared/components/ui/dialog"
 import { Button } from "@/shared/components/ui/button"
 import { Textarea } from "@/shared/components/ui/textarea"
+import { useAutoFocus } from "@/shared/lib/use-autofocus"
 
 interface CommentTarget {
   readonly id: string
@@ -23,6 +24,7 @@ export function CommentDialog({ target, commentEndpoint, onClose }: CommentDialo
   const [comment, setComment] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
+  const commentRef = useAutoFocus<HTMLTextAreaElement>()
 
   async function submit() {
     if (!target || !comment.trim()) return
@@ -58,11 +60,11 @@ export function CommentDialog({ target, commentEndpoint, onClose }: CommentDialo
             {target.internalId && <p className="text-sm text-gray-500">{target.internalId}</p>}
           </div>
           <Textarea
+            ref={commentRef}
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             placeholder="Write a comment…"
             rows={4}
-            autoFocus
             onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) submit() }}
           />
           {error && <p className="text-sm text-red-600">{error}</p>}

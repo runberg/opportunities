@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { MessageSquarePlus, Cpu } from "lucide-react"
 import { formatDateTime, initials } from "@/shared/lib/utils"
 import { Button } from "@/shared/components/ui/button"
+import { useAutoFocus } from "@/shared/lib/use-autofocus"
 
 export interface LogEntry {
   id: string
@@ -35,6 +36,7 @@ export function LogSection({
   const [content, setContent] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
+  const commentRef = useAutoFocus<HTMLTextAreaElement>()
 
   const userEntries = entries.filter((e) => !e.system)
   const visible = (showSystem ? entries : userEntries)
@@ -103,11 +105,11 @@ export function LogSection({
       {showForm && (
         <div className="mb-5 p-4 border border-gray-700 rounded-xl bg-gray-800/50 space-y-3">
           <textarea
+            ref={commentRef}
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="Write a comment…"
             rows={3}
-            autoFocus
             onKeyDown={(e) => {
               if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleSubmit()
             }}

@@ -8,6 +8,7 @@ import { Textarea } from "@/shared/components/ui/textarea"
 import { DatePicker } from "@/shared/components/ui/date-picker"
 import { FileDropZone } from "@/shared/components/ui/file-drop-zone"
 import { useDropZone } from "@/shared/lib/use-drop-zone"
+import { useAutoFocus } from "@/shared/lib/use-autofocus"
 import { cn, isOpportunitySigned, todayISO } from "@/shared/lib/utils"
 import { OpportunityPicker } from "./opportunity-picker"
 import type { AllocationStatus, ItemRow, UtilizationRow } from "./inventory-client"
@@ -31,6 +32,7 @@ export function UtilizeItemModal({ item, utilization, onClose, onSaved }: Props)
   const [allocationStatus, setAllocationStatus] = useState<AllocationStatus>("RESERVED")
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
+  const quantityRef = useAutoFocus<HTMLInputElement>()
 
   // Resync form fields whenever the target item/utilization changes — this modal is a
   // single persistent instance (not remounted per target), so useState initializers alone
@@ -108,11 +110,11 @@ export function UtilizeItemModal({ item, utilization, onClose, onSaved }: Props)
           </Label>
           <input
             id="util-quantity"
+            ref={quantityRef}
             type="number"
             min={1}
             max={maxQuantity}
             step={1}
-            autoFocus
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
             className="w-full px-3 py-2 border border-gray-600 rounded-lg text-sm bg-gray-800 text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500"

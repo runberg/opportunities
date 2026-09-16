@@ -9,6 +9,7 @@ import { Button } from "@/shared/components/ui/button"
 import { DatePicker } from "@/shared/components/ui/date-picker"
 import { TableFilterBar, type FilterStatusGroup } from "@/shared/components/ui/table-filter-bar"
 import { ClientPagination } from "@/shared/components/ui/client-pagination"
+import { useAutoFocus } from "@/shared/lib/use-autofocus"
 import { formatAmount } from "@/shared/lib/utils"
 import { DELIVERABLE_STATUS_BADGE as STATUS_BADGE } from "../constants"
 
@@ -175,6 +176,7 @@ export function DeliverablesTable({
   const [adding, setAdding] = useState(false)
   const [newTitle, setNewTitle] = useState("")
   const [newDate, setNewDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const newTitleRef = useAutoFocus<HTMLInputElement>()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
@@ -262,7 +264,7 @@ export function DeliverablesTable({
             triggerClassName="rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-900 flex items-center focus:outline-none focus:ring-1 focus:ring-blue-500 w-36"
           />
           <input
-            autoFocus
+            ref={newTitleRef}
             className="flex-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Work package title"
             value={newTitle}

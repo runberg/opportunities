@@ -6,6 +6,7 @@ import { QUOTE_STATUSES, STATUS_LABELS, todayISO } from "@/shared/lib/utils"
 import { Button } from "@/shared/components/ui/button"
 import { FormField } from "@/shared/components/ui/form-field"
 import { DatePicker } from "@/shared/components/ui/date-picker"
+import { useAutoFocus } from "@/shared/lib/use-autofocus"
 
 interface NewOpportunityModalProps {
   readonly onClose: () => void
@@ -38,6 +39,7 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
+  const titleRef = useAutoFocus<HTMLInputElement>()
 
   function setField(field: keyof NewForm, value: string) {
     setForm((f) => ({ ...f, [field]: value }))
@@ -96,10 +98,10 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
             {/* Title */}
             <div className="mb-5">
               <input
+                ref={titleRef}
                 value={form.title}
                 onChange={(e) => setField("title", e.target.value)}
                 placeholder="Opportunity title"
-                autoFocus
                 className="w-full text-2xl font-semibold text-gray-100 bg-gray-700 border border-gray-600 rounded-md px-3 py-2 focus:outline-none focus:border-[#006fff] focus:bg-gray-600 leading-tight placeholder-gray-500 transition-colors"
               />
 

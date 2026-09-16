@@ -5,6 +5,7 @@ import { Dialog } from "@/shared/components/ui/dialog"
 import { Button } from "@/shared/components/ui/button"
 import { Label } from "@/shared/components/ui/label"
 import { Input } from "@/shared/components/ui/input"
+import { useAutoFocus } from "@/shared/lib/use-autofocus"
 import type { ItemRow } from "./inventory-client"
 
 type Props = {
@@ -18,6 +19,7 @@ export function EditItemModal({ item, onClose, onSaved }: Props) {
   const [originalQuantity, setOriginalQuantity] = useState("")
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
+  const nameRef = useAutoFocus<HTMLInputElement>()
 
   const utilized = item ? item.originalQuantity - item.remainingQuantity : 0
 
@@ -65,7 +67,7 @@ export function EditItemModal({ item, onClose, onSaved }: Props) {
           <Label htmlFor="edit-item-name">Product name *</Label>
           <Input
             id="edit-item-name"
-            autoFocus
+            ref={nameRef}
             value={productName}
             onChange={(e) => setProductName(e.target.value)}
             required

@@ -6,6 +6,7 @@ import { Button } from "@/shared/components/ui/button"
 import { FileTypeIcon } from "@/shared/components/ui/file-type-icon"
 import { FileViewerModals } from "@/shared/components/ui/file-viewer-modals"
 import { useFileViewer } from "@/shared/lib/use-file-viewer"
+import { useAutoFocus } from "@/shared/lib/use-autofocus"
 import { ItemRow } from "./item-row"
 import type { PackageRow, ItemRow as ItemRowType, UtilizationRow } from "./inventory-client"
 
@@ -29,6 +30,7 @@ export function PackageCard({ pkg, isReadOnly, isAdmin, onRefresh, onEditPackage
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
   const viewers = useFileViewer()
+  const newProductRef = useAutoFocus<HTMLInputElement>()
 
   async function addItem() {
     const qty = Number(newQty)
@@ -176,7 +178,7 @@ export function PackageCard({ pkg, isReadOnly, isAdmin, onRefresh, onEditPackage
               <label htmlFor={`new-product-${pkg.id}`} className="block text-xs text-gray-500 mb-1">Product name</label>
               <input
                 id={`new-product-${pkg.id}`}
-                autoFocus
+                ref={newProductRef}
                 value={newProduct}
                 onChange={(e) => setNewProduct(e.target.value)}
                 className="w-56 px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"

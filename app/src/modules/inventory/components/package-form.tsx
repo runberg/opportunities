@@ -10,6 +10,7 @@ import { Textarea } from "@/shared/components/ui/textarea"
 import { FileDropZone } from "@/shared/components/ui/file-drop-zone"
 import { FileTypeIcon } from "@/shared/components/ui/file-type-icon"
 import { useDropZone } from "@/shared/lib/use-drop-zone"
+import { useAutoFocus } from "@/shared/lib/use-autofocus"
 import { OpportunityPicker } from "./opportunity-picker"
 import type { PackageRow } from "./inventory-client"
 
@@ -29,6 +30,7 @@ export function PackageForm({ open, pkg, onClose, onSaved }: Props) {
   const [removeExistingFile, setRemoveExistingFile] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
+  const nameRef = useAutoFocus<HTMLInputElement>()
 
   const { dragging, onDragOver, onDragLeave, onDrop } = useDropZone(setFile)
 
@@ -91,7 +93,7 @@ export function PackageForm({ open, pkg, onClose, onSaved }: Props) {
           <Label htmlFor="pkg-name">Name *</Label>
           <Input
             id="pkg-name"
-            autoFocus
+            ref={nameRef}
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Spare parts — Project Atlas"

@@ -9,6 +9,7 @@ import { LogSection, type LogEntry } from "@/shared/components/ui/log-section"
 import { DatePicker } from "@/shared/components/ui/date-picker"
 import { formatAmount, nameFromFile, todayISO } from "@/shared/lib/utils"
 import { useDropZone, useWindowDragExpand } from "@/shared/lib/use-drop-zone"
+import { useAutoFocus } from "@/shared/lib/use-autofocus"
 import { FileDropZone } from "@/shared/components/ui/file-drop-zone"
 import { AdhocDocList } from "./adhoc-doc-list"
 import { DELIVERABLE_STATUS_BADGE as STATUS_BADGE } from "../constants"
@@ -114,6 +115,7 @@ function ApproveForm({
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [docFile, setDocFile] = useState<File | null>(null)
+  const amountRef = useAutoFocus<HTMLInputElement>()
 
   const amtNum = Number(amount)
   const willBePartial = amount !== "" && !Number.isNaN(amtNum) && amtNum >= 0 && lineTotal > amtNum
@@ -176,7 +178,7 @@ function ApproveForm({
             </label>
             <input
               id="approve-amount"
-              autoFocus
+              ref={amountRef}
               type="number"
               min="0"
               step="0.01"
@@ -269,6 +271,7 @@ function ApprovalEditPanel({
   const [saving, setSaving] = useState(false)
   const [removing, setRemoving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const amountRef = useAutoFocus<HTMLInputElement>()
 
   const lineTotal = lineItemTotal(deliverable.lineItems)
   const amtNum = Number(amount)
@@ -317,7 +320,7 @@ function ApprovalEditPanel({
         </label>
         <input
           id="edit-approval-amount"
-          autoFocus
+          ref={amountRef}
           type="number"
           min="0"
           step="0.01"
@@ -365,6 +368,8 @@ function LineItemsTab({
   const [newAmt, setNewAmt] = useState("")
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const editDescRef = useAutoFocus<HTMLInputElement>()
+  const newDescRef = useAutoFocus<HTMLInputElement>()
 
   const lineTotal = lineItemTotal(deliverable.lineItems)
   const approved = Number(deliverable.approvedAmount)
@@ -465,7 +470,7 @@ function LineItemsTab({
                 <tr key={li.id}>
                   <td className="py-1.5 pr-2">
                     <input
-                      autoFocus
+                      ref={editDescRef}
                       className="w-full rounded border border-gray-600 bg-gray-700 px-2 py-1 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={editDesc}
                       onChange={(e) => setEditDesc(e.target.value)}
@@ -511,7 +516,7 @@ function LineItemsTab({
         adding ? (
           <div className="flex gap-2 mt-2">
             <input
-              autoFocus
+              ref={newDescRef}
               className="flex-1 rounded border border-gray-600 bg-gray-800 px-2 py-1.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Description"
               value={newDesc}
@@ -803,6 +808,7 @@ function EditableTextField({
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(value ?? "")
   const [saving, setSaving] = useState(false)
+  const draftRef = useAutoFocus<HTMLInputElement>()
 
   useEffect(() => { setDraft(value ?? "") }, [value])
 
@@ -841,7 +847,7 @@ function EditableTextField({
       {editing ? (
         <div className="flex items-center gap-1 mt-0.5">
           <input
-            autoFocus
+            ref={draftRef}
             className="rounded border border-gray-600 bg-gray-800 px-1.5 py-0.5 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 w-36"
             value={draft}
             placeholder={placeholder}
@@ -877,6 +883,7 @@ function DeliverPanel({
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const dnInputRef = useAutoFocus<HTMLInputElement>()
 
   function applyFile(f: File) {
     setDocFile(f)
@@ -922,7 +929,7 @@ function DeliverPanel({
           </label>
           <input
             id="deliver-dnref"
-            autoFocus
+            ref={dnInputRef}
             type="text"
             className="w-44 rounded border border-gray-600 bg-gray-800 px-2 py-1.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="BT-XXXXXXXXXX"
