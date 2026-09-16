@@ -45,12 +45,12 @@ function compareDeliverables(a: DeliverableRow, b: DeliverableRow): number {
 function filterDeliverables(
   deliverables: DeliverableRow[],
   query: string,
-  statusFilter: Set<DeliverableStatus>
+  excludedStatuses: Set<DeliverableStatus>
 ): DeliverableRow[] {
   const q = query.trim().toLowerCase()
   return deliverables
     .filter((d) => {
-      if (statusFilter.size > 0 && !statusFilter.has(d.status)) return false
+      if (excludedStatuses.has(d.status)) return false
       if (q && !d.title.toLowerCase().includes(q) && !d.internalId?.toLowerCase().includes(q)) return false
       return true
     })
@@ -178,22 +178,24 @@ export function DeliverablesTable({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
-  const [statusFilter, setStatusFilter] = useState<Set<DeliverableStatus>>(new Set())
+  // Closed-Finance work packages are done and out of scope for day-to-day review, so they're
+  // hidden by default — the status filter can bring them back into view like any other status.
+  const [excludedStatuses, setExcludedStatuses] = useState<Set<DeliverableStatus>>(() => new Set(["CLOSED_FINANCE"]))
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(10)
 
   const canAdd = agreement.status === "SIGNED" || agreement.status === "ACTIVE"
 
   const filtered = useMemo(
-    () => filterDeliverables(agreement.deliverables, search, statusFilter),
-    [agreement.deliverables, search, statusFilter]
+    () => filterDeliverables(agreement.deliverables, search, excludedStatuses),
+    [agreement.deliverables, search, excludedStatuses]
   )
 
   const paginated = filtered.slice((page - 1) * perPage, page * perPage)
 
   function handleToggleStatus(s: string) {
     const val = s as DeliverableStatus
-    setStatusFilter((prev) => {
+    setExcludedStatuses((prev) => {
       const next = new Set(prev)
       next.has(val) ? next.delete(val) : next.add(val)
       return next
@@ -290,10 +292,10 @@ export function DeliverablesTable({
             search={search}
             onSearchChange={(q) => { setSearch(q); setPage(1) }}
             placeholder="Search by title or ID…"
-            selectedStatuses={[...statusFilter]}
+            excludedStatuses={[...excludedStatuses]}
             onToggleStatus={handleToggleStatus}
-            onClearStatuses={() => { setStatusFilter(new Set()); setPage(1) }}
-            onClearAll={() => { setSearch(""); setStatusFilter(new Set()); setPage(1) }}
+            onShowAll={() => { setExcludedStatuses(new Set()); setPage(1) }}
+            onClearAll={() => { setSearch(""); setExcludedStatuses(new Set()); setPage(1) }}
             statusGroups={STATUS_GROUPS}
             exportNode={exportNode}
           />

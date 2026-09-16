@@ -26,6 +26,7 @@ async function searchOpportunities(q: string) {
         { customer: { contains: q, mode: "insensitive" } },
         { reference: { contains: q, mode: "insensitive" } },
         { internalId: { contains: q, mode: "insensitive" } },
+        { projectCode: { contains: q, mode: "insensitive" } },
         { product: { contains: q, mode: "insensitive" } },
       ],
     },

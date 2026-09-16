@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/shared/lib/db"
 import { z } from "zod"
 import { type Opportunity, OpportunityStatus, WaitingOn } from "@prisma/client"
-import { STATUS_LABELS, toDateString, WAITING_LABELS } from "@/shared/lib/utils"
+import { STATUS_LABELS, toDateString, WAITING_LABELS, PROJECT_CODE_REGEX } from "@/shared/lib/utils"
 import { requireSession, requireAdmin, hasSectionAccess } from "@/shared/lib/api"
 import { writeLog } from "@/shared/lib/system-log"
 import { scheduleNotification } from "@/shared/lib/notify"
@@ -44,6 +44,7 @@ const updateSchema = z.object({
   title: z.string().min(1).optional(),
   customer: z.string().min(1).optional(),
   reference: z.string().optional().nullable(),
+  projectCode: z.string().regex(PROJECT_CODE_REGEX, "Project code must be up to 6 digits").optional().nullable(),
   rfqDate: z.string().optional().nullable(),
   product: z.string().optional().nullable(),
   status: z.nativeEnum(OpportunityStatus).optional(),
@@ -145,12 +146,14 @@ function buildNullableFieldEvents(existing: Opportunity, rest: RestFields): stri
     product: rest.product ? `Product set to "${rest.product}"` : `Product cleared`,
     internalId: rest.internalId ? `Internal ID set to "${rest.internalId}"` : `Internal ID cleared`,
     reference: rest.reference ? `Reference set to "${rest.reference}"` : `Reference cleared`,
+    projectCode: rest.projectCode ? `Project code set to "${rest.projectCode}"` : `Project code cleared`,
     description: rest.description ? `Details updated` : `Details cleared`,
   }
   const events: string[] = []
   if (rest.product !== undefined && changed(rest.product, existing.product)) events.push(msgs.product)
   if (rest.internalId !== undefined && changed(rest.internalId, existing.internalId)) events.push(msgs.internalId)
   if (rest.reference !== undefined && changed(rest.reference, existing.reference)) events.push(msgs.reference)
+  if (rest.projectCode !== undefined && changed(rest.projectCode, existing.projectCode)) events.push(msgs.projectCode)
   if (rest.description !== undefined && changed(rest.description, existing.description)) events.push(msgs.description)
   return events
 }

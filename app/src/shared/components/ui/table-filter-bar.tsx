@@ -13,21 +13,14 @@ type Props = {
   readonly search: string
   readonly onSearchChange: (q: string) => void
   readonly placeholder?: string
-  readonly selectedStatuses: string[]
+  /** Statuses currently hidden — everything else in statusGroups stays visible. An empty
+   * array means nothing is hidden (all statuses shown), which is the default state. */
+  readonly excludedStatuses: string[]
   readonly onToggleStatus: (s: string) => void
-  readonly onClearStatuses: () => void
+  readonly onShowAll: () => void
   readonly onClearAll: () => void
   readonly statusGroups: FilterStatusGroup[]
   readonly exportNode?: React.ReactNode
-}
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function getStatusLabel(selected: string[], groups: FilterStatusGroup[]): string {
-  if (selected.length === 0) return "All Statuses"
-  if (selected.length > 1) return `${selected.length} statuses`
-  const found = groups.flatMap((g) => g.statuses).find((s) => s.value === selected[0])
-  return found?.label ?? selected[0]
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -36,9 +29,9 @@ export function TableFilterBar({
   search,
   onSearchChange,
   placeholder = "Search…",
-  selectedStatuses,
+  excludedStatuses,
   onToggleStatus,
-  onClearStatuses,
+  onShowAll,
   onClearAll,
   statusGroups,
   exportNode,
@@ -56,8 +49,7 @@ export function TableFilterBar({
     return () => document.removeEventListener("mousedown", handleClick)
   }, [])
 
-  const statusLabel = getStatusLabel(selectedStatuses, statusGroups)
-  const hasFilters = Boolean(search) || selectedStatuses.length > 0
+  const hasFilters = Boolean(search) || excludedStatuses.length > 0
 
   return (
     <div className="flex flex-wrap gap-3 mb-6">
@@ -75,19 +67,19 @@ export function TableFilterBar({
         />
       </div>
 
-      {/* Status dropdown */}
+      {/* Status dropdown — checked = visible; uncheck a status to hide just that one */}
       <div ref={statusRef} className="relative">
         <button
           type="button"
           onClick={() => setStatusOpen((o) => !o)}
           className={cn(
             "flex items-center gap-2 px-3 py-2 border rounded-lg text-sm transition-colors focus:outline-none",
-            selectedStatuses.length > 0
+            excludedStatuses.length > 0
               ? "border-[#006fff] bg-[#006fff] text-white"
               : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
           )}
         >
-          {statusLabel}
+          Status Filter
           <ChevronDown
             size={14}
             className={cn("transition-transform flex-shrink-0", statusOpen && "rotate-180")}
@@ -95,40 +87,40 @@ export function TableFilterBar({
         </button>
 
         {statusOpen && (
-          <div className="absolute top-full left-0 mt-1 w-56 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-1.5">
-            {selectedStatuses.length > 0 && (
+          <div className="absolute top-full left-0 mt-1 w-max min-w-56 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-1.5">
+            {excludedStatuses.length > 0 && (
               <button
                 type="button"
-                onClick={() => { onClearStatuses(); setStatusOpen(false) }}
-                className="w-full text-left px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-50 flex items-center gap-2"
+                onClick={() => { onShowAll(); setStatusOpen(false) }}
+                className="w-full text-left px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-50 flex items-center gap-2 whitespace-nowrap"
               >
                 <X size={12} />
-                Clear selection
+                Show all
               </button>
             )}
             {statusGroups.map((group) => (
               <div key={group.label || "default"}>
                 {group.label && (
-                  <div className="px-3 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                  <div className="px-3 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide whitespace-nowrap">
                     {group.label}
                   </div>
                 )}
                 {group.statuses.map((s) => {
-                  const checked = selectedStatuses.includes(s.value)
+                  const visible = !excludedStatuses.includes(s.value)
                   return (
                     <button
                       key={s.value}
                       type="button"
                       onClick={() => onToggleStatus(s.value)}
-                      className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2.5"
+                      className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2.5 whitespace-nowrap"
                     >
                       <span
                         className={cn(
                           "w-4 h-4 rounded border flex items-center justify-center flex-shrink-0",
-                          checked ? "bg-gray-900 border-gray-900" : "border-gray-300"
+                          visible ? "bg-gray-900 border-gray-900" : "border-gray-300"
                         )}
                       >
-                        {checked && <Check size={10} className="text-white" />}
+                        {visible && <Check size={10} className="text-white" />}
                       </span>
                       {s.label}
                     </button>
@@ -140,15 +132,19 @@ export function TableFilterBar({
         )}
       </div>
 
-      {hasFilters && (
-        <button
-          type="button"
-          onClick={onClearAll}
-          className="px-4 py-2 text-gray-500 text-sm rounded-lg hover:bg-gray-100 transition-colors"
-        >
-          Clear all
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={onClearAll}
+        disabled={!hasFilters}
+        className={cn(
+          "px-4 py-2 border rounded-lg text-sm transition-colors focus:outline-none",
+          hasFilters
+            ? "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+            : "border-gray-200 bg-white text-gray-300 cursor-not-allowed"
+        )}
+      >
+        Clear all
+      </button>
 
       {exportNode}
     </div>

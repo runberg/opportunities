@@ -84,7 +84,7 @@ export function DateDrillModal({
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search by title, customer, ID, reference…"
+                placeholder="Search by title, customer, ID, reference, project code…"
                 className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
               />
             </div>

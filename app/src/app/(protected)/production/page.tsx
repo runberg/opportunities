@@ -8,7 +8,7 @@ import { Pagination } from "@/modules/opportunities/components/pagination"
 
 interface SearchParams {
   readonly q?: string
-  readonly status?: string
+  readonly excludeStatus?: string
   readonly waitingOn?: string
   readonly page?: string
   readonly perPage?: string
@@ -25,11 +25,11 @@ export default async function ProductionPage({
   ])
 
   const query = params.q?.trim() ?? ""
-  const selectedStatuses = params.status ? params.status.split(",").filter(Boolean) : []
+  const excludedStatuses = params.excludeStatus ? params.excludeStatus.split(",").filter(Boolean) : []
   const perPage = parseParam(params.perPage, 50)
   const page = parseParam(params.page, 1)
 
-  const where = buildOpportunityWhere(query, selectedStatuses, PRODUCTION_STATUSES)
+  const where = buildOpportunityWhere(query, excludedStatuses, PRODUCTION_STATUSES)
   const [opportunities, total] = await Promise.all([
     db.opportunity.findMany({
       where,

@@ -17,6 +17,7 @@ interface NewForm {
   status: string
   internalId: string
   reference: string
+  projectCode: string
   customer: string
   product: string
   rfqDate: string
@@ -29,6 +30,7 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
     status: "RFQ_RECEIVED",
     internalId: "",
     reference: "",
+    projectCode: "",
     customer: "",
     product: "",
     rfqDate: todayISO(),
@@ -129,6 +131,17 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
                     onChange={(e) => setField("reference", e.target.value)}
                     placeholder="BTL-XXXXXXXX"
                     className="text-xs font-medium text-gray-100 bg-transparent outline-none w-28"
+                  />
+                </label>
+                <label className="inline-flex items-center gap-1.5 px-3 py-1 border border-gray-600 rounded-full bg-gray-700 focus-within:ring-1 focus-within:ring-gray-500 cursor-text">
+                  <span className="text-xs text-gray-500 shrink-0">Project Code</span>
+                  <input
+                    value={form.projectCode}
+                    onChange={(e) => setField("projectCode", e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    inputMode="numeric"
+                    maxLength={6}
+                    placeholder="000000"
+                    className="text-xs font-medium text-gray-100 bg-transparent outline-none w-16"
                   />
                 </label>
               </div>

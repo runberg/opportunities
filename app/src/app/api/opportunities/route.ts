@@ -3,7 +3,7 @@ import { db } from "@/shared/lib/db"
 import { z } from "zod"
 import { OpportunityStatus, WaitingOn } from "@prisma/client"
 import { requireSession, hasSectionAccess } from "@/shared/lib/api"
-import { statusSinceDate } from "@/shared/lib/utils"
+import { statusSinceDate, PROJECT_CODE_REGEX } from "@/shared/lib/utils"
 import { writeLog } from "@/shared/lib/system-log"
 
 const createSchema = z.object({
@@ -11,6 +11,7 @@ const createSchema = z.object({
   title: z.string().min(1),
   customer: z.string().min(1),
   reference: z.string().optional(),
+  projectCode: z.string().regex(PROJECT_CODE_REGEX, "Project code must be up to 6 digits").optional(),
   rfqDate: z.string().optional(),
   quoteSentDate: z.string().optional(),
   product: z.string().optional(),
@@ -53,6 +54,7 @@ export async function GET(req: NextRequest) {
               { customer: { contains: q, mode: "insensitive" as const } },
               { reference: { contains: q, mode: "insensitive" as const } },
               { internalId: { contains: q, mode: "insensitive" as const } },
+              { projectCode: { contains: q, mode: "insensitive" as const } },
               { product: { contains: q, mode: "insensitive" as const } },
             ],
           }
@@ -75,7 +77,7 @@ export async function GET(req: NextRequest) {
       where,
       select: {
         id: true, internalId: true, title: true, customer: true,
-        reference: true, product: true, status: true,
+        reference: true, projectCode: true, product: true, status: true,
         createdAt: true, updatedAt: true,
         rfqDate: true, quoteSentDate: true,
         elRequestedDate: true, elDraftSharedDate: true, elDraftReturnedDate: true,
@@ -129,7 +131,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 })
   }
 
-  const { internalId, title, customer, reference, rfqDate, quoteSentDate, product, status, waitingOn, description } =
+  const { internalId, title, customer, reference, projectCode, rfqDate, quoteSentDate, product, status, waitingOn, description } =
     parsed.data
 
   try {
@@ -139,6 +141,7 @@ export async function POST(req: NextRequest) {
         title,
         customer,
         reference: reference || null,
+        projectCode: projectCode || null,
         rfqDate: rfqDate ? new Date(rfqDate) : null,
         quoteSentDate: quoteSentDate ? new Date(quoteSentDate) : null,
         product: product || null,

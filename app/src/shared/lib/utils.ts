@@ -34,6 +34,10 @@ export function formatBytes(bytes: number): string {
   return `${Number.parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`
 }
 
+/** Project code: up to 6 digits, numeric only. Used for both client-side input filtering
+ * and server-side Zod validation, so the constraint lives in one place. */
+export const PROJECT_CODE_REGEX = /^\d{0,6}$/
+
 /** Strips characters that are invalid in filenames on common filesystems (esp. Windows). */
 export function sanitizeFilename(name: string): string {
   return name.replace(/[\\/:*?"<>|]+/g, " ").trim()
@@ -295,11 +299,16 @@ export function parseParam(val: string | undefined, fallback: number): number {
   return Number.isFinite(n) && n > 0 ? n : fallback
 }
 
+/** Builds the Prisma `where` for a status-scoped opportunity list (Quotes/ELs/Production).
+ * `excludedStatuses` are statuses the user has hidden via the filter — everything else in
+ * `defaultStatuses` (that page's full set of relevant statuses) stays visible. Excluding
+ * nothing (the common case) shows the page's whole default set, same as before. */
 export function buildOpportunityWhere(
   query: string,
-  selectedStatuses: string[],
+  excludedStatuses: string[],
   defaultStatuses: readonly string[]
 ) {
+  const visibleStatuses = defaultStatuses.filter((s) => !excludedStatuses.includes(s))
   return {
     AND: [
       query
@@ -309,17 +318,12 @@ export function buildOpportunityWhere(
               { customer: { contains: query, mode: "insensitive" as const } },
               { reference: { contains: query, mode: "insensitive" as const } },
               { internalId: { contains: query, mode: "insensitive" as const } },
+              { projectCode: { contains: query, mode: "insensitive" as const } },
               { product: { contains: query, mode: "insensitive" as const } },
             ],
           }
         : {},
-      {
-        status: {
-          in: (selectedStatuses.length > 0
-            ? selectedStatuses
-            : [...defaultStatuses]) as never[],
-        },
-      },
+      { status: { in: visibleStatuses as never[] } },
     ],
   }
 }

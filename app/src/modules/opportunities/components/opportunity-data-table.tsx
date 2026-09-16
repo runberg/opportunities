@@ -50,6 +50,13 @@ function PhaseCell({ done, na = false }: { readonly done: boolean; readonly na?:
   return <span className="w-3 h-3 rounded-full border-2 border-gray-300 inline-block" />
 }
 
+/** "How long ago" label for the moment a row entered its current status — calendar-date
+ * based for milestone statuses, hour-precise for real-timestamp ones (see isCalendarDateStatus). */
+function statusSinceLabel(row: OppTableRow): string | null {
+  if (!row.statusSince) return null
+  return isCalendarDateStatus(row.status) ? calendarAgeLabel(row.statusSince) : statusAgeLabel(row.statusSince)
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function OpportunityDataTable({
@@ -102,7 +109,7 @@ export function OpportunityDataTable({
 
   const colCount =
     (selectable ? 1 : 0) + 4 /* id, title, customer, product */ +
-    (dateColumn ? 1 : 0) + (showPhases ? 3 : 0) + 1 /* status */ +
+    (dateColumn ? 1 : 0) + (showPhases ? 3 : 0) + 2 /* status, status since */ +
     (renderAction ? 1 : 0)
 
   const productClass = cn("hidden w-36", showPhases ? "lg:table-cell" : "md:table-cell")
@@ -141,6 +148,7 @@ export function OpportunityDataTable({
               </>
             )}
             <SortableHeader label="Status" sortKey="status" currentSort={sortKey} currentDir={sortDir} onSort={onSort} className="w-32" />
+            <SortableHeader label="Status Since" sortKey="statusSince" currentSort={sortKey} currentDir={sortDir} onSort={onSort} className="hidden xl:table-cell w-44" />
             {renderAction && <th className="w-10 px-2 py-3" />}
           </tr>
         </thead>
@@ -158,6 +166,7 @@ export function OpportunityDataTable({
           {!loading && rows.map((row) => {
             const isSelected = selectable && !!selected?.has(row.id)
             const dateVal = dateColumn ? dateColumn.getValue(row) : null
+            const sinceLabel = statusSinceLabel(row)
             return (
               <tr
                 key={row.id}
@@ -217,11 +226,14 @@ export function OpportunityDataTable({
                 )}
                 <td className="px-4 py-3 text-center">
                   <StatusBadge status={row.status} short />
-                  {row.statusSince && (
-                    <div className="text-xs text-gray-400 mt-1 whitespace-nowrap">
-                      {isCalendarDateStatus(row.status) ? calendarAgeLabel(row.statusSince) : statusAgeLabel(row.statusSince)}
+                  {sinceLabel && (
+                    <div className="text-xs text-gray-400 mt-1 whitespace-nowrap xl:hidden">
+                      {sinceLabel}
                     </div>
                   )}
+                </td>
+                <td className="px-4 py-3 text-gray-500 hidden xl:table-cell whitespace-nowrap">
+                  {sinceLabel ?? "—"}
                 </td>
                 {renderAction && (
                   <td className="px-2 py-3" onClick={(e) => e.stopPropagation()}>

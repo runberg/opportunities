@@ -57,6 +57,7 @@ model Opportunity {
   title       String
   customer    String
   reference   String?           // Customer / RFQ reference number
+  projectCode String?           // Internal project code — up to 6 digits
   rfqDate     DateTime?         // Date the RFQ was received
   product     String?           // One-line product/service description
   status        OpportunityStatus @default(NEW)

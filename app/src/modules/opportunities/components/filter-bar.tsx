@@ -25,8 +25,8 @@ export function FilterBar({
   const searchParams = useSearchParams()
 
   const query = searchParams.get("q") ?? ""
-  const statusParam = searchParams.get("status") ?? ""
-  const selectedStatuses = statusParam ? statusParam.split(",").filter(Boolean) : []
+  const excludeParam = searchParams.get("excludeStatus") ?? ""
+  const excludedStatuses = excludeParam ? excludeParam.split(",").filter(Boolean) : []
 
   const [inputValue, setInputValue] = useState(query)
 
@@ -58,8 +58,8 @@ export function FilterBar({
   }))
 
   const queryPart = query ? `&q=${encodeURIComponent(query)}` : ""
-  const statusPart = statusParam ? `&status=${encodeURIComponent(statusParam)}` : ""
-  const exportUrl = exportType ? `/api/export?type=${exportType}${queryPart}${statusPart}` : null
+  const excludePart = excludeParam ? `&excludeStatus=${encodeURIComponent(excludeParam)}` : ""
+  const exportUrl = exportType ? `/api/export?type=${exportType}${queryPart}${excludePart}` : null
 
   const exportNode = exportUrl ? (
     <a
@@ -76,15 +76,15 @@ export function FilterBar({
     <TableFilterBar
       search={inputValue}
       onSearchChange={setInputValue}
-      placeholder="Search by title, customer, ID, reference…"
-      selectedStatuses={selectedStatuses}
+      placeholder="Search by title, customer, ID, reference, project code…"
+      excludedStatuses={excludedStatuses}
       onToggleStatus={(s) => {
-        const next = selectedStatuses.includes(s)
-          ? selectedStatuses.filter((x) => x !== s)
-          : [...selectedStatuses, s]
-        updateParams({ status: next.length > 0 ? next.join(",") : null })
+        const next = excludedStatuses.includes(s)
+          ? excludedStatuses.filter((x) => x !== s)
+          : [...excludedStatuses, s]
+        updateParams({ excludeStatus: next.length > 0 ? next.join(",") : null })
       }}
-      onClearStatuses={() => updateParams({ status: null })}
+      onShowAll={() => updateParams({ excludeStatus: null })}
       onClearAll={() => router.push(basePath)}
       statusGroups={groups}
       exportNode={exportNode}

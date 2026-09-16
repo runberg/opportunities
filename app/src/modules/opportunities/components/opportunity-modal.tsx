@@ -39,7 +39,7 @@ interface ModalDelivery {
 
 interface OpportunityFull {
   id: string; internalId: string | null; title: string; customer: string
-  reference: string | null; rfqDate: string | null; product: string | null
+  reference: string | null; projectCode: string | null; rfqDate: string | null; product: string | null
   status: string; waitingOn: string
   quoteSentDate: string | null; elRequestedDate: string | null
   elDraftSharedDate: string | null; elDraftReturnedDate: string | null
@@ -174,6 +174,7 @@ function makeForm(data: OpportunityFull) {
     description: data.description ?? "",
     internalId: data.internalId ?? "",
     reference: data.reference ?? "",
+    projectCode: data.projectCode ?? "",
     status: data.status,
     rfqDate: toDateString(data.rfqDate),
     quoteSentDate: toDateString(data.quoteSentDate),
@@ -208,6 +209,7 @@ function buildOppPayload(form: OppForm, data: OpportunityFull): Record<string, u
   if (form.description !== (data.description ?? "")) p.description = form.description
   if (form.internalId !== (data.internalId ?? "")) p.internalId = form.internalId
   if (form.reference !== (data.reference ?? "")) p.reference = form.reference
+  if (form.projectCode !== (data.projectCode ?? "")) p.projectCode = form.projectCode
   if (form.status !== data.status) p.status = form.status
   if (form.rfqDate !== toDateString(data.rfqDate)) p.rfqDate = form.rfqDate || null
   if (form.quoteSentDate !== toDateString(data.quoteSentDate)) p.quoteSentDate = form.quoteSentDate || null
@@ -314,6 +316,7 @@ function ViewMode({ data, currentUserId, isAdmin, isReadOnly, onRefresh, onSilen
     form.description !== (data.description ?? "") ||
     form.internalId !== (data.internalId ?? "") ||
     form.reference !== (data.reference ?? "") ||
+    form.projectCode !== (data.projectCode ?? "") ||
     form.status !== data.status ||
     form.rfqDate !== toDateString(data.rfqDate) ||
     form.quoteSentDate !== toDateString(data.quoteSentDate) ||
@@ -460,7 +463,7 @@ function ViewMode({ data, currentUserId, isAdmin, isReadOnly, onRefresh, onSilen
         )}
       </div>
 
-      {/* Meta row: status + ID + Ref */}
+      {/* Meta row: status + ID + Ref + Project Code */}
       <div className="flex flex-wrap items-center gap-2 mb-5">
         {statusControl}
         <label className={labelCls}>
@@ -472,6 +475,11 @@ function ViewMode({ data, currentUserId, isAdmin, isReadOnly, onRefresh, onSilen
           <span className="text-xs text-gray-500 shrink-0">Ref.</span>
           <input value={form.reference} onChange={(e) => set("reference", e.target.value)}
             readOnly={isReadOnly} placeholder="BTL-XXXXXXXX" className="text-xs font-medium text-gray-100 bg-transparent outline-none w-28" />
+        </label>
+        <label className={labelCls}>
+          <span className="text-xs text-gray-500 shrink-0">Project Code</span>
+          <input value={form.projectCode} onChange={(e) => set("projectCode", e.target.value.replace(/\D/g, "").slice(0, 6))}
+            readOnly={isReadOnly} inputMode="numeric" maxLength={6} placeholder="000000" className="text-xs font-medium text-gray-100 bg-transparent outline-none w-16" />
         </label>
       </div>
 
