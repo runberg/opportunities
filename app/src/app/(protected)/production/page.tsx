@@ -12,6 +12,7 @@ interface SearchParams {
   readonly waitingOn?: string
   readonly page?: string
   readonly perPage?: string
+  readonly open?: string
 }
 
 export default async function ProductionPage({
@@ -81,6 +82,7 @@ export default async function ProductionPage({
         currentUserId={session.user.id}
         isAdmin={isAdmin}
         isReadOnly={isReadOnly}
+        initialOpenId={params.open}
       />
 
       <Suspense>

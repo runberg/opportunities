@@ -12,6 +12,7 @@ interface SearchParams {
   waitingOn?: string
   page?: string
   perPage?: string
+  open?: string
 }
 
 export default async function OpportunitiesPage({
@@ -74,6 +75,7 @@ export default async function OpportunitiesPage({
         currentUserId={session.user.id}
         isAdmin={isAdmin}
         isReadOnly={isReadOnly}
+        initialOpenId={params.open}
       />
 
       <Suspense>

@@ -14,7 +14,7 @@ export interface OpportunityRow extends OppTableRow {
 }
 
 export function OppTableView({
-  opportunities, currentUserId, isAdmin, isReadOnly, initialSortKey, dateColumn, emptyMessage,
+  opportunities, currentUserId, isAdmin, isReadOnly, initialSortKey, dateColumn, emptyMessage, initialOpenId,
 }: {
   readonly opportunities: OppTableRow[]
   readonly currentUserId: string
@@ -23,9 +23,10 @@ export function OppTableView({
   readonly initialSortKey: string
   readonly dateColumn: DateColumn
   readonly emptyMessage: string
+  readonly initialOpenId?: string
 }) {
   const router = useRouter()
-  const [openModalId, setOpenModalId] = useState<string | null>(null)
+  const [openModalId, setOpenModalId] = useState<string | null>(initialOpenId ?? null)
   const [commentTarget, setCommentTarget] = useState<OppTableRow | null>(null)
   const [sortKey, setSortKey] = useState(initialSortKey)
   const [sortDir, setSortDir] = useState<SortDir>("desc")
@@ -75,12 +76,13 @@ export function OppTableView({
 }
 
 export function OpportunitiesTable({
-  opportunities, currentUserId, isAdmin, isReadOnly = false,
+  opportunities, currentUserId, isAdmin, isReadOnly = false, initialOpenId,
 }: {
   readonly opportunities: OpportunityRow[]
   readonly currentUserId: string
   readonly isAdmin: boolean
   readonly isReadOnly?: boolean
+  readonly initialOpenId?: string
 }) {
   return (
     <OppTableView
@@ -91,6 +93,7 @@ export function OpportunitiesTable({
       initialSortKey="internalId"
       dateColumn={{ label: "RFQ Date", sortKey: "rfqDate", getValue: (r) => r.rfqDate }}
       emptyMessage="No opportunities found."
+      initialOpenId={initialOpenId}
     />
   )
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/shared/lib/db"
 import { requireSession, hasSectionAccess } from "@/shared/lib/api"
-import { QUOTE_STATUSES, EL_STATUSES, PRODUCTION_STATUSES, STATUS_LABELS } from "@/shared/lib/utils"
+import { QUOTE_STATUSES, EL_STATUSES, PRODUCTION_STATUSES, STATUS_LABELS, opportunityBasePath } from "@/shared/lib/utils"
 
 const RESULT_LIMIT = 8
 
@@ -10,12 +10,6 @@ function opportunityGroup(status: string): string {
   if ((EL_STATUSES as readonly string[]).includes(status)) return "Engagement Letter"
   if ((PRODUCTION_STATUSES as readonly string[]).includes(status)) return "Production"
   return STATUS_LABELS[status] ?? status
-}
-
-function opportunityBasePath(status: string): string {
-  if ((EL_STATUSES as readonly string[]).includes(status)) return "/els"
-  if ((PRODUCTION_STATUSES as readonly string[]).includes(status)) return "/production"
-  return "/opportunities"
 }
 
 async function searchOpportunities(q: string) {

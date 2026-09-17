@@ -14,6 +14,7 @@ const DEFAULT_OPP_BODY = [
   "",
   "{{internalId}}{{title}}",
   "Customer: {{customer}}",
+  "Changed by: {{actor}}",
   "",
   "Changes:",
   "{{changes}}",
@@ -29,6 +30,7 @@ const DEFAULT_ADHOC_BODY = [
   "A work package has been updated:",
   "",
   "{{title}}",
+  "Changed by: {{actor}}",
   "",
   "Changes:",
   "{{changes}}",
@@ -43,14 +45,16 @@ const OPP_PLACEHOLDERS = [
   { token: "{{title}}", desc: "Opportunity title" },
   { token: "{{internalId}}", desc: "Internal ID followed by \" - \" (blank if not set — place before {{title}})" },
   { token: "{{customer}}", desc: "Customer name" },
+  { token: "{{actor}}", desc: "Name of the person who made the change" },
   { token: "{{changes}}", desc: "List of changes in this notification" },
-  { token: "{{link}}", desc: "Link to the application" },
+  { token: "{{link}}", desc: "Direct link to the opportunity" },
 ]
 
 const ADHOC_PLACEHOLDERS = [
   { token: "{{title}}", desc: "Work package title" },
+  { token: "{{actor}}", desc: "Name of the person who made the change" },
   { token: "{{changes}}", desc: "List of changes in this notification" },
-  { token: "{{link}}", desc: "Link to the application" },
+  { token: "{{link}}", desc: "Direct link to the work package" },
 ]
 
 interface SmtpForm {

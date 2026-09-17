@@ -1,5 +1,6 @@
 import { db } from "./db"
 import { sendMail } from "./mailer"
+import { opportunityBasePath } from "./utils"
 import { NotificationLevel } from "@prisma/client"
 
 const DEFAULT_OPP_SUBJECT = "Opportunity update: {{title}}"
@@ -8,6 +9,7 @@ const DEFAULT_OPP_BODY = [
   "",
   "{{internalId}}{{title}}",
   "Customer: {{customer}}",
+  "Changed by: {{actor}}",
   "",
   "Changes:",
   "{{changes}}",
@@ -23,6 +25,7 @@ const DEFAULT_ADHOC_BODY = [
   "A work package has been updated:",
   "",
   "{{title}}",
+  "Changed by: {{actor}}",
   "",
   "Changes:",
   "{{changes}}",
@@ -146,6 +149,24 @@ function getChangesForLevel(entry: PendingEntry, level: NotificationLevel): stri
   return entry.changes
 }
 
+/** Deep link straight to the item — the opportunity's current stage page (Quotes/ELs/
+ * Production) for opportunities, or the owning agreement's tab for ad hoc work packages.
+ * Falls back to the module's plain list page if the item was deleted before the
+ * (delayed/batched) notification fired. */
+async function buildDeepLink(entry: PendingEntry, appUrl: string): Promise<string> {
+  if (!appUrl) return ""
+
+  if (entry.module === "opportunity") {
+    const opp = await db.opportunity.findUnique({ where: { id: entry.itemId }, select: { status: true } })
+    if (!opp) return `${appUrl}/opportunities`
+    return `${appUrl}${opportunityBasePath(opp.status)}?open=${entry.itemId}`
+  }
+
+  const deliverable = await db.adhocDeliverable.findUnique({ where: { id: entry.itemId }, select: { agreementId: true } })
+  if (!deliverable) return `${appUrl}/adhoc`
+  return `${appUrl}/adhoc?agreement=${deliverable.agreementId}&deliverable=${entry.itemId}`
+}
+
 async function fireNotification(entry: PendingEntry): Promise<void> {
   const config = await db.smtpConfig.findUnique({ where: { id: "default" } })
   if (!config?.enabled) return
@@ -172,12 +193,17 @@ async function fireNotification(entry: PendingEntry): Promise<void> {
     (isOpp ? config.opportunityNotificationBody : config.adhocNotificationBody) ||
     (isOpp ? DEFAULT_OPP_BODY : DEFAULT_ADHOC_BODY)
 
-  const path = isOpp ? "/opportunities" : "/adhoc"
+  const [actor, link] = await Promise.all([
+    db.user.findUnique({ where: { id: entry.actorId }, select: { name: true } }),
+    buildDeepLink(entry, appUrl),
+  ])
+
   const baseVars: Record<string, string> = {
     title: entry.title,
     internalId: entry.internalId ? `${entry.internalId} - ` : "",
     customer: entry.customer,
-    link: appUrl ? `${appUrl}${path}` : "",
+    actor: actor?.name ?? "Someone",
+    link,
   }
 
   for (const recipient of recipients) {

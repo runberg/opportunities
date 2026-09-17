@@ -12,6 +12,7 @@ interface SearchParams {
   waitingOn?: string
   page?: string
   perPage?: string
+  open?: string
 }
 
 export default async function ELsPage({
@@ -73,6 +74,7 @@ export default async function ELsPage({
         currentUserId={session.user.id}
         isAdmin={isAdmin}
         isReadOnly={isReadOnly}
+        initialOpenId={params.open}
       />
 
       <Suspense>

@@ -12,15 +12,16 @@ export interface ProductionRow extends OppTableRow {
 }
 
 export function ProductionTable({
-  opportunities, currentUserId, isAdmin, isReadOnly = false,
+  opportunities, currentUserId, isAdmin, isReadOnly = false, initialOpenId,
 }: {
   readonly opportunities: ProductionRow[]
   readonly currentUserId: string
   readonly isAdmin: boolean
   readonly isReadOnly?: boolean
+  readonly initialOpenId?: string
 }) {
   const router = useRouter()
-  const [openModalId, setOpenModalId] = useState<string | null>(null)
+  const [openModalId, setOpenModalId] = useState<string | null>(initialOpenId ?? null)
   const [sortKey, setSortKey] = useState("title")
   const [sortDir, setSortDir] = useState<SortDir>("asc")
 

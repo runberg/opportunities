@@ -223,6 +223,14 @@ export function isOpportunitySigned(status: string): boolean {
   return status === "EL_FULLY_SIGNED" || (PRODUCTION_STATUSES as readonly string[]).includes(status)
 }
 
+/** Which list page an opportunity's current status belongs to — used to link/navigate to
+ * the right page (Quotes/ELs/Production) for a given opportunity. */
+export function opportunityBasePath(status: string): string {
+  if ((EL_STATUSES as readonly string[]).includes(status)) return "/els"
+  if ((PRODUCTION_STATUSES as readonly string[]).includes(status)) return "/production"
+  return "/opportunities"
+}
+
 // Grouped for the filter dropdowns
 export const STATUS_GROUPS = [
   {
