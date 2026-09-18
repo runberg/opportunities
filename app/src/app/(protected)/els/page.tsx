@@ -1,7 +1,7 @@
 import { Suspense } from "react"
 import { db } from "@/shared/lib/db"
 import { requireSectionAccess } from "@/shared/lib/page-access"
-import { formatDate, parseParam, buildOpportunityWhere, statusSinceDate, EL_STATUSES, STATUS_GROUPS } from "@/shared/lib/utils"
+import { parseParam, buildOpportunityWhere, statusSinceDate, EL_STATUSES, STATUS_GROUPS } from "@/shared/lib/utils"
 import { ELTable } from "@/modules/opportunities/components/el-table"
 import { FilterBar } from "@/modules/opportunities/components/filter-bar"
 import { Pagination } from "@/modules/opportunities/components/pagination"
@@ -49,7 +49,7 @@ export default async function ELsPage({
     title: opp.title,
     customer: opp.customer,
     reference: opp.reference,
-    elRequestedDate: opp.elRequestedDate ? formatDate(opp.elRequestedDate) : null,
+    elRequestedDate: opp.elRequestedDate ? opp.elRequestedDate.toISOString() : null,
     product: opp.product,
     status: opp.status,
     statusSince: statusSinceDate(opp.status, opp).toISOString(),

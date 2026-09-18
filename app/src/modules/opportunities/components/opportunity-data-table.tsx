@@ -172,7 +172,7 @@ export function OpportunityDataTable({
                 key={row.id}
                 onClick={() => selectable ? onToggleRow?.(row.id) : onRowClick?.(row.id)}
                 className={cn(
-                  "transition-colors",
+                  "h-16 transition-colors",
                   (onRowClick || selectable) && "cursor-pointer",
                   isSelected ? "bg-red-50 hover:bg-red-100" : "hover:bg-gray-50"
                 )}

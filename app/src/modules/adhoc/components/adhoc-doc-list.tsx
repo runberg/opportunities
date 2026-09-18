@@ -55,8 +55,8 @@ export function AdhocDocList({
                   onView={() => onView(doc)}
                 />
                 <td className="px-4 py-3 text-xs text-gray-400 hidden md:table-cell w-48">
-                  <div>{doc.uploadedBy?.name ?? "Unknown"}</div>
-                  <div className="mt-0.5">{formatBytes(doc.size)} · {formatDate(doc.uploadedAt)}</div>
+                  <div className="truncate" title={doc.uploadedBy?.name ?? "Unknown"}>{doc.uploadedBy?.name ?? "Unknown"}</div>
+                  <div className="mt-0.5 truncate">{formatBytes(doc.size)} · {formatDate(doc.uploadedAt)}</div>
                 </td>
                 <DocActionCell
                   downloadHref={downloadUrl(doc.id)}

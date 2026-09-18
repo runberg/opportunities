@@ -202,15 +202,15 @@ export function QuoteSection({
             {emptyLabel}
           </p>
         ) : (
-          <div className="border border-gray-700 rounded-xl overflow-hidden">
-            <table className="w-full text-sm">
+          <div className="border border-gray-700 rounded-xl overflow-x-auto">
+            <table className="w-full text-sm table-fixed">
               <thead className="bg-gray-800/50 border-b border-gray-700">
                 <tr>
                   <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400">Name</th>
-                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400">Version</th>
-                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400 hidden sm:table-cell">Size</th>
-                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400 hidden md:table-cell">Uploaded</th>
-                  <th className="px-4 py-2.5" />
+                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400 w-20">Version</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400 hidden sm:table-cell w-20">Size</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400 hidden md:table-cell w-48">Uploaded</th>
+                  <th className="px-4 py-2.5 w-20" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-700">
@@ -231,16 +231,17 @@ export function QuoteSection({
                         {doc.docStatus === "FINAL" ? "Final" : "Draft"}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-gray-400 hidden sm:table-cell">
+                    <td className="px-4 py-3 text-gray-400 hidden sm:table-cell truncate">
                       {formatBytes(doc.size)}
                     </td>
-                    <td className="px-4 py-3 text-gray-400 hidden md:table-cell">
+                    <td className="px-4 py-3 text-gray-400 hidden md:table-cell truncate" title={`${doc.uploadedBy.name} · ${formatDate(doc.uploadedAt)}`}>
                       {doc.uploadedBy.name} · {formatDate(doc.uploadedAt)}
                     </td>
                     <DocActionCell
                       downloadHref={`/api/files/${doc.id}`}
                       originalName={doc.originalName}
                       onDelete={isAdmin ? () => handleDelete(doc.id, doc.displayName) : null}
+                      className="px-4 py-3 w-20"
                     />
                   </tr>
                 ))}

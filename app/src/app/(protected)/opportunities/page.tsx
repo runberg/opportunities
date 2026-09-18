@@ -1,7 +1,7 @@
 import { Suspense } from "react"
 import { db } from "@/shared/lib/db"
 import { requireSectionAccess } from "@/shared/lib/page-access"
-import { formatDate, parseParam, buildOpportunityWhere, statusSinceDate, QUOTE_STATUSES, STATUS_GROUPS } from "@/shared/lib/utils"
+import { parseParam, buildOpportunityWhere, statusSinceDate, QUOTE_STATUSES, STATUS_GROUPS } from "@/shared/lib/utils"
 import { FilterBar } from "@/modules/opportunities/components/filter-bar"
 import { OpportunitiesTable } from "@/modules/opportunities/components/table"
 import { Pagination } from "@/modules/opportunities/components/pagination"
@@ -49,8 +49,8 @@ export default async function OpportunitiesPage({
     title: opp.title,
     customer: opp.customer,
     reference: opp.reference,
-    rfqDate: opp.rfqDate ? formatDate(opp.rfqDate) : null,
-    quoteSentDate: opp.quoteSentDate ? formatDate(opp.quoteSentDate) : null,
+    rfqDate: opp.rfqDate ? opp.rfqDate.toISOString() : null,
+    quoteSentDate: opp.quoteSentDate ? opp.quoteSentDate.toISOString() : null,
     product: opp.product,
     status: opp.status,
     statusSince: statusSinceDate(opp.status, opp).toISOString(),
