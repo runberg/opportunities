@@ -14,6 +14,7 @@ export function findAllAgreements() {
           title: true,
           status: true,
           approvedAmount: true,
+          financeAmount: true,
           approverName: true,
           approvedAt: true,
           deliveredAt: true,

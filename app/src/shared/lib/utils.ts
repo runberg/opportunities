@@ -272,6 +272,7 @@ export const DOC_TYPE_LABELS: Record<string, string> = {
   EL: "EL",
   FAT: "FAT",
   SAT: "SAT",
+  DELIVERY: "Delivery",
   OTHER: "Other",
 }
 

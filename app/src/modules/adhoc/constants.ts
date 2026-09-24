@@ -4,6 +4,7 @@ export const DELIVERABLE_STATUS_BADGE: Record<string, string> = {
   APPROVED: "bg-blue-100 text-blue-700",
   DELIVERED: "bg-green-100 text-green-700",
   CLOSED_FINANCE: "bg-gray-100 text-gray-600",
+  CANCELLED: "bg-slate-200 text-slate-500 line-through",
 }
 
 export const DELIVERABLE_STATUS_LABEL: Record<string, string> = {
@@ -12,4 +13,5 @@ export const DELIVERABLE_STATUS_LABEL: Record<string, string> = {
   APPROVED: "Approved",
   DELIVERED: "Delivered",
   CLOSED_FINANCE: "Closed Finance",
+  CANCELLED: "Cancelled",
 }

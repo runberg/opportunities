@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { Fragment, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Upload } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
@@ -11,6 +11,7 @@ import { DocActionCell } from "@/shared/components/ui/doc-action-cell"
 import { formatBytes, formatDate, nameFromFile } from "@/shared/lib/utils"
 import { useDropZone, useWindowDragExpand } from "@/shared/lib/use-drop-zone"
 import { FileDropZone } from "@/shared/components/ui/file-drop-zone"
+import { DocEditForm, type DocTypeOption } from "@/shared/components/ui/doc-edit-form"
 
 
 interface QuoteDoc {
@@ -20,9 +21,12 @@ interface QuoteDoc {
   mimeType: string
   size: number
   docStatus: string
+  type?: string
   uploadedAt: Date | string
   uploadedBy: { id: string; name: string }
 }
+
+type DocKind = "QUOTE" | "EL" | "FAT" | "SAT" | "DELIVERY" | "OTHER"
 
 const DOC_TYPE_LABELS = {
   QUOTE: { section: "Quote Documents", empty: "No quote documents yet." },
@@ -31,6 +35,16 @@ const DOC_TYPE_LABELS = {
   SAT:   { section: "SAT Documents",   empty: "No SAT documents yet." },
 } as const
 
+const KIND_LABEL: Record<DocKind, string> = {
+  QUOTE: "Quote", EL: "EL", FAT: "FAT", SAT: "SAT", DELIVERY: "Delivery", OTHER: "Other",
+}
+
+const toOptions = (kinds: readonly DocKind[]): DocTypeOption[] =>
+  kinds.map((k) => ({ value: k, label: KIND_LABEL[k] }))
+
+/** Quote and EL documents can be moved between the two; other sections have no type change. */
+const QUOTE_EL_OPTIONS = toOptions(["QUOTE", "EL"])
+
 interface QuoteSectionProps {
   readonly opportunityId: string
   readonly documents: QuoteDoc[]
@@ -38,6 +52,9 @@ interface QuoteSectionProps {
   readonly isAdmin: boolean
   readonly onRefresh?: () => void
   readonly docType?: "QUOTE" | "EL" | "FAT" | "SAT"
+  /** Multi-type mode (Production Documents): the section shows several document kinds and the
+   * upload/edit forms offer a type selector. When absent, the section is one fixed docType. */
+  readonly selectableTypes?: readonly DocKind[]
   readonly isReadOnly?: boolean
 }
 
@@ -48,6 +65,7 @@ export function QuoteSection({
   isAdmin,
   onRefresh,
   docType = "QUOTE",
+  selectableTypes,
   isReadOnly = false,
 }: QuoteSectionProps) {
   const router = useRouter()
@@ -58,7 +76,12 @@ export function QuoteSection({
   const [uploadError, setUploadError] = useState("")
   const [displayName, setDisplayName] = useState("")
   const [docStatus, setDocStatus] = useState("DRAFT")
+  const [uploadType, setUploadType] = useState<DocKind>(selectableTypes?.[0] ?? docType)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [file, setFile] = useState<File | null>(null)
+
+  const typeOptions = selectableTypes ? toOptions(selectableTypes) : null
+  const editTypeOptions = typeOptions ?? (docType === "QUOTE" || docType === "EL" ? QUOTE_EL_OPTIONS : null)
 
   const hasFileRef = useRef(false)
 
@@ -82,7 +105,7 @@ export function QuoteSection({
     formData.set("file", file)
     formData.set("displayName", displayName.trim())
     formData.set("docStatus", docStatus)
-    formData.set("type", docType)
+    formData.set("type", selectableTypes ? uploadType : docType)
     setUploading(true)
     setUploadError("")
     try {
@@ -114,8 +137,10 @@ export function QuoteSection({
     router.refresh()
   }
 
-  const { section: sectionLabel, empty: emptyLabel } = DOC_TYPE_LABELS[docType]
-
+  const { section: sectionLabel, empty: emptyLabel } = selectableTypes
+    ? { section: "Production Documents", empty: "No production documents yet." }
+    : DOC_TYPE_LABELS[docType]
+  const columnCount = selectableTypes ? 6 : 5
 
   return (
     <div className="bg-gray-900 border border-gray-700 rounded-xl p-4">
@@ -155,6 +180,19 @@ export function QuoteSection({
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
                   />
                 </div>
+                {typeOptions && (
+                  <div>
+                    <label htmlFor="qs-doc-type" className="block text-xs font-medium text-gray-400 mb-1">Type</label>
+                    <select
+                      id="qs-doc-type"
+                      value={uploadType}
+                      onChange={(e) => setUploadType(e.target.value as DocKind)}
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-gray-500"
+                    >
+                      {typeOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  </div>
+                )}
                 <div>
                   <label htmlFor="qs-doc-version" className="block text-xs font-medium text-gray-400 mb-1">Version</label>
                   <select
@@ -207,19 +245,28 @@ export function QuoteSection({
               <thead className="bg-gray-800/50 border-b border-gray-700">
                 <tr>
                   <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400">Name</th>
+                  {selectableTypes && <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400 w-24">Type</th>}
                   <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400 w-20">Version</th>
                   <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400 hidden sm:table-cell w-20">Size</th>
                   <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400 hidden md:table-cell w-48">Uploaded</th>
-                  <th className="px-4 py-2.5 w-20" />
+                  <th className="px-4 py-2.5 w-28" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-700">
                 {documents.map((doc) => (
-                  <tr key={doc.id} className="hover:bg-gray-800/50">
+                  <Fragment key={doc.id}>
+                  <tr className="hover:bg-gray-800/50">
                     <DocNameCell
                       doc={doc}
                       onView={() => viewers.openViewer(doc)}
                     />
+                    {selectableTypes && (
+                      <td className="px-4 py-3">
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-900/40 text-blue-300">
+                          {KIND_LABEL[doc.type as DocKind] ?? doc.type}
+                        </span>
+                      </td>
+                    )}
                     <td className="px-4 py-3">
                       <span
                         className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
@@ -241,9 +288,25 @@ export function QuoteSection({
                       downloadHref={`/api/files/${doc.id}`}
                       originalName={doc.originalName}
                       onDelete={isAdmin ? () => handleDelete(doc.id, doc.displayName) : null}
-                      className="px-4 py-3 w-20"
+                      onEdit={isReadOnly ? null : () => setEditingId(doc.id)}
+                      className="px-4 py-3 w-28"
                     />
                   </tr>
+                  {editingId === doc.id && (
+                    <tr>
+                      <td colSpan={columnCount} className="p-0">
+                        <DocEditForm
+                          url={`/api/files/${doc.id}`}
+                          initialName={doc.displayName}
+                          initialType={doc.type ?? docType}
+                          typeOptions={editTypeOptions}
+                          onCancel={() => setEditingId(null)}
+                          onSaved={() => { setEditingId(null); onRefresh?.(); router.refresh() }}
+                        />
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
                 ))}
               </tbody>
             </table>

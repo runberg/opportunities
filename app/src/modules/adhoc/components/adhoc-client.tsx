@@ -34,6 +34,7 @@ export type AgreementRow = {
     title: string
     status: string
     approvedAmount: string
+    financeAmount: string | null
     approverName: string | null
     approvedAt: string | null
     deliveredAt: string | null

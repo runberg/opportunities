@@ -166,6 +166,7 @@ enum DocumentType {
   EL
   FAT
   SAT
+  DELIVERY
   OTHER
 }
 
@@ -264,6 +265,7 @@ model AdhocDeliverable {
   deliveredAt         DateTime?
   closedFinanceAt     DateTime?
   closedFinanceNote   String?
+  financeAmount       Decimal?               @db.Decimal(10, 2)
   createdAt           DateTime               @default(now())
   updatedAt           DateTime               @updatedAt
 
@@ -285,6 +287,7 @@ enum AdhocDeliverableStatus {
   APPROVED
   DELIVERED
   CLOSED_FINANCE
+  CANCELLED
 }
 
 model AdhocLineItem {

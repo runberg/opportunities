@@ -122,12 +122,17 @@ export async function DELETE(
   const result = await requireSession()
   if (result.error) return result.error
   const session = result.session
-  if (session.user.role !== "ADMIN")
-    return NextResponse.json({ error: "Admin only" }, { status: 403 })
 
   const { id } = await params
   const existing = await db.inventoryUtilization.findUnique({ where: { id }, include: { item: true } })
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 })
+
+  // Cancelling a reservation is a routine write action; removing an allocation stays admin-only.
+  const canDelete = existing.allocationStatus === "RESERVED"
+    ? hasSectionAccess(session, "inventory", "FULL")
+    : session.user.role === "ADMIN"
+  if (!canDelete)
+    return NextResponse.json({ error: existing.allocationStatus === "RESERVED" ? "Forbidden" : "Admin only" }, { status: 403 })
 
   await db.$transaction([
     db.inventoryItem.update({

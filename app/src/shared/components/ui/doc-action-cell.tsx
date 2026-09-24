@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Download, Trash2 } from "lucide-react"
+import { Download, Pencil, Trash2 } from "lucide-react"
 
 async function triggerDownload(href: string, filename: string) {
   const res = await fetch(href)
@@ -20,11 +20,13 @@ export function DocActionCell({
   downloadHref,
   originalName,
   onDelete,
+  onEdit = null,
   className = "px-4 py-3",
 }: {
   readonly downloadHref: string
   readonly originalName: string
   readonly onDelete: (() => void) | null
+  readonly onEdit?: (() => void) | null
   readonly className?: string
 }) {
   const [downloading, setDownloading] = useState(false)
@@ -41,6 +43,16 @@ export function DocActionCell({
   return (
     <td className={className}>
       <div className="flex items-center gap-1 justify-end">
+        {onEdit && (
+          <button
+            type="button"
+            onClick={onEdit}
+            className="p-1.5 text-gray-400 hover:text-gray-300 hover:bg-gray-700 rounded transition-colors"
+            title="Edit name / type"
+          >
+            <Pencil size={15} />
+          </button>
+        )}
         <button
           type="button"
           onClick={handleDownload}

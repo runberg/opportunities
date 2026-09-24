@@ -1,5 +1,7 @@
 "use client"
 
+import { Fragment, useState } from "react"
+import { DocEditForm, type DocTypeOption } from "@/shared/components/ui/doc-edit-form"
 import { DocNameCell } from "@/shared/components/ui/doc-name-cell"
 import { DocActionCell } from "@/shared/components/ui/doc-action-cell"
 import { formatBytes, formatDate } from "@/shared/lib/utils"
@@ -10,6 +12,7 @@ export type AdhocDocItem = {
   originalName: string
   mimeType: string
   size: number
+  type?: string
   uploadedAt: string
   uploadedBy: { id: string; name: string }
 }
@@ -22,6 +25,10 @@ type AdhocDocListProps = {
   readonly onDelete: (docId: string) => void
   readonly onView: (doc: AdhocDocItem) => void
   readonly emptyText?: string
+  /** When provided, each row gets an edit button (rename / retype) PATCHing this url. */
+  readonly editUrl?: (docId: string) => string
+  readonly editTypeOptions?: DocTypeOption[]
+  readonly onEdited?: () => void | Promise<void>
 }
 
 export function AdhocDocList({
@@ -32,7 +39,11 @@ export function AdhocDocList({
   onDelete,
   onView,
   emptyText,
+  editUrl,
+  editTypeOptions,
+  onEdited,
 }: AdhocDocListProps) {
+  const [editingId, setEditingId] = useState<string | null>(null)
   if (docs.length === 0) {
     if (!emptyText) return null
     return (
@@ -49,7 +60,8 @@ export function AdhocDocList({
         <table className="w-full text-sm table-fixed">
           <tbody className="divide-y divide-gray-700">
             {docs.map((doc) => (
-              <tr key={doc.id} className="hover:bg-gray-800/50">
+              <Fragment key={doc.id}>
+              <tr className="hover:bg-gray-800/50">
                 <DocNameCell
                   doc={doc}
                   onView={() => onView(doc)}
@@ -62,9 +74,25 @@ export function AdhocDocList({
                   downloadHref={downloadUrl(doc.id)}
                   originalName={doc.originalName}
                   onDelete={canDelete(doc) ? () => onDelete(doc.id) : null}
-                  className="px-4 py-3 w-24"
+                  onEdit={editUrl ? () => setEditingId(doc.id) : null}
+                  className="px-4 py-3 w-28"
                 />
               </tr>
+              {editUrl && editingId === doc.id && (
+                <tr>
+                  <td colSpan={3} className="p-0">
+                    <DocEditForm
+                      url={editUrl(doc.id)}
+                      initialName={doc.displayName}
+                      initialType={doc.type ?? ""}
+                      typeOptions={editTypeOptions ?? null}
+                      onCancel={() => setEditingId(null)}
+                      onSaved={async () => { setEditingId(null); await onEdited?.() }}
+                    />
+                  </td>
+                </tr>
+              )}
+              </Fragment>
             ))}
           </tbody>
         </table>

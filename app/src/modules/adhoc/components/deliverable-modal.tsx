@@ -58,7 +58,8 @@ type Deliverable = {
   approvedAmount: string
   approverName: string | null
   deliveryNoteRef: string | null
-  status: "NOT_APPROVED" | "PARTIALLY_APPROVED" | "APPROVED" | "DELIVERED" | "CLOSED_FINANCE"
+  financeAmount: string | null
+  status: "NOT_APPROVED" | "PARTIALLY_APPROVED" | "APPROVED" | "DELIVERED" | "CLOSED_FINANCE" | "CANCELLED"
   partiallyApprovedAt: string | null
   approvedAt: string | null
   deliveredAt: string | null
@@ -81,7 +82,21 @@ const STATUS_LABEL: Record<string, string> = {
   APPROVED: "Approved",
   DELIVERED: "Delivered",
   CLOSED_FINANCE: "Closed Finance",
+  CANCELLED: "Cancelled",
 }
+
+const ADHOC_DOC_TYPE_OPTIONS = [
+  { value: "BUDGET", label: "Budget" },
+  { value: "APPROVAL", label: "Approval" },
+  { value: "DELIVERY_NOTE", label: "Delivery Note" },
+  { value: "OTHER", label: "Other" },
+]
+
+/** Statuses that only admins may edit further (mirrors the API's lock). */
+const LOCKED_STATUSES = ["DELIVERED", "CLOSED_FINANCE", "CANCELLED"]
+
+/** Statuses from which a work package can still be cancelled (not yet delivered). */
+const CANCELLABLE_STATUSES = ["NOT_APPROVED", "PARTIALLY_APPROVED", "APPROVED"]
 
 function lineItemTotal(items: LineItem[]) {
   return items.reduce((s, li) => s + Number(li.amount), 0)
@@ -637,6 +652,10 @@ function DocumentsTab({
     await onRefresh()
   }
 
+  const editProps = isLocked
+    ? {}
+    : { editUrl: (id: string) => `/api/adhoc/documents/${id}`, editTypeOptions: ADHOC_DOC_TYPE_OPTIONS, onEdited: onRefresh }
+
   const budget = deliverable.documents.filter((d) => d.type === "BUDGET")
   const approval = deliverable.documents.filter((d) => d.type === "APPROVAL")
   const deliveryNote = deliverable.documents.filter((d) => d.type === "DELIVERY_NOTE")
@@ -655,6 +674,7 @@ function DocumentsTab({
         canDelete={() => isAdmin}
         onDelete={handleDelete}
         onView={viewers.openViewer}
+        {...editProps}
         emptyText="None uploaded"
       />
       <AdhocDocList
@@ -664,6 +684,7 @@ function DocumentsTab({
         canDelete={() => isAdmin}
         onDelete={handleDelete}
         onView={viewers.openViewer}
+        {...editProps}
         emptyText="None uploaded"
       />
       <AdhocDocList
@@ -673,6 +694,7 @@ function DocumentsTab({
         canDelete={() => isAdmin}
         onDelete={handleDelete}
         onView={viewers.openViewer}
+        {...editProps}
       />
       <AdhocDocList
         docs={other}
@@ -681,6 +703,7 @@ function DocumentsTab({
         canDelete={() => isAdmin}
         onDelete={handleDelete}
         onView={viewers.openViewer}
+        {...editProps}
       />
 
       {!isLocked && (
@@ -1002,8 +1025,11 @@ function ClosedFinancePanel({
 }) {
   const [date, setDate] = useState(todayISO())
   const [note, setNote] = useState(deliverable.closedFinanceNote ?? "")
+  const [amount, setAmount] = useState(String(Number(deliverable.approvedAmount)))
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const amountValid = amount !== "" && !Number.isNaN(Number(amount)) && Number(amount) >= 0
 
   async function handleConfirm() {
     setSaving(true)
@@ -1012,7 +1038,12 @@ function ClosedFinancePanel({
       const res = await fetch(`/api/adhoc/deliverables/${deliverable.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "CLOSED_FINANCE", closedFinanceAt: date, closedFinanceNote: note.trim() || null }),
+        body: JSON.stringify({
+          status: "CLOSED_FINANCE",
+          closedFinanceAt: date,
+          closedFinanceNote: note.trim() || null,
+          financeAmount: Number(amount),
+        }),
       })
       if (!res.ok) { setError((await res.json() as { error?: string }).error ?? "Save failed"); return }
       onClose()
@@ -1034,6 +1065,20 @@ function ClosedFinancePanel({
             triggerClassName="text-sm border border-gray-600 bg-gray-800 text-gray-100 rounded px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center min-w-[140px]"
           />
         </div>
+        <div>
+          <label htmlFor="close-finance-amount" className="block text-xs text-gray-400 mb-1">
+            Final Amount * <span className="text-gray-600">(defaults to approved)</span>
+          </label>
+          <input
+            id="close-finance-amount"
+            type="number"
+            min="0"
+            step="0.01"
+            className="w-36 rounded border border-gray-600 bg-gray-800 px-2 py-1.5 text-sm text-right text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+          />
+        </div>
         <div className="flex-1 min-w-60">
           <label htmlFor="close-finance-note" className="block text-xs text-gray-400 mb-1">
             Note <span className="text-gray-600">(optional)</span>
@@ -1051,12 +1096,136 @@ function ClosedFinancePanel({
       {error && <p className="text-xs text-red-600">{error}</p>}
 
       <div className="flex gap-2">
-        <Button size="sm" variant="primary" onClick={() => void handleConfirm()} disabled={saving || !date}>
+        <Button size="sm" variant="primary" onClick={() => void handleConfirm()} disabled={saving || !date || !amountValid}>
           {saving ? "Saving…" : "Confirm Close"}
         </Button>
         <Button size="sm" variant="ghost" onClick={onClose}>Cancel</Button>
       </div>
     </div>
+  )
+}
+
+// ─── Finance amount (editable after closing) ─────────────────────────────────
+
+function FinanceAmountField({
+  deliverable,
+  isReadOnly,
+  onSaved,
+}: {
+  readonly deliverable: Deliverable
+  readonly isReadOnly: boolean
+  readonly onSaved: () => Promise<void>
+}) {
+  const current = deliverable.financeAmount ?? deliverable.approvedAmount
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(String(Number(current)))
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const draftRef = useAutoFocus<HTMLInputElement>()
+
+  useEffect(() => { setDraft(String(Number(current))) }, [current])
+
+  async function save() {
+    if (draft === "" || Number.isNaN(Number(draft)) || Number(draft) < 0) {
+      setError("Enter 0 or more")
+      return
+    }
+    setSaving(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/adhoc/deliverables/${deliverable.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ financeAmount: Number(draft) }),
+      })
+      if (!res.ok) { setError((await res.json() as { error?: string }).error ?? "Save failed"); return }
+      setEditing(false)
+      await onSaved()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (editing) {
+    return (
+      <div>
+        <p className="text-xs text-gray-400">Finance Amount</p>
+        <div className="flex items-center gap-1 mt-0.5">
+          <input
+            ref={draftRef}
+            type="number"
+            min="0"
+            step="0.01"
+            className="rounded border border-gray-600 bg-gray-800 px-1.5 py-0.5 text-sm text-right text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 w-28"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void save()
+              if (e.key === "Escape") setEditing(false)
+            }}
+          />
+          <button type="button" onClick={() => void save()} disabled={saving} className="text-xs text-blue-400 hover:text-blue-300 px-1">
+            {saving ? "…" : "Save"}
+          </button>
+          <button type="button" onClick={() => { setDraft(String(Number(current))); setError(null); setEditing(false) }} className="text-xs text-gray-500 hover:text-gray-400">
+            Cancel
+          </button>
+        </div>
+        {error && <p className="text-xs text-red-500 mt-0.5">{error}</p>}
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <p className="text-xs text-gray-400">Finance Amount</p>
+      {isReadOnly ? (
+        <p className="text-sm font-semibold text-gray-100 mt-0.5">{formatAmount(current)}</p>
+      ) : (
+        <button type="button" onClick={() => setEditing(true)} className="text-sm font-semibold text-gray-100 hover:text-blue-400 transition-colors mt-0.5 block" title="Click to edit">
+          {formatAmount(current)}
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ─── Cancel work package ─────────────────────────────────────────────────────
+
+function CancelWorkPackageButton({
+  deliverable,
+  onDone,
+}: {
+  readonly deliverable: Deliverable
+  readonly onDone: () => Promise<void>
+}) {
+  const [cancelling, setCancelling] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleCancel() {
+    if (!confirm(`Cancel work package "${deliverable.title}"? It will be hidden from the default list and its approved amount no longer counts against the agreement.`)) return
+    setCancelling(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/adhoc/deliverables/${deliverable.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "CANCELLED" }),
+      })
+      if (!res.ok) { setError((await res.json() as { error?: string }).error ?? "Cancel failed"); return }
+      await onDone()
+    } finally {
+      setCancelling(false)
+    }
+  }
+
+  return (
+    <>
+      <Button size="sm" variant="ghost" className="text-red-500 hover:bg-red-900/20" onClick={() => void handleCancel()} disabled={cancelling}>
+        {cancelling ? "Cancelling…" : "Cancel Work Package"}
+      </Button>
+      {error && <span className="text-xs text-red-500">{error}</span>}
+    </>
   )
 }
 
@@ -1230,6 +1399,7 @@ type ActionButtonsProps = {
   readonly canRevertClosedFinance: boolean
   readonly onRevertClosedFinance: () => void
   readonly transitioning: boolean
+  readonly extra?: React.ReactNode
 }
 
 function ActionButtons({
@@ -1239,7 +1409,7 @@ function ActionButtons({
   canRevertDelivered, onRevertDelivered,
   canCloseFinance, closeFinancePanelOpen, onOpenCloseFinance,
   canRevertClosedFinance, onRevertClosedFinance,
-  transitioning,
+  transitioning, extra,
 }: ActionButtonsProps) {
   const anyAction = canApprove || canEditApproval || canDeliver || canRevertDelivered || canCloseFinance || canRevertClosedFinance
   if (isReadOnly || !anyAction) return null
@@ -1273,6 +1443,7 @@ function ActionButtons({
           {transitioning ? "Saving…" : "Revert to Delivered"}
         </Button>
       )}
+      {extra}
     </div>
   )
 }
@@ -1405,7 +1576,7 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, isRead
     }
   }
 
-  const isLocked = ((deliverable?.status === "DELIVERED" || deliverable?.status === "CLOSED_FINANCE") && !isAdmin) || isReadOnly
+  const isLocked = (LOCKED_STATUSES.includes(deliverable?.status ?? "") && !isAdmin) || isReadOnly
   const canApprove = deliverable?.status === "NOT_APPROVED"
   const canEditApproval = deliverable?.status === "PARTIALLY_APPROVED" || deliverable?.status === "APPROVED"
   const canDeliver = deliverable?.status === "APPROVED"
@@ -1511,6 +1682,9 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, isRead
                   onSaved={refresh}
                 />
               )}
+              {deliverable.status === "CLOSED_FINANCE" && (
+                <FinanceAmountField deliverable={deliverable} isReadOnly={isLocked} onSaved={refresh} />
+              )}
             </div>
             <ActionButtons
               isReadOnly={isReadOnly}
@@ -1533,6 +1707,7 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, isRead
               canRevertClosedFinance={canRevertClosedFinance}
               onRevertClosedFinance={handleRevertClosedFinance}
               transitioning={transitioning}
+              extra={CANCELLABLE_STATUSES.includes(deliverable.status) && <CancelWorkPackageButton deliverable={deliverable} onDone={refresh} />}
             />
 
             {/* Milestone dates */}

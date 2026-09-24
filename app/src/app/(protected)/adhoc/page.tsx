@@ -18,6 +18,7 @@ export default async function AdHocPage() {
       ...d,
       createdAt: d.createdAt.toISOString(),
       approvedAmount: d.approvedAmount.toString(),
+      financeAmount: d.financeAmount ? d.financeAmount.toString() : null,
       approvedAt: d.approvedAt ? d.approvedAt.toISOString() : null,
       deliveredAt: d.deliveredAt ? d.deliveredAt.toISOString() : null,
       lineItems: d.lineItems.map((li) => ({ amount: li.amount.toString() })),

@@ -26,9 +26,10 @@ const STATUS_LABEL: Record<string, string> = {
   APPROVED: "Approved",
   DELIVERED: "Delivered",
   CLOSED_FINANCE: "Closed Finance",
+  CANCELLED: "Cancelled",
 }
 
-const ALL_STATUSES: DeliverableStatus[] = ["NOT_APPROVED", "PARTIALLY_APPROVED", "APPROVED", "DELIVERED", "CLOSED_FINANCE"]
+const ALL_STATUSES: DeliverableStatus[] = ["NOT_APPROVED", "PARTIALLY_APPROVED", "APPROVED", "DELIVERED", "CLOSED_FINANCE", "CANCELLED"]
 
 const STATUS_GROUPS: FilterStatusGroup[] = [
   { label: "", statuses: ALL_STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s] })) },
@@ -180,9 +181,9 @@ export function DeliverablesTable({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
-  // Closed-Finance work packages are done and out of scope for day-to-day review, so they're
+  // Closed-Finance and cancelled work packages are out of scope for day-to-day review, so they're
   // hidden by default — the status filter can bring them back into view like any other status.
-  const [excludedStatuses, setExcludedStatuses] = useState<Set<DeliverableStatus>>(() => new Set(["CLOSED_FINANCE"]))
+  const [excludedStatuses, setExcludedStatuses] = useState<Set<DeliverableStatus>>(() => new Set(["CLOSED_FINANCE", "CANCELLED"]))
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(10)
 

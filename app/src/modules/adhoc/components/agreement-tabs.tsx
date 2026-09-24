@@ -28,6 +28,11 @@ const STATUS_LABEL: Record<string, string> = {
   CLOSED: "Closed",
 }
 
+const AGREEMENT_DOC_TYPE_OPTIONS = [
+  { value: "DRAFT", label: "Draft Agreement" },
+  { value: "COUNTERSIGNED", label: "Counter-signed" },
+]
+
 function defaultTabIndex(agreements: AgreementRow[], initialAgreementId?: string) {
   if (initialAgreementId) {
     const targetIdx = agreements.findIndex((a) => a.id === initialAgreementId)
@@ -97,6 +102,10 @@ function AgreementDocs({ agreement, currentUserId, isAdmin, isReadOnly = false, 
     await onRefresh()
   }
 
+  const editProps = isReadOnly
+    ? {}
+    : { editUrl: (id: string) => `/api/adhoc/agreement-documents/${id}`, editTypeOptions: AGREEMENT_DOC_TYPE_OPTIONS, onEdited: onRefresh }
+
   const drafts = agreement.documents.filter((d) => d.type === "DRAFT")
   const countersigned = agreement.documents.filter((d) => d.type === "COUNTERSIGNED")
 
@@ -119,6 +128,7 @@ function AgreementDocs({ agreement, currentUserId, isAdmin, isReadOnly = false, 
         canDelete={() => isAdmin}
         onDelete={handleDelete}
         onView={viewers.openViewer}
+        {...editProps}
       />
       <AdhocDocList
         docs={countersigned}
@@ -127,6 +137,7 @@ function AgreementDocs({ agreement, currentUserId, isAdmin, isReadOnly = false, 
         canDelete={() => isAdmin}
         onDelete={handleDelete}
         onView={viewers.openViewer}
+        {...editProps}
       />
 
       {agreement.documents.length === 0 && !showUpload && (
@@ -338,7 +349,9 @@ export function AgreementTabs({
   const agreement = agreements[activeTab]
   if (!agreement) return null
 
-  const committedAmount = agreement.deliverables.reduce((sum, d) => sum + Number(d.approvedAmount), 0)
+  const committedAmount = agreement.deliverables
+    .filter((d) => d.status !== "CANCELLED")
+    .reduce((sum, d) => sum + Number(d.status === "CLOSED_FINANCE" && d.financeAmount != null ? d.financeAmount : d.approvedAmount), 0)
   const remaining = Number(agreement.totalAmount) - committedAmount
   const isOver = committedAmount > Number(agreement.totalAmount)
 

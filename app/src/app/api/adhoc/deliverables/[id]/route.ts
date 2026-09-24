@@ -59,12 +59,22 @@ async function generateInternalId(): Promise<string> {
   return `${prefix}${seq.toString().padStart(4, "0")}`
 }
 
-function validateBody(body: Record<string, unknown>): string | null {
-  const { title, status, createdAt, partiallyApprovedAt, approvedAt, deliveredAt, closedFinanceAt } = body
+/** A work package that has been delivered (or closed with finance) can no longer be cancelled. */
+const NON_CANCELLABLE_STATUSES = ["DELIVERED", "CLOSED_FINANCE"]
+
+function validateBody(body: Record<string, unknown>, currentStatus: string): string | null {
+  const { title, status, createdAt, partiallyApprovedAt, approvedAt, deliveredAt, closedFinanceAt, financeAmount } = body
   if (title !== undefined && (typeof title !== "string" || title.trim() === ""))
     return "Title cannot be empty"
   if (status !== undefined && !VALID_STATUSES.includes(status as AdhocDeliverableStatus))
     return "Invalid status"
+  if (status === "CANCELLED" && NON_CANCELLABLE_STATUSES.includes(currentStatus))
+    return "A delivered work package cannot be cancelled"
+  if (financeAmount !== undefined && financeAmount !== null) {
+    const amount = Number(financeAmount)
+    if (financeAmount === "" || Number.isNaN(amount) || amount < 0)
+      return "Finance amount must be 0 or more"
+  }
   if (createdAt !== undefined) {
     if (createdAt === null || typeof createdAt !== "string" || Number.isNaN(Date.parse(createdAt)))
       return "createdAt must be a valid date"
@@ -215,10 +225,26 @@ async function handleRemoveApproval(deliverableId: string, title: string, userId
   return NextResponse.json({ status: "NOT_APPROVED", approvedAmount: 0 })
 }
 
-function buildUpdateData(body: Record<string, unknown>, deliverable: { status: string }) {
+/** Final invoiced amount: an explicit value wins; otherwise default to the approved amount on
+ * close, clear it when leaving Closed Finance, and leave it untouched for other edits. */
+function resolveFinanceAmount(
+  body: Record<string, unknown>,
+  deliverable: { status: string; approvedAmount: unknown }
+): { financeAmount?: number | null } {
+  if (body.financeAmount !== undefined && body.financeAmount !== null)
+    return { financeAmount: Number(body.financeAmount) }
+  if (body.status === "CLOSED_FINANCE" && deliverable.status !== "CLOSED_FINANCE")
+    return { financeAmount: Number(deliverable.approvedAmount) }
+  if (deliverable.status === "CLOSED_FINANCE" && body.status !== undefined && body.status !== "CLOSED_FINANCE")
+    return { financeAmount: null }
+  return {}
+}
+
+function buildUpdateData(body: Record<string, unknown>, deliverable: { status: string; approvedAmount: unknown }) {
   const { title, description, status } = body
   const newStatus = status as AdhocDeliverableStatus | undefined
   return {
+    ...resolveFinanceAmount(body, deliverable),
     ...(title !== undefined && { title: (title as string).trim() }),
     ...(description !== undefined && { description: (description as string | null)?.trim() || null }),
     ...("approverName" in body && { approverName: (body.approverName as string | null)?.trim() || null }),
@@ -257,7 +283,7 @@ export async function PATCH(
 
   const isRevertingDelivered = deliverable.status === "DELIVERED" && body.status === "APPROVED"
   const isRevertingClosedFinance = deliverable.status === "CLOSED_FINANCE" && body.status === "DELIVERED"
-  const isLockedStatus = deliverable.status === "DELIVERED" || deliverable.status === "CLOSED_FINANCE"
+  const isLockedStatus = ["DELIVERED", "CLOSED_FINANCE", "CANCELLED"].includes(deliverable.status)
   if (isLockedStatus && session.user.role !== "ADMIN" && !isRevertingDelivered && !isRevertingClosedFinance)
     return NextResponse.json({ error: "Only admins can edit a locked work package" }, { status: 403 })
 
@@ -267,7 +293,7 @@ export async function PATCH(
   if (body.removeApproval === true)
     return handleRemoveApproval(id, deliverable.title, session.user.id)
 
-  const validationError = validateBody(body)
+  const validationError = validateBody(body, deliverable.status)
   if (validationError) return NextResponse.json({ error: validationError }, { status: 400 })
 
   const updated = await db.adhocDeliverable.update({

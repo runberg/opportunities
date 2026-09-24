@@ -7,6 +7,12 @@ import { cn, formatDate, todayISO, toDateString } from "@/shared/lib/utils"
 import { QuoteSection } from "@/modules/opportunities/components/quote-section"
 import { DatePicker } from "@/shared/components/ui/date-picker"
 
+type DocKind = "QUOTE" | "EL" | "FAT" | "SAT" | "DELIVERY" | "OTHER"
+
+/** Document kinds shown together in the Production Documents section (visible from the
+ * start of production, before any milestone has been reached). */
+const PRODUCTION_DOC_TYPES: readonly DocKind[] = ["FAT", "SAT", "DELIVERY", "OTHER"]
+
 interface DeliveryLine {
   id: string
   unitType: string
@@ -379,19 +385,12 @@ function ProductionViewPanel({ data, deliveries, currentUserId, isAdmin, isReadO
         />
       )}
 
-      {advancePaid && (
-        <div className="mb-4">
-          <QuoteSection opportunityId={data.id}
-            documents={data.documents.filter((d) => d.type === "FAT")}
-            currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} docType="FAT" />
-        </div>
-      )}
-
-      {fatPassed && !satNA && (
+      <div className="mb-4">
         <QuoteSection opportunityId={data.id}
-          documents={data.documents.filter((d) => d.type === "SAT")}
-          currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} docType="SAT" />
-      )}
+          documents={data.documents.filter((d) => PRODUCTION_DOC_TYPES.includes(d.type as DocKind))}
+          selectableTypes={PRODUCTION_DOC_TYPES}
+          currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} />
+      </div>
 
       <ExpectedDeliverySection opportunityId={data.id} deliveries={deliveries} isReadOnly={isReadOnly} onRefresh={onRefresh} />
     </div>

@@ -168,12 +168,12 @@ export function ItemRow({
                             >
                               <Pencil size={12} />
                             </button>
-                            {isAdmin && (
+                            {(isAdmin || u.allocationStatus === "RESERVED") && (
                               <button
                                 type="button"
                                 onClick={() => onDeleteUtilization(u.id)}
                                 className="p-1 text-gray-400 hover:text-red-600 rounded transition-colors"
-                                title="Delete"
+                                title={u.allocationStatus === "RESERVED" ? "Cancel reservation" : "Delete"}
                               >
                                 <Trash2 size={12} />
                               </button>
