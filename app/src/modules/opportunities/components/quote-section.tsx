@@ -7,8 +7,9 @@ import { Button } from "@/shared/components/ui/button"
 import { FileViewerModals } from "@/shared/components/ui/file-viewer-modals"
 import { useFileViewer } from "@/shared/lib/use-file-viewer"
 import { DocNameCell } from "@/shared/components/ui/doc-name-cell"
+import { UploadedCell } from "@/shared/components/ui/uploaded-cell"
 import { DocActionCell } from "@/shared/components/ui/doc-action-cell"
-import { formatBytes, formatDate, nameFromFile } from "@/shared/lib/utils"
+import { formatBytes, nameFromFile } from "@/shared/lib/utils"
 import { useDropZone, useWindowDragExpand } from "@/shared/lib/use-drop-zone"
 import { FileDropZone } from "@/shared/components/ui/file-drop-zone"
 import { DocEditForm } from "@/shared/components/ui/doc-edit-form"
@@ -133,7 +134,7 @@ export function QuoteSection({
   const { section: sectionLabel, empty: emptyLabel } = selectableTypes
     ? { section: "Production Documents", empty: "No production documents yet." }
     : DOC_TYPE_LABELS[docType]
-  const columnCount = selectableTypes ? 6 : 5
+  const columnCount = selectableTypes ? 5 : 4
 
   return (
     <div className="bg-gray-900 border border-gray-700 rounded-xl p-4">
@@ -238,11 +239,10 @@ export function QuoteSection({
               <thead className="bg-gray-800/50 border-b border-gray-700">
                 <tr>
                   <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400">Name</th>
-                  {selectableTypes && <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400 w-24">Type</th>}
-                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400 w-20">Version</th>
-                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400 hidden sm:table-cell w-20">Size</th>
-                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400 hidden md:table-cell w-48">Uploaded</th>
-                  <th className="px-4 py-2.5 w-28" />
+                  {selectableTypes && <th className="text-left px-3 py-2.5 text-xs font-semibold text-gray-400 w-24">Type</th>}
+                  <th className="text-left px-3 py-2.5 text-xs font-semibold text-gray-400 w-20">Version</th>
+                  <th className="text-left px-3 py-2.5 text-xs font-semibold text-gray-400 w-36">Uploaded</th>
+                  <th className="px-3 py-2.5 w-24" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-700">
@@ -251,16 +251,18 @@ export function QuoteSection({
                   <tr className="hover:bg-gray-800/50">
                     <DocNameCell
                       doc={doc}
+                      meta={formatBytes(doc.size)}
                       onView={() => viewers.openViewer(doc)}
+                      className="px-4 py-3.5"
                     />
                     {selectableTypes && (
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-3.5">
                         <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-900/40 text-blue-300">
                           {KIND_LABEL[doc.type as DocKind] ?? doc.type}
                         </span>
                       </td>
                     )}
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-3.5">
                       <span
                         className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
                           doc.docStatus === "FINAL"
@@ -271,18 +273,13 @@ export function QuoteSection({
                         {doc.docStatus === "FINAL" ? "Final" : "Draft"}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-gray-400 hidden sm:table-cell truncate">
-                      {formatBytes(doc.size)}
-                    </td>
-                    <td className="px-4 py-3 text-gray-400 hidden md:table-cell truncate" title={`${doc.uploadedBy.name} · ${formatDate(doc.uploadedAt)}`}>
-                      {doc.uploadedBy.name} · {formatDate(doc.uploadedAt)}
-                    </td>
+                    <UploadedCell uploadedBy={doc.uploadedBy} uploadedAt={doc.uploadedAt} className="px-3 py-3.5" />
                     <DocActionCell
                       downloadHref={`/api/files/${doc.id}`}
                       originalName={doc.originalName}
                       onDelete={isAdmin ? () => handleDelete(doc.id, doc.displayName) : null}
                       onEdit={isReadOnly ? null : () => setEditingId(doc.id)}
-                      className="px-4 py-3 w-28"
+                      className="px-3 py-3.5 w-24"
                     />
                   </tr>
                   {editingId === doc.id && (

@@ -18,10 +18,13 @@ function viewTitle(mimeType: string): string {
 export function DocNameCell({
   doc,
   onView,
+  meta,
   className = "px-4 py-3",
 }: {
   readonly doc: DocNameCellDoc
   readonly onView?: () => void
+  /** Secondary detail appended to the file name line, e.g. the file size. */
+  readonly meta?: string
   readonly className?: string
 }) {
   let nameEl: React.ReactNode
@@ -46,8 +49,9 @@ export function DocNameCell({
         <FileTypeIcon mimeType={doc.mimeType} />
         <div className="min-w-0">
           {nameEl}
-          <div className="text-xs text-gray-400 font-normal truncate" title={doc.originalName}>
-            {truncateFilename(doc.originalName)}
+          <div className="flex min-w-0 text-xs text-gray-400 font-normal">
+            <span className="truncate" title={doc.originalName}>{truncateFilename(doc.originalName)}</span>
+            {meta && <span className="shrink-0 whitespace-pre"> · {meta}</span>}
           </div>
         </div>
       </div>

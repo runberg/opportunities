@@ -176,6 +176,14 @@ export function initials(name: string): string {
   return local.slice(0, 2).toUpperCase()
 }
 
+/** Readable full name: passes real names through, and turns an email such as
+ * "firstname.lastname@company.com" into "Firstname Lastname". */
+export function displayName(name: string): string {
+  if (!name.includes("@")) return name
+  const parts = name.split("@")[0].split(/[.\-_ ]+/).filter(Boolean)
+  return parts.map((p) => p[0].toUpperCase() + p.slice(1)).join(" ") || name
+}
+
 export const STATUS_SHORT_LABELS: Record<string, string> = {
   NEW: "New",
   RFQ_RECEIVED: "RFQ Rcvd",
