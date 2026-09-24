@@ -10,6 +10,7 @@ import {
 } from "@/shared/lib/utils"
 import { StatusBadge } from "@/modules/opportunities/components/status-badge"
 import { QuoteSection } from "@/modules/opportunities/components/quote-section"
+import { EL_STAGE_KINDS, PRODUCTION_STAGE_KINDS, QUOTE_STAGE_KINDS } from "@/modules/opportunities/document-kinds"
 import { ProductionSection } from "@/modules/opportunities/components/production-section"
 import { LogSection, type LogEntry } from "@/modules/opportunities/components/log-section"
 import { Button } from "@/shared/components/ui/button"
@@ -267,11 +268,11 @@ function DocumentsSection({
       <>
         <QuoteSection opportunityId={data.id}
           documents={data.documents.filter((d) => d.type === "EL")}
-          currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} docType="EL" />
+          currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} docType="EL" moveTargets={isProduction ? PRODUCTION_STAGE_KINDS : EL_STAGE_KINDS} />
         <div className="mt-4">
           <QuoteSection opportunityId={data.id}
             documents={data.documents.filter((d) => d.type === "QUOTE")}
-            currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} docType="QUOTE" />
+            currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} docType="QUOTE" moveTargets={isProduction ? PRODUCTION_STAGE_KINDS : EL_STAGE_KINDS} />
         </div>
       </>
     )
@@ -279,7 +280,7 @@ function DocumentsSection({
   return (
     <QuoteSection opportunityId={data.id}
       documents={data.documents.filter((d) => d.type === "QUOTE")}
-      currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} docType="QUOTE" />
+      currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} docType="QUOTE" moveTargets={QUOTE_STAGE_KINDS} />
   )
 }
 

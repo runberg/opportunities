@@ -6,12 +6,7 @@ import { Check, Pencil, Plus, Trash2, X } from "lucide-react"
 import { cn, formatDate, todayISO, toDateString } from "@/shared/lib/utils"
 import { QuoteSection } from "@/modules/opportunities/components/quote-section"
 import { DatePicker } from "@/shared/components/ui/date-picker"
-
-type DocKind = "QUOTE" | "EL" | "FAT" | "SAT" | "DELIVERY" | "OTHER"
-
-/** Document kinds shown together in the Production Documents section (visible from the
- * start of production, before any milestone has been reached). */
-const PRODUCTION_DOC_TYPES: readonly DocKind[] = ["FAT", "SAT", "DELIVERY", "OTHER"]
+import { PRODUCTION_DOC_KINDS, PRODUCTION_STAGE_KINDS, type DocKind } from "@/modules/opportunities/document-kinds"
 
 interface DeliveryLine {
   id: string
@@ -387,8 +382,8 @@ function ProductionViewPanel({ data, deliveries, currentUserId, isAdmin, isReadO
 
       <div className="mb-4">
         <QuoteSection opportunityId={data.id}
-          documents={data.documents.filter((d) => PRODUCTION_DOC_TYPES.includes(d.type as DocKind))}
-          selectableTypes={PRODUCTION_DOC_TYPES}
+          documents={data.documents.filter((d) => PRODUCTION_DOC_KINDS.includes(d.type as DocKind))}
+          selectableTypes={PRODUCTION_DOC_KINDS} moveTargets={PRODUCTION_STAGE_KINDS}
           currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} />
       </div>
 

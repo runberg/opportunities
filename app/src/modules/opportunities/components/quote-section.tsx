@@ -11,7 +11,8 @@ import { DocActionCell } from "@/shared/components/ui/doc-action-cell"
 import { formatBytes, formatDate, nameFromFile } from "@/shared/lib/utils"
 import { useDropZone, useWindowDragExpand } from "@/shared/lib/use-drop-zone"
 import { FileDropZone } from "@/shared/components/ui/file-drop-zone"
-import { DocEditForm, type DocTypeOption } from "@/shared/components/ui/doc-edit-form"
+import { DocEditForm } from "@/shared/components/ui/doc-edit-form"
+import { KIND_LABEL, kindOptions, type DocKind } from "@/modules/opportunities/document-kinds"
 
 
 interface QuoteDoc {
@@ -26,24 +27,12 @@ interface QuoteDoc {
   uploadedBy: { id: string; name: string }
 }
 
-type DocKind = "QUOTE" | "EL" | "FAT" | "SAT" | "DELIVERY" | "OTHER"
-
 const DOC_TYPE_LABELS = {
   QUOTE: { section: "Quote Documents", empty: "No quote documents yet." },
   EL:    { section: "EL Documents",    empty: "No EL documents yet." },
   FAT:   { section: "FAT Documents",   empty: "No FAT documents yet." },
   SAT:   { section: "SAT Documents",   empty: "No SAT documents yet." },
 } as const
-
-const KIND_LABEL: Record<DocKind, string> = {
-  QUOTE: "Quote", EL: "EL", FAT: "FAT", SAT: "SAT", DELIVERY: "Delivery", OTHER: "Other",
-}
-
-const toOptions = (kinds: readonly DocKind[]): DocTypeOption[] =>
-  kinds.map((k) => ({ value: k, label: KIND_LABEL[k] }))
-
-/** Quote and EL documents can be moved between the two; other sections have no type change. */
-const QUOTE_EL_OPTIONS = toOptions(["QUOTE", "EL"])
 
 interface QuoteSectionProps {
   readonly opportunityId: string
@@ -55,6 +44,9 @@ interface QuoteSectionProps {
   /** Multi-type mode (Production Documents): the section shows several document kinds and the
    * upload/edit forms offer a type selector. When absent, the section is one fixed docType. */
   readonly selectableTypes?: readonly DocKind[]
+  /** Every kind a document here can be moved to (all sections available at the opportunity
+   * stage). Omit or pass a single kind to hide the type selector when editing. */
+  readonly moveTargets?: readonly DocKind[]
   readonly isReadOnly?: boolean
 }
 
@@ -66,6 +58,7 @@ export function QuoteSection({
   onRefresh,
   docType = "QUOTE",
   selectableTypes,
+  moveTargets,
   isReadOnly = false,
 }: QuoteSectionProps) {
   const router = useRouter()
@@ -80,8 +73,8 @@ export function QuoteSection({
   const [editingId, setEditingId] = useState<string | null>(null)
   const [file, setFile] = useState<File | null>(null)
 
-  const typeOptions = selectableTypes ? toOptions(selectableTypes) : null
-  const editTypeOptions = typeOptions ?? (docType === "QUOTE" || docType === "EL" ? QUOTE_EL_OPTIONS : null)
+  const typeOptions = selectableTypes ? kindOptions(selectableTypes) : null
+  const editTypeOptions = moveTargets && moveTargets.length > 1 ? kindOptions(moveTargets) : null
 
   const hasFileRef = useRef(false)
 
@@ -300,6 +293,7 @@ export function QuoteSection({
                           initialName={doc.displayName}
                           initialType={doc.type ?? docType}
                           typeOptions={editTypeOptions}
+                          initialVersion={doc.docStatus}
                           onCancel={() => setEditingId(null)}
                           onSaved={() => { setEditingId(null); onRefresh?.(); router.refresh() }}
                         />

@@ -4,16 +4,44 @@ import { useState } from "react"
 import { Button } from "@/shared/components/ui/button"
 import { useAutoFocus } from "@/shared/lib/use-autofocus"
 
-export type DocTypeOption = { value: string; label: string }
+/** `group` (optional) renders the option under an <optgroup>, e.g. the section it belongs to. */
+export type DocTypeOption = { value: string; label: string; group?: string }
 
-/** Inline form for correcting a document's display name and (optionally) its type after
- * upload. Shared by every document list; each caller supplies the PATCH url and the type
- * options valid for that document table. */
+const VERSION_OPTIONS = [
+  { value: "DRAFT", label: "Draft" },
+  { value: "FINAL", label: "Final" },
+]
+
+const selectCls = "rounded border border-gray-600 bg-gray-700 px-2 py-1.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+
+function TypeSelect({ id, value, options, onChange }: {
+  readonly id: string
+  readonly value: string
+  readonly options: DocTypeOption[]
+  readonly onChange: (v: string) => void
+}) {
+  const groups = [...new Set(options.map((o) => o.group ?? ""))]
+  return (
+    <select id={id} value={value} onChange={(e) => onChange(e.target.value)} className={selectCls}>
+      {groups.map((g) => {
+        const items = options.filter((o) => (o.group ?? "") === g)
+        const rendered = items.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)
+        return g ? <optgroup key={g} label={g}>{rendered}</optgroup> : rendered
+      })}
+    </select>
+  )
+}
+
+/** Inline form for correcting a document after upload: its name, type (which also decides the
+ * section it appears in) and, when `initialVersion` is given, its Draft/Final version.
+ * Shared by every document list; each caller supplies the PATCH url and the options valid
+ * for that document table. */
 export function DocEditForm({
   url,
   initialName,
   initialType,
   typeOptions,
+  initialVersion = null,
   onSaved,
   onCancel,
 }: {
@@ -21,11 +49,13 @@ export function DocEditForm({
   readonly initialName: string
   readonly initialType: string
   readonly typeOptions: DocTypeOption[] | null
+  readonly initialVersion?: string | null
   readonly onSaved: () => void | Promise<void>
   readonly onCancel: () => void
 }) {
   const [name, setName] = useState(initialName)
   const [type, setType] = useState(initialType)
+  const [version, setVersion] = useState(initialVersion ?? "DRAFT")
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const nameRef = useAutoFocus<HTMLInputElement>()
@@ -37,7 +67,11 @@ export function DocEditForm({
       const res = await fetch(url, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ displayName: name.trim(), ...(typeOptions && { type }) }),
+        body: JSON.stringify({
+          displayName: name.trim(),
+          ...(typeOptions && { type }),
+          ...(initialVersion !== null && { docStatus: version }),
+        }),
       })
       if (!res.ok) { setError((await res.json().catch(() => ({}))).error ?? "Save failed"); return }
       await onSaved()
@@ -65,14 +99,13 @@ export function DocEditForm({
       {typeOptions && (
         <div>
           <label htmlFor="doc-edit-type" className="block text-xs text-gray-400 mb-1">Type</label>
-          <select
-            id="doc-edit-type"
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-            className="rounded border border-gray-600 bg-gray-700 px-2 py-1.5 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {typeOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
+          <TypeSelect id="doc-edit-type" value={type} options={typeOptions} onChange={setType} />
+        </div>
+      )}
+      {initialVersion !== null && (
+        <div>
+          <label htmlFor="doc-edit-version" className="block text-xs text-gray-400 mb-1">Version</label>
+          <TypeSelect id="doc-edit-version" value={version} options={VERSION_OPTIONS} onChange={setVersion} />
         </div>
       )}
       <Button size="sm" onClick={() => void handleSave()} disabled={saving || !name.trim()}>
