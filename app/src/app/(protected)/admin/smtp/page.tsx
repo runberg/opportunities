@@ -3,12 +3,17 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/shared/lib/auth"
 import { redirect } from "next/navigation"
 import { SmtpClient } from "@/modules/admin/components/smtp-client"
+import { EmailQueue } from "@/modules/admin/components/email-queue"
+import { listQueuedEmails } from "@/shared/lib/email-outbox"
 
 export default async function SmtpPage() {
   const session = await getServerSession(authOptions)
   if (session?.user.role !== "ADMIN") redirect("/dashboard")
 
-  const config = await db.smtpConfig.findUnique({ where: { id: "default" } })
+  const [config, queuedEmails] = await Promise.all([
+    db.smtpConfig.findUnique({ where: { id: "default" } }),
+    listQueuedEmails(),
+  ])
 
   const initial = config
     ? {
@@ -34,7 +39,12 @@ export default async function SmtpPage() {
         <h1 className="text-2xl font-semibold text-gray-900">Email / SMTP</h1>
         <p className="text-sm text-gray-500 mt-0.5">Configure outgoing email for notifications</p>
       </div>
-      <SmtpClient initial={initial} />
+      <div className="space-y-6">
+        <SmtpClient initial={initial} />
+        <div className="max-w-5xl">
+          <EmailQueue emails={queuedEmails} />
+        </div>
+      </div>
     </div>
   )
 }

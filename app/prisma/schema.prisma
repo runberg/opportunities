@@ -444,3 +444,51 @@ model SmtpConfig {
   adhocNotificationBody          String @default("")
   updatedAt                    DateTime @updatedAt
 }
+
+/// A change notification waiting out the batching delay. Stored (not held in memory) so a
+/// restart or deploy during the delay doesn't lose it. One row per actor + item; further
+/// changes by the same actor append to it and push dueAt back.
+model PendingNotification {
+  id            String   @id @default(cuid())
+  key           String   @unique
+  module        String
+  itemId        String
+  actorId       String
+  title         String
+  internalId    String?
+  customer      String   @default("")
+  changes       String[]
+  statusChanges String[]
+  dueAt         DateTime
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([dueAt])
+}
+
+/// One outgoing email. Written before sending so failures are recorded and retried.
+model EmailOutbox {
+  id            String      @id @default(cuid())
+  to            String
+  subject       String
+  html          String
+  text          String
+  status        EmailStatus @default(PENDING)
+  attempts      Int         @default(0)
+  lastError     String?
+  nextAttemptAt DateTime    @default(now())
+  sentAt        DateTime?
+  module        String?
+  itemId        String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([status, nextAttemptAt])
+}
+
+enum EmailStatus {
+  PENDING
+  SENDING
+  SENT
+  FAILED
+}

@@ -30,9 +30,11 @@ interface SidebarProps {
   readonly opportunitiesAccess: string
   readonly adhocAccess: string
   readonly inventoryAccess: string
+  /** Admins only: emails that exhausted their automatic retries. */
+  readonly failedEmailCount: number
 }
 
-export function Sidebar({ userName, userRole, opportunitiesAccess, adhocAccess, inventoryAccess }: SidebarProps) {
+export function Sidebar({ userName, userRole, opportunitiesAccess, adhocAccess, inventoryAccess, failedEmailCount }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const isAdmin = userRole === "ADMIN"
@@ -150,6 +152,14 @@ export function Sidebar({ userName, userRole, opportunitiesAccess, adhocAccess, 
             <Link href="/admin/smtp" className={linkCls("/admin/smtp")}>
               <Mail size={18} />
               Email / SMTP
+              {failedEmailCount > 0 && (
+                <span
+                  className="ml-auto min-w-5 px-1.5 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-semibold text-center leading-none"
+                  title={`${failedEmailCount} email${failedEmailCount === 1 ? "" : "s"} failed to send`}
+                >
+                  {failedEmailCount}
+                </span>
+              )}
             </Link>
             <Link href="/admin/logs" className={linkCls("/admin/logs")}>
               <ClipboardList size={18} />

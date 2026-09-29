@@ -3,6 +3,7 @@ import { authOptions } from "@/shared/lib/auth"
 import { redirect } from "next/navigation"
 import { Sidebar } from "@/shared/components/layout/sidebar"
 import { GlobalSearch } from "@/shared/components/layout/global-search"
+import { countFailedEmails } from "@/shared/lib/email-outbox"
 
 export default async function ProtectedLayout({
   children,
@@ -14,6 +15,7 @@ export default async function ProtectedLayout({
 
   const isAdmin = session.user.role === "ADMIN"
   const isOpportunitiesReadOnly = !isAdmin && session.user.opportunitiesAccess === "READ_ONLY"
+  const failedEmailCount = isAdmin ? await countFailedEmails() : 0
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -23,6 +25,7 @@ export default async function ProtectedLayout({
         opportunitiesAccess={session.user.opportunitiesAccess}
         adhocAccess={session.user.adhocAccess}
         inventoryAccess={session.user.inventoryAccess}
+        failedEmailCount={failedEmailCount}
       />
       <main className="flex-1 ml-60 overflow-y-auto">
         <div className="sticky top-0 z-30 bg-white border-b border-gray-200 px-6 py-3 flex justify-center">

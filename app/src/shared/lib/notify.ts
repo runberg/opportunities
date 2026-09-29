@@ -1,7 +1,7 @@
 import { db } from "./db"
-import { sendMail } from "./mailer"
+import { enqueueEmails, type OutboxEmail } from "./email-outbox"
 import { opportunityBasePath } from "./utils"
-import { NotificationLevel } from "@prisma/client"
+import { Prisma, type NotificationLevel, type PendingNotification } from "@prisma/client"
 
 const DEFAULT_OPP_SUBJECT = "Opportunity update: {{title}}"
 const DEFAULT_OPP_BODY = [
@@ -49,61 +49,73 @@ export interface NotificationEvent {
   statusChanges: string[]
 }
 
-interface PendingEntry {
-  timer: ReturnType<typeof setTimeout>
-  module: NotificationModule
-  itemId: string
-  actorId: string
-  title: string
-  internalId: string | null
-  customer: string
-  changes: string[]
-  statusChanges: string[]
-}
-
-type EntryData = Omit<PendingEntry, "timer">
-
-const pending = new Map<string, PendingEntry>()
-
-function scheduleEntry(key: string, data: EntryData, delayMs: number): void {
-  const timer = setTimeout(() => {
-    const current = pending.get(key)
-    pending.delete(key)
-    if (current) fireNotification(current).catch((err) => console.error("Notification error:", err))
-  }, delayMs)
-  pending.set(key, { ...data, timer })
-}
-
+/**
+ * Changes are batched per actor + item: each new change pushes the send time back by the
+ * configured delay, so a burst of edits becomes one email. The batch lives in the
+ * PendingNotification table (not memory) so a restart or deploy doesn't lose it; the email
+ * worker calls flushDueNotifications() once the delay has passed.
+ */
 export async function scheduleNotification(event: NotificationEvent): Promise<void> {
   if (event.changes.length === 0) return
 
   const config = await db.smtpConfig.findUnique({ where: { id: "default" } })
   if (!config?.enabled) return
 
-  const delayMs = config.notificationDelayMinutes * 60 * 1000
   const key = `${event.actorId}:${event.itemId}`
-  const existing = pending.get(key)
+  const dueAt = new Date(Date.now() + config.notificationDelayMinutes * 60_000)
+  const upsert = () => db.pendingNotification.upsert({
+    where: { key },
+    create: {
+      key,
+      module: event.module,
+      itemId: event.itemId,
+      actorId: event.actorId,
+      title: event.title,
+      internalId: event.internalId ?? null,
+      customer: event.customer ?? "",
+      changes: event.changes,
+      statusChanges: event.statusChanges,
+      dueAt,
+    },
+    update: {
+      changes: { push: event.changes },
+      statusChanges: { push: event.statusChanges },
+      dueAt,
+    },
+  })
 
-  if (existing) {
-    clearTimeout(existing.timer)
-    scheduleEntry(key, {
-      ...existing,
-      changes: [...existing.changes, ...event.changes],
-      statusChanges: [...existing.statusChanges, ...event.statusChanges],
-    }, delayMs)
-    return
+  try {
+    await upsert()
+  } catch (err: unknown) {
+    // Two first changes racing on the same key: one create wins, the other becomes an update.
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") await upsert()
+    else throw err
   }
+}
 
-  scheduleEntry(key, {
-    module: event.module,
-    itemId: event.itemId,
-    actorId: event.actorId,
-    title: event.title,
-    internalId: event.internalId ?? null,
-    customer: event.customer ?? "",
-    changes: event.changes,
-    statusChanges: event.statusChanges,
-  }, delayMs)
+/** Turns every batch whose delay has passed into outbox emails. Called by the email worker. */
+export async function flushDueNotifications(): Promise<void> {
+  const due = await db.pendingNotification.findMany({ where: { dueAt: { lte: new Date() } } })
+  for (const entry of due) {
+    try {
+      const emails = await buildEmails(entry)
+      await db.$transaction(async (tx) => {
+        // Only consume the batch if no change was appended since it was read; otherwise
+        // leave it for the next tick so the new change isn't lost.
+        const { count } = await tx.pendingNotification.deleteMany({
+          where: { id: entry.id, updatedAt: entry.updatedAt },
+        })
+        if (count === 1) await enqueueEmails(emails, tx)
+      })
+    } catch (err: unknown) {
+      console.error(`Failed to prepare notification ${entry.key}:`, err)
+    }
+  }
+}
+
+/** Drops batches that were waiting when notifications were switched off. */
+export async function discardPendingNotifications(): Promise<void> {
+  await db.pendingNotification.deleteMany({})
 }
 
 function escapeHtml(str: string): string {
@@ -142,7 +154,7 @@ function renderHtml(bodyText: string): string {
   `
 }
 
-function getChangesForLevel(entry: PendingEntry, level: NotificationLevel): string[] | null {
+function getChangesForLevel(entry: PendingNotification, level: NotificationLevel): string[] | null {
   if (level === "STATUS_CHANGES") {
     return entry.statusChanges.length > 0 ? entry.statusChanges : null
   }
@@ -153,7 +165,7 @@ function getChangesForLevel(entry: PendingEntry, level: NotificationLevel): stri
  * Production) for opportunities, or the owning agreement's tab for ad hoc work packages.
  * Falls back to the module's plain list page if the item was deleted before the
  * (delayed/batched) notification fired. */
-async function buildDeepLink(entry: PendingEntry, appUrl: string): Promise<string> {
+async function buildDeepLink(entry: PendingNotification, appUrl: string): Promise<string> {
   if (!appUrl) return ""
 
   if (entry.module === "opportunity") {
@@ -167,9 +179,9 @@ async function buildDeepLink(entry: PendingEntry, appUrl: string): Promise<strin
   return `${appUrl}/adhoc?agreement=${deliverable.agreementId}&deliverable=${entry.itemId}`
 }
 
-async function fireNotification(entry: PendingEntry): Promise<void> {
+async function buildEmails(entry: PendingNotification): Promise<OutboxEmail[]> {
   const config = await db.smtpConfig.findUnique({ where: { id: "default" } })
-  if (!config?.enabled) return
+  if (!config?.enabled) return []
 
   const isOpp = entry.module === "opportunity"
 
@@ -183,7 +195,7 @@ async function fireNotification(entry: PendingEntry): Promise<void> {
     },
     select: { email: true, opportunityNotifications: true, adhocNotifications: true },
   })
-  if (recipients.length === 0) return
+  if (recipients.length === 0) return []
 
   const appUrl = process.env.NEXTAUTH_URL ?? ""
   const subjectTemplate =
@@ -206,6 +218,7 @@ async function fireNotification(entry: PendingEntry): Promise<void> {
     link,
   }
 
+  const emails: OutboxEmail[] = []
   for (const recipient of recipients) {
     const level = isOpp ? recipient.opportunityNotifications : recipient.adhocNotifications
     const changes = getChangesForLevel(entry, level)
@@ -213,7 +226,8 @@ async function fireNotification(entry: PendingEntry): Promise<void> {
 
     const vars = { ...baseVars, changes: changes.map((c) => `• ${c}`).join("\n") }
     const subject = applyTemplate(subjectTemplate, vars)
-    const bodyText = applyTemplate(bodyTemplate, vars)
-    await sendMail({ to: recipient.email, subject, html: renderHtml(bodyText), text: bodyText })
+    const text = applyTemplate(bodyTemplate, vars)
+    emails.push({ to: recipient.email, subject, html: renderHtml(text), text, module: entry.module, itemId: entry.itemId })
   }
+  return emails
 }
