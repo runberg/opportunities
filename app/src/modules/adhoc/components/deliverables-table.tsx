@@ -10,7 +10,7 @@ import { DatePicker } from "@/shared/components/ui/date-picker"
 import { TableFilterBar, type FilterStatusGroup } from "@/shared/components/ui/table-filter-bar"
 import { ClientPagination } from "@/shared/components/ui/client-pagination"
 import { useAutoFocus } from "@/shared/lib/use-autofocus"
-import { formatAmount } from "@/shared/lib/utils"
+import { formatAmount, toggleInSet } from "@/shared/lib/utils"
 import { DELIVERABLE_STATUS_BADGE as STATUS_BADGE } from "../constants"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -161,7 +161,6 @@ function DeliverableTableRow({ d, isReadOnly, onOpen, onComment }: RowProps) {
 
 type Props = {
   readonly agreement: AgreementRow
-  readonly currentUserId: string
   readonly isAdmin: boolean
   readonly isReadOnly?: boolean
   readonly onRefresh: () => Promise<void>
@@ -171,7 +170,7 @@ type Props = {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function DeliverablesTable({
-  agreement, currentUserId, isAdmin, isReadOnly = false, onRefresh, initialOpenId,
+  agreement, isAdmin, isReadOnly = false, onRefresh, initialOpenId,
 }: Props) {
   const [openDeliverableId, setOpenDeliverableId] = useState<string | null>(initialOpenId ?? null)
   const [commentTarget, setCommentTarget] = useState<DeliverableRow | null>(null)
@@ -199,11 +198,7 @@ export function DeliverablesTable({
 
   function handleToggleStatus(s: string) {
     const val = s as DeliverableStatus
-    setExcludedStatuses((prev) => {
-      const next = new Set(prev)
-      next.has(val) ? next.delete(val) : next.add(val)
-      return next
-    })
+    setExcludedStatuses((prev) => toggleInSet(prev, val))
     setPage(1)
   }
 
@@ -351,7 +346,6 @@ export function DeliverablesTable({
       {openDeliverableId && (
         <DeliverableModal
           deliverableId={openDeliverableId}
-          currentUserId={currentUserId}
           isAdmin={isAdmin}
           isReadOnly={isReadOnly}
           onClose={() => setOpenDeliverableId(null)}

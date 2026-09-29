@@ -10,9 +10,8 @@ export interface RecentRow extends OppTableRow {
   updatedAt: string
 }
 
-export function RecentActivity({ items, currentUserId, isAdmin, isReadOnly = false }: {
+export function RecentActivity({ items, isAdmin, isReadOnly = false }: {
   readonly items: RecentRow[]
-  readonly currentUserId: string
   readonly isAdmin: boolean
   readonly isReadOnly?: boolean
 }) {
@@ -43,7 +42,6 @@ export function RecentActivity({ items, currentUserId, isAdmin, isReadOnly = fal
       <OpportunityModal
         opportunityId={openId}
         onClose={() => { setOpenId(null); router.refresh() }}
-        currentUserId={currentUserId}
         isAdmin={isAdmin}
         isReadOnly={isReadOnly}
       />

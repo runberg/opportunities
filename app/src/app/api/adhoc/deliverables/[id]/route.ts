@@ -43,22 +43,6 @@ export async function GET(
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-async function generateInternalId(): Promise<string> {
-  const now = new Date()
-  const yr = now.getFullYear().toString()
-  const mo = (now.getMonth() + 1).toString().padStart(2, "0")
-  const prefix = `BT-AH-${yr}${mo}`
-
-  const latest = await db.adhocDeliverable.findFirst({
-    where: { internalId: { startsWith: prefix } },
-    orderBy: { internalId: "desc" },
-    select: { internalId: true },
-  })
-
-  const seq = latest?.internalId ? Number.parseInt(latest.internalId.slice(-4), 10) + 1 : 1
-  return `${prefix}${seq.toString().padStart(4, "0")}`
-}
-
 /** A work package that has been delivered (or closed with finance) can no longer be cancelled. */
 const NON_CANCELLABLE_STATUSES = ["DELIVERED", "CLOSED_FINANCE"]
 

@@ -22,13 +22,12 @@ const DATE_COLUMNS: Record<string, DateColumn> = {
 
 export function DateDrillModal({
   title, dateField, fromISO, toISO,
-  currentUserId, isAdmin, isReadOnly = false, onClose,
+  isAdmin, isReadOnly = false, onClose,
 }: {
   readonly title: string
   readonly dateField: string
   readonly fromISO: string
   readonly toISO: string
-  readonly currentUserId: string
   readonly isAdmin: boolean
   readonly isReadOnly?: boolean
   readonly onClose: () => void
@@ -124,7 +123,6 @@ export function DateDrillModal({
         <OpportunityModal
           opportunityId={openId}
           onClose={() => setOpenId(null)}
-          currentUserId={currentUserId}
           isAdmin={isAdmin}
           isReadOnly={isReadOnly}
         />

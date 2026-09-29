@@ -83,6 +83,9 @@ export function ExcelViewerModal({ fileUrl, docName, onClose }: ExcelViewerModal
         allBlobUrls.current = allBlobUrls.current.filter((u) => u !== url)
       }
     }
+    // docName and sheet names only label the download; re-fetching the file when they
+    // change (or when the sheets array is re-created) would be wasted work.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fileUrl, sheets.length, activeSheet])
 
   const tabs = sheets.length > 1 ? (

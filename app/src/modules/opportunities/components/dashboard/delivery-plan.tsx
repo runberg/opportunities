@@ -34,9 +34,8 @@ function groupByMonth(items: DeliveryPlanItem[]): { key: string; month: number; 
     .map(([key, v]) => ({ key, ...v }))
 }
 
-export function DeliveryPlan({ items, currentUserId, isAdmin, isReadOnly = false }: {
+export function DeliveryPlan({ items, isAdmin, isReadOnly = false }: {
   readonly items: DeliveryPlanItem[]
-  readonly currentUserId: string
   readonly isAdmin: boolean
   readonly isReadOnly?: boolean
 }) {
@@ -92,7 +91,6 @@ export function DeliveryPlan({ items, currentUserId, isAdmin, isReadOnly = false
       <OpportunityModal
         opportunityId={openId}
         onClose={() => { setOpenId(null); router.refresh() }}
-        currentUserId={currentUserId}
         isAdmin={isAdmin}
         isReadOnly={isReadOnly}
       />

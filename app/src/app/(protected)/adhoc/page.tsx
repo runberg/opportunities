@@ -4,7 +4,7 @@ import { AdhocClient } from "@/modules/adhoc/components/adhoc-client"
 import { requireSectionAccess } from "@/shared/lib/page-access"
 
 export default async function AdHocPage() {
-  const { session, isAdmin, isReadOnly } = await requireSectionAccess("adhoc")
+  const { isAdmin, isReadOnly } = await requireSectionAccess("adhoc")
 
   const agreements = await findAllAgreements()
 
@@ -33,7 +33,6 @@ export default async function AdHocPage() {
     <Suspense>
       <AdhocClient
         initialAgreements={serialized}
-        currentUserId={session.user.id}
         isAdmin={isAdmin}
         isReadOnly={isReadOnly}
       />

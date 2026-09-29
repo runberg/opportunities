@@ -29,6 +29,8 @@ export function EditItemModal({ item, onClose, onSaved }: Props) {
     setProductName(item?.productName ?? "")
     setOriginalQuantity(item ? String(item.originalQuantity) : "")
     setError("")
+    // Keyed on id only: a refetch of the same item must not wipe the user's unsaved edits.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item?.id])
 
   const qtyNum = Number(originalQuantity)

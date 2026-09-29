@@ -48,12 +48,11 @@ export type AgreementRow = {
 
 type Props = {
   readonly initialAgreements: AgreementRow[]
-  readonly currentUserId: string
   readonly isAdmin: boolean
   readonly isReadOnly?: boolean
 }
 
-export function AdhocClient({ initialAgreements, currentUserId, isAdmin, isReadOnly = false }: Props) {
+export function AdhocClient({ initialAgreements, isAdmin, isReadOnly = false }: Props) {
   const [agreements, setAgreements] = useState(initialAgreements)
   const [showForm, setShowForm] = useState(false)
   const searchParams = useSearchParams()
@@ -88,7 +87,6 @@ export function AdhocClient({ initialAgreements, currentUserId, isAdmin, isReadO
       ) : (
         <AgreementTabs
           agreements={agreements}
-          currentUserId={currentUserId}
           isAdmin={isAdmin}
           isReadOnly={isReadOnly}
           onRefresh={refresh}

@@ -27,13 +27,12 @@ import { OpportunityModal } from "@/modules/opportunities/components/opportunity
 interface SidebarProps {
   readonly userName: string
   readonly userRole: string
-  readonly currentUserId: string
   readonly opportunitiesAccess: string
   readonly adhocAccess: string
   readonly inventoryAccess: string
 }
 
-export function Sidebar({ userName, userRole, currentUserId, opportunitiesAccess, adhocAccess, inventoryAccess }: SidebarProps) {
+export function Sidebar({ userName, userRole, opportunitiesAccess, adhocAccess, inventoryAccess }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const isAdmin = userRole === "ADMIN"
@@ -200,7 +199,6 @@ export function Sidebar({ userName, userRole, currentUserId, opportunitiesAccess
       <OpportunityModal
         opportunityId={justCreatedId}
         onClose={() => { setJustCreatedId(null); router.refresh() }}
-        currentUserId={currentUserId}
         isAdmin={isAdmin}
         justCreated
       />,

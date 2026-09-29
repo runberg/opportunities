@@ -14,10 +14,9 @@ export interface OpportunityRow extends OppTableRow {
 }
 
 export function OppTableView({
-  opportunities, currentUserId, isAdmin, isReadOnly, initialSortKey, dateColumn, emptyMessage, initialOpenId,
+  opportunities, isAdmin, isReadOnly, initialSortKey, dateColumn, emptyMessage, initialOpenId,
 }: {
   readonly opportunities: OppTableRow[]
-  readonly currentUserId: string
   readonly isAdmin: boolean
   readonly isReadOnly: boolean
   readonly initialSortKey: string
@@ -61,7 +60,6 @@ export function OppTableView({
       <OpportunityModal
         opportunityId={openModalId}
         onClose={() => { setOpenModalId(null); router.refresh() }}
-        currentUserId={currentUserId}
         isAdmin={isAdmin}
         isReadOnly={isReadOnly}
       />
@@ -76,10 +74,9 @@ export function OppTableView({
 }
 
 export function OpportunitiesTable({
-  opportunities, currentUserId, isAdmin, isReadOnly = false, initialOpenId,
+  opportunities, isAdmin, isReadOnly = false, initialOpenId,
 }: {
   readonly opportunities: OpportunityRow[]
-  readonly currentUserId: string
   readonly isAdmin: boolean
   readonly isReadOnly?: boolean
   readonly initialOpenId?: string
@@ -87,7 +84,6 @@ export function OpportunitiesTable({
   return (
     <OppTableView
       opportunities={opportunities}
-      currentUserId={currentUserId}
       isAdmin={isAdmin}
       isReadOnly={isReadOnly}
       initialSortKey="internalId"

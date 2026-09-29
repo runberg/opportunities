@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, type ReactNode } from "react"
 import { Trash2 } from "lucide-react"
 import { Dialog } from "@/shared/components/ui/dialog"
+import { toggleInSet } from "@/shared/lib/utils"
 
 // ─── Row types ─────────────────────────────────────────────────────────────────
 
@@ -81,7 +82,7 @@ function useDeleteSection<T extends { id: string }>(
   const someSelected = rows.some((r) => selected.has(r.id))
 
   function toggleRow(id: string) {
-    setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
+    setSelected((s) => toggleInSet(s, id))
   }
 
   function selectAll() {

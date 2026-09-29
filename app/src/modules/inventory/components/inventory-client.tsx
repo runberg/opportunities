@@ -58,13 +58,11 @@ export type PackageRow = {
 
 export function InventoryClient({
   initialPackages,
-  currentUserId,
   isAdmin,
   isReadOnly,
   isOpportunitiesReadOnly,
 }: {
   readonly initialPackages: PackageRow[]
-  readonly currentUserId: string
   readonly isAdmin: boolean
   readonly isReadOnly: boolean
   readonly isOpportunitiesReadOnly: boolean
@@ -154,7 +152,6 @@ export function InventoryClient({
         <OpportunityModal
           opportunityId={openOpportunityId}
           onClose={() => setOpenOpportunityId(null)}
-          currentUserId={currentUserId}
           isAdmin={isAdmin}
           isReadOnly={isOpportunitiesReadOnly}
         />,

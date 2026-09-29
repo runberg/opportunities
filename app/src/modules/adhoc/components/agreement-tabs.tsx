@@ -46,13 +46,12 @@ function defaultTabIndex(agreements: AgreementRow[], initialAgreementId?: string
 
 type AgreementDocsProps = {
   readonly agreement: AgreementRow
-  readonly currentUserId: string
   readonly isAdmin: boolean
   readonly isReadOnly?: boolean
   readonly onRefresh: () => Promise<void>
 }
 
-function AgreementDocs({ agreement, currentUserId, isAdmin, isReadOnly = false, onRefresh }: AgreementDocsProps) {
+function AgreementDocs({ agreement, isAdmin, isReadOnly = false, onRefresh }: AgreementDocsProps) {
   const [showUpload, setShowUpload] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [displayName, setDisplayName] = useState("")
@@ -321,7 +320,6 @@ function SignDialog({ agreementId, onDone, onCancel }: SignDialogProps) {
 
 type Props = {
   readonly agreements: AgreementRow[]
-  readonly currentUserId: string
   readonly isAdmin: boolean
   readonly isReadOnly?: boolean
   readonly onRefresh: () => Promise<void>
@@ -330,7 +328,7 @@ type Props = {
 }
 
 export function AgreementTabs({
-  agreements, currentUserId, isAdmin, isReadOnly = false, onRefresh,
+  agreements, isAdmin, isReadOnly = false, onRefresh,
   initialAgreementId, initialDeliverableId,
 }: Props) {
   const [activeTab, setActiveTab] = useState(() => defaultTabIndex(agreements, initialAgreementId))
@@ -452,7 +450,6 @@ export function AgreementTabs({
           <div className="mt-4 pt-4 border-t border-gray-200">
             <AgreementDocs
               agreement={agreement}
-              currentUserId={currentUserId}
               isAdmin={isAdmin}
               isReadOnly={isReadOnly}
               onRefresh={onRefresh}
@@ -477,7 +474,6 @@ export function AgreementTabs({
 
       <DeliverablesTable
         agreement={agreement}
-        currentUserId={currentUserId}
         isAdmin={isAdmin}
         isReadOnly={isReadOnly}
         onRefresh={onRefresh}

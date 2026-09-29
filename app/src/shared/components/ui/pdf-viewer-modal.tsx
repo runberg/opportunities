@@ -35,6 +35,8 @@ export function PdfViewerModal({ fileUrl, docName, onClose }: PdfViewerModalProp
     void load()
 
     return () => { if (url) URL.revokeObjectURL(url) }
+    // docName only labels the download; renaming must not re-fetch the file.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fileUrl])
 
   return (

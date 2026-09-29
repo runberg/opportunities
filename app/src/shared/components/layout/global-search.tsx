@@ -41,9 +41,8 @@ type FlatResult =
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function GlobalSearch({
-  currentUserId, isAdmin, isOpportunitiesReadOnly = false,
+  isAdmin, isOpportunitiesReadOnly = false,
 }: {
-  readonly currentUserId: string
   readonly isAdmin: boolean
   readonly isOpportunitiesReadOnly?: boolean
 }) {
@@ -258,7 +257,6 @@ export function GlobalSearch({
         <OpportunityModal
           opportunityId={openOpportunityId}
           onClose={() => { setOpenOpportunityId(null); router.refresh() }}
-          currentUserId={currentUserId}
           isAdmin={isAdmin}
           isReadOnly={isOpportunitiesReadOnly}
         />,

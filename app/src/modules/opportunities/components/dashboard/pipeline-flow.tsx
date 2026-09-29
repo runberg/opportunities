@@ -65,12 +65,10 @@ function exportTypeForStatus(status: string): string {
 
 export function PipelineFlow({
   counts,
-  currentUserId,
   isAdmin,
   isReadOnly = false,
 }: {
   readonly counts: Record<string, number>
-  readonly currentUserId: string
   readonly isAdmin: boolean
   readonly isReadOnly?: boolean
 }) {
@@ -131,7 +129,6 @@ export function PipelineFlow({
         <StatusDrillModal
           status={activeStatus}
           label={activeLabel}
-          currentUserId={currentUserId}
           isAdmin={isAdmin}
           isReadOnly={isReadOnly}
           onClose={() => setActiveStatus(null)}
@@ -144,11 +141,10 @@ export function PipelineFlow({
 // ─── Drill-down modal ─────────────────────────────────────────────────────────
 
 function StatusDrillModal({
-  status, label, currentUserId, isAdmin, isReadOnly = false, onClose,
+  status, label, isAdmin, isReadOnly = false, onClose,
 }: {
   readonly status: string
   readonly label: string
-  readonly currentUserId: string
   readonly isAdmin: boolean
   readonly isReadOnly?: boolean
   readonly onClose: () => void
@@ -249,7 +245,6 @@ function StatusDrillModal({
         <OpportunityModal
           opportunityId={openId}
           onClose={() => setOpenId(null)}
-          currentUserId={currentUserId}
           isAdmin={isAdmin}
           isReadOnly={isReadOnly}
         />

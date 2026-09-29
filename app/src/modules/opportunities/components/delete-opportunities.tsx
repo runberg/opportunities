@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { Search, Trash2, ChevronLeft, ChevronRight } from "lucide-react"
 import { Dialog } from "@/shared/components/ui/dialog"
+import { toggleInSet } from "@/shared/lib/utils"
 import { type SortDir } from "@/shared/components/ui/sortable-header"
 import { OpportunityDataTable } from "@/modules/opportunities/components/opportunity-data-table"
 
@@ -91,7 +92,7 @@ export function DeleteOpportunitiesClient() {
   }
 
   function toggleRow(id: string) {
-    setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
+    setSelected((s) => toggleInSet(s, id))
   }
 
   async function handleDelete() {

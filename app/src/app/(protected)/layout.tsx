@@ -20,7 +20,6 @@ export default async function ProtectedLayout({
       <Sidebar
         userName={session.user.name ?? session.user.email ?? ""}
         userRole={session.user.role}
-        currentUserId={session.user.id}
         opportunitiesAccess={session.user.opportunitiesAccess}
         adhocAccess={session.user.adhocAccess}
         inventoryAccess={session.user.inventoryAccess}
@@ -28,7 +27,6 @@ export default async function ProtectedLayout({
       <main className="flex-1 ml-60 overflow-y-auto">
         <div className="sticky top-0 z-30 bg-white border-b border-gray-200 px-6 py-3 flex justify-center">
           <GlobalSearch
-            currentUserId={session.user.id}
             isAdmin={isAdmin}
             isOpportunitiesReadOnly={isOpportunitiesReadOnly}
           />

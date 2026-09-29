@@ -38,7 +38,6 @@ const DOC_TYPE_LABELS = {
 interface QuoteSectionProps {
   readonly opportunityId: string
   readonly documents: QuoteDoc[]
-  readonly currentUserId: string
   readonly isAdmin: boolean
   readonly onRefresh?: () => void
   readonly docType?: "QUOTE" | "EL" | "FAT" | "SAT"
@@ -54,7 +53,6 @@ interface QuoteSectionProps {
 export function QuoteSection({
   opportunityId,
   documents,
-  currentUserId,
   isAdmin,
   onRefresh,
   docType = "QUOTE",

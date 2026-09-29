@@ -27,7 +27,6 @@ export default async function InventoryPage() {
   return (
     <InventoryClient
       initialPackages={serialized}
-      currentUserId={session.user.id}
       isAdmin={isAdmin}
       isReadOnly={isReadOnly}
       isOpportunitiesReadOnly={isOpportunitiesReadOnly}

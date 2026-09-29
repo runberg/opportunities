@@ -84,7 +84,6 @@ export default async function SystemLogPage({
         page={page}
         pageSize={PAGE_SIZE}
         typeFilter={typeFilter}
-        currentUserId={session?.user.id ?? ""}
       />
     </div>
   )

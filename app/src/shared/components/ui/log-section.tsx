@@ -18,7 +18,6 @@ export interface LogEntry {
 interface LogSectionProps {
   readonly commentEndpoint: string
   readonly entries: LogEntry[]
-  readonly currentUser: { id: string; name: string }
   readonly onRefresh?: () => void
   readonly isReadOnly?: boolean
 }
@@ -26,7 +25,6 @@ interface LogSectionProps {
 export function LogSection({
   commentEndpoint,
   entries,
-  currentUser,
   onRefresh,
   isReadOnly = false,
 }: LogSectionProps) {

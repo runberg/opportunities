@@ -276,7 +276,6 @@ export default async function DashboardPage({
     periodLabel = `Last ${dayCount} days`
   }
 
-  const currentUserId = session.user.id
 
   return (
     <div>
@@ -286,7 +285,7 @@ export default async function DashboardPage({
       </div>
 
       {/* Pipeline — current state, not time-bound */}
-      <PipelineFlow counts={statusCounts} currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} />
+      <PipelineFlow counts={statusCounts} isAdmin={isAdmin} isReadOnly={isReadOnly} />
 
       {/* Period selector — applies to activity graphs below */}
       <div className="flex items-center justify-between mb-4 mt-6">
@@ -298,23 +297,23 @@ export default async function DashboardPage({
         <QuoteActivitySection
           kpiRfq={rfqsReceived} kpiQuotes={quotesShared} kpiAvgDays={avgDaysToQuote}
           trendData={trendData} periodFromISO={periodFromISO} periodToISO={periodToISO}
-          currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} />
+          isAdmin={isAdmin} isReadOnly={isReadOnly} />
 
         <ElActivitySection
           kpiRequested={elRequested} kpiDrafted={elDrafted} kpiSigned={elSigned} kpiAvgDays={avgDaysToElSigned}
           trendData={elTrendData} periodFromISO={periodFromISO} periodToISO={periodToISO}
-          currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} />
+          isAdmin={isAdmin} isReadOnly={isReadOnly} />
 
         <ProductionActivitySection
           kpiCountersigned={countersigned} kpiAdvance={advancePaid} kpiFat={fatPassed} kpiDelivered={delivered}
           trendData={prodTrendData} periodFromISO={periodFromISO} periodToISO={periodToISO}
-          currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} />
+          isAdmin={isAdmin} isReadOnly={isReadOnly} />
 
-        <DeliveryPlan items={deliveryItems} currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} />
+        <DeliveryPlan items={deliveryItems} isAdmin={isAdmin} isReadOnly={isReadOnly} />
 
         <div className="border-t border-gray-200" />
 
-        <RecentActivity items={recentItems} currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} />
+        <RecentActivity items={recentItems} isAdmin={isAdmin} isReadOnly={isReadOnly} />
       </div>
     </div>
   )

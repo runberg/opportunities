@@ -358,3 +358,12 @@ export const ACTIVE_STATUSES = [
   "IN_PRODUCTION",
   "PRODUCTION",
 ]
+
+/** Returns a new Set with `value` removed if present, or added if absent. Never mutates
+ * the input, so it is safe to use directly inside a React state updater. */
+export function toggleInSet<T>(set: ReadonlySet<T>, value: T): Set<T> {
+  const next = new Set(set)
+  if (next.has(value)) next.delete(value)
+  else next.add(value)
+  return next
+}

@@ -32,7 +32,6 @@ interface ProductionData {
 interface ProductionSectionProps {
   readonly data: ProductionData
   readonly deliveries: DeliveryLine[]
-  readonly currentUserId: string
   readonly isAdmin: boolean
   readonly onRefresh: () => void
   readonly isReadOnly?: boolean
@@ -135,7 +134,7 @@ function RevertConfirmation({ target, reverting, error, onConfirm, onCancel }: {
   return (
     <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl">
       <p className="text-xs font-medium text-red-800 mb-3">
-        Revert status to <span className="font-semibold">"{target.label}"</span>? The milestone date will be cleared.
+        Revert status to <span className="font-semibold">&ldquo;{target.label}&rdquo;</span>? The milestone date will be cleared.
       </p>
       <div className="flex items-center gap-2">
         <button type="button" onClick={onConfirm} disabled={reverting}
@@ -271,10 +270,9 @@ function ProductionEditPanel({ data, onRefresh, onCancel }: {
 
 // ─── View panel ───────────────────────────────────────────────────────────────
 
-function ProductionViewPanel({ data, deliveries, currentUserId, isAdmin, isReadOnly, onRefresh, onEnterEdit }: {
+function ProductionViewPanel({ data, deliveries, isAdmin, isReadOnly, onRefresh, onEnterEdit }: {
   readonly data: ProductionData
   readonly deliveries: DeliveryLine[]
-  readonly currentUserId: string
   readonly isAdmin: boolean
   readonly isReadOnly: boolean
   readonly onRefresh: () => void
@@ -384,7 +382,7 @@ function ProductionViewPanel({ data, deliveries, currentUserId, isAdmin, isReadO
         <QuoteSection opportunityId={data.id}
           documents={data.documents.filter((d) => PRODUCTION_DOC_KINDS.includes(d.type as DocKind))}
           selectableTypes={PRODUCTION_DOC_KINDS} moveTargets={PRODUCTION_STAGE_KINDS}
-          currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} />
+          isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} />
       </div>
 
       <ExpectedDeliverySection opportunityId={data.id} deliveries={deliveries} isReadOnly={isReadOnly} onRefresh={onRefresh} />
@@ -394,7 +392,7 @@ function ProductionViewPanel({ data, deliveries, currentUserId, isAdmin, isReadO
 
 // ─── Main coordinator ─────────────────────────────────────────────────────────
 
-export function ProductionSection({ data, deliveries, currentUserId, isAdmin, isReadOnly = false, onRefresh }: ProductionSectionProps) {
+export function ProductionSection({ data, deliveries, isAdmin, isReadOnly = false, onRefresh }: ProductionSectionProps) {
   const [editing, setEditing] = useState(false)
 
   if (editing && !isReadOnly) {
@@ -403,7 +401,7 @@ export function ProductionSection({ data, deliveries, currentUserId, isAdmin, is
 
   return (
     <ProductionViewPanel
-      data={data} deliveries={deliveries} currentUserId={currentUserId} isAdmin={isAdmin}
+      data={data} deliveries={deliveries} isAdmin={isAdmin}
       isReadOnly={isReadOnly} onRefresh={onRefresh} onEnterEdit={() => setEditing(true)} />
   )
 }

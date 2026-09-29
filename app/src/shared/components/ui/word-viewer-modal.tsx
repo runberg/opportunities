@@ -35,6 +35,8 @@ export function WordViewerModal({ fileUrl, docName, onClose }: WordViewerModalPr
       controller.abort()
       if (url) URL.revokeObjectURL(url)
     }
+    // docName only labels the download; renaming must not re-fetch the file.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fileUrl])
 
   return (

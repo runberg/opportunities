@@ -8,10 +8,9 @@ export interface ELRow extends OppTableRow {
 }
 
 export function ELTable({
-  opportunities, currentUserId, isAdmin, isReadOnly = false, initialOpenId,
+  opportunities, isAdmin, isReadOnly = false, initialOpenId,
 }: {
   readonly opportunities: ELRow[]
-  readonly currentUserId: string
   readonly isAdmin: boolean
   readonly isReadOnly?: boolean
   readonly initialOpenId?: string
@@ -19,7 +18,6 @@ export function ELTable({
   return (
     <OppTableView
       opportunities={opportunities}
-      currentUserId={currentUserId}
       isAdmin={isAdmin}
       isReadOnly={isReadOnly}
       initialSortKey="internalId"

@@ -572,7 +572,6 @@ function LineItemsTab({
 
 function DocumentsTab({
   deliverable,
-  currentUserId,
   isAdmin,
   isLocked,
   showUpload,
@@ -580,7 +579,6 @@ function DocumentsTab({
   onRefresh,
 }: {
   readonly deliverable: Deliverable
-  readonly currentUserId: string
   readonly isAdmin: boolean
   readonly isLocked: boolean
   readonly showUpload: boolean
@@ -1336,13 +1334,12 @@ type TabContentProps = {
   readonly showUpload: boolean
   readonly onShowUpload: (v: boolean) => void
   readonly onRefresh: () => Promise<void>
-  readonly currentUserId: string
   readonly isAdmin: boolean
   readonly isLocked: boolean
   readonly isReadOnly: boolean
 }
 
-function DeliverableTabContent({ loading, deliverable, activeTab, showUpload, onShowUpload, onRefresh, currentUserId, isAdmin, isLocked, isReadOnly }: TabContentProps) {
+function DeliverableTabContent({ loading, deliverable, activeTab, showUpload, onShowUpload, onRefresh, isAdmin, isLocked, isReadOnly }: TabContentProps) {
   if (loading) {
     return (
       <div className="space-y-2">
@@ -1361,7 +1358,6 @@ function DeliverableTabContent({ loading, deliverable, activeTab, showUpload, on
       {activeTab === "documents" && (
         <DocumentsTab
           deliverable={deliverable}
-          currentUserId={currentUserId}
           isAdmin={isAdmin}
           isLocked={isLocked}
           showUpload={showUpload}
@@ -1380,7 +1376,6 @@ function DeliverableTabContent({ loading, deliverable, activeTab, showUpload, on
               id: l.id, content: l.message, system: true, createdAt: l.createdAt, author: l.user,
             })),
           ]}
-          currentUser={{ id: currentUserId, name: "" }}
           isReadOnly={isReadOnly}
           onRefresh={onRefresh}
         />
@@ -1465,14 +1460,13 @@ function ActionButtons({
 
 type Props = {
   readonly deliverableId: string
-  readonly currentUserId: string
   readonly isAdmin: boolean
   readonly isReadOnly?: boolean
   readonly onClose: () => void
   readonly onRefresh: () => Promise<void>
 }
 
-export function DeliverableModal({ deliverableId, currentUserId, isAdmin, isReadOnly = false, onClose, onRefresh }: Props) {
+export function DeliverableModal({ deliverableId, isAdmin, isReadOnly = false, onClose, onRefresh }: Props) {
   const [deliverable, setDeliverable] = useState<Deliverable | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<"items" | "documents" | "log">("items")
@@ -1823,7 +1817,6 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, isRead
             showUpload={showUpload}
             onShowUpload={setShowUpload}
             onRefresh={refresh}
-            currentUserId={currentUserId}
             isAdmin={isAdmin}
             isLocked={!!isLocked}
             isReadOnly={isReadOnly}

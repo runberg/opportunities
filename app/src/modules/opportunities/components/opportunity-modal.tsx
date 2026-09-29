@@ -57,11 +57,10 @@ interface OpportunityFull {
 // ─── Main modal ──────────────────────────────────────────────────────────────
 
 export function OpportunityModal({
-  opportunityId, onClose, currentUserId, isAdmin, isReadOnly = false, justCreated = false,
+  opportunityId, onClose, isAdmin, isReadOnly = false, justCreated = false,
 }: {
   readonly opportunityId: string | null
   readonly onClose: () => void
-  readonly currentUserId: string
   readonly isAdmin: boolean
   readonly isReadOnly?: boolean
   readonly justCreated?: boolean
@@ -147,7 +146,6 @@ export function OpportunityModal({
             {!fetchError && data && (
               <ViewMode
                 data={data}
-                currentUserId={currentUserId}
                 isAdmin={isAdmin}
                 isReadOnly={isReadOnly}
                 onRefresh={refresh}
@@ -253,10 +251,9 @@ async function patchOppTransition(
 }
 
 function DocumentsSection({
-  data, currentUserId, isAdmin, isReadOnly, isEL, isProduction, onRefresh,
+  data, isAdmin, isReadOnly, isEL, isProduction, onRefresh,
 }: {
   readonly data: OpportunityFull
-  readonly currentUserId: string
   readonly isAdmin: boolean
   readonly isReadOnly: boolean
   readonly isEL: boolean
@@ -268,11 +265,11 @@ function DocumentsSection({
       <>
         <QuoteSection opportunityId={data.id}
           documents={data.documents.filter((d) => d.type === "EL")}
-          currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} docType="EL" moveTargets={isProduction ? PRODUCTION_STAGE_KINDS : EL_STAGE_KINDS} />
+          isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} docType="EL" moveTargets={isProduction ? PRODUCTION_STAGE_KINDS : EL_STAGE_KINDS} />
         <div className="mt-4">
           <QuoteSection opportunityId={data.id}
             documents={data.documents.filter((d) => d.type === "QUOTE")}
-            currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} docType="QUOTE" moveTargets={isProduction ? PRODUCTION_STAGE_KINDS : EL_STAGE_KINDS} />
+            isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} docType="QUOTE" moveTargets={isProduction ? PRODUCTION_STAGE_KINDS : EL_STAGE_KINDS} />
         </div>
       </>
     )
@@ -280,15 +277,14 @@ function DocumentsSection({
   return (
     <QuoteSection opportunityId={data.id}
       documents={data.documents.filter((d) => d.type === "QUOTE")}
-      currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} docType="QUOTE" moveTargets={QUOTE_STAGE_KINDS} />
+      isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} docType="QUOTE" moveTargets={QUOTE_STAGE_KINDS} />
   )
 }
 
 // ─── View mode ────────────────────────────────────────────────────────────────
 
-function ViewMode({ data, currentUserId, isAdmin, isReadOnly, onRefresh, onSilentRefresh }: {
+function ViewMode({ data, isAdmin, isReadOnly, onRefresh, onSilentRefresh }: {
   readonly data: OpportunityFull
-  readonly currentUserId: string
   readonly isAdmin: boolean
   readonly isReadOnly: boolean
   readonly onRefresh: () => void
@@ -563,16 +559,16 @@ function ViewMode({ data, currentUserId, isAdmin, isReadOnly, onRefresh, onSilen
       {/* Production, Documents, Log — once in Production, that section leads since it's
           the most relevant to the current stage, with EL then Quote documents below it. */}
       {isProduction && (
-        <ProductionSection data={data} deliveries={data.deliveries} currentUserId={currentUserId} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} />
+        <ProductionSection data={data} deliveries={data.deliveries} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} />
       )}
 
       <div className={isProduction ? "mt-6" : undefined}>
-        <DocumentsSection data={data} currentUserId={currentUserId} isAdmin={isAdmin}
+        <DocumentsSection data={data} isAdmin={isAdmin}
           isReadOnly={isReadOnly} isEL={isEL} isProduction={isProduction} onRefresh={onRefresh} />
       </div>
 
       <LogSection commentEndpoint={`/api/opportunities/${data.id}/comments`} entries={data.comments}
-        currentUser={{ id: currentUserId, name: "" }} isReadOnly={isReadOnly} onRefresh={onRefresh} />
+        isReadOnly={isReadOnly} onRefresh={onRefresh} />
     </div>
   )
 }
@@ -865,7 +861,7 @@ function DateSection({ data, form, onSetDate, onRefresh, onDirectPatch }: {
       {revertTarget && (
         <div className="mt-3 p-4 bg-red-900/20 border border-red-800 rounded-xl">
           <p className="text-xs font-medium text-red-400 mb-3">
-            Revert status to <span className="font-semibold">"{revertTarget.label}"</span>?
+            Revert status to <span className="font-semibold">&ldquo;{revertTarget.label}&rdquo;</span>?
             {revertTarget.clearField ? " The milestone date will be cleared." : " Recorded dates are kept."}
           </p>
           <div className="flex items-center gap-2">

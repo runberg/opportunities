@@ -12,10 +12,9 @@ export interface ProductionRow extends OppTableRow {
 }
 
 export function ProductionTable({
-  opportunities, currentUserId, isAdmin, isReadOnly = false, initialOpenId,
+  opportunities, isAdmin, isReadOnly = false, initialOpenId,
 }: {
   readonly opportunities: ProductionRow[]
-  readonly currentUserId: string
   readonly isAdmin: boolean
   readonly isReadOnly?: boolean
   readonly initialOpenId?: string
@@ -42,7 +41,6 @@ export function ProductionTable({
       <OpportunityModal
         opportunityId={openModalId}
         onClose={() => { setOpenModalId(null); router.refresh() }}
-        currentUserId={currentUserId}
         isAdmin={isAdmin}
         isReadOnly={isReadOnly}
       />

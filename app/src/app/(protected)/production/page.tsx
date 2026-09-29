@@ -20,7 +20,7 @@ export default async function ProductionPage({
 }: {
   readonly searchParams: Promise<SearchParams>
 }) {
-  const [params, { session, isAdmin, isReadOnly }] = await Promise.all([
+  const [params, { isAdmin, isReadOnly }] = await Promise.all([
     searchParams,
     requireSectionAccess("opportunities"),
   ])
@@ -79,7 +79,6 @@ export default async function ProductionPage({
 
       <ProductionTable
         opportunities={rows}
-        currentUserId={session.user.id}
         isAdmin={isAdmin}
         isReadOnly={isReadOnly}
         initialOpenId={params.open}
