@@ -41,7 +41,7 @@ export default async function SmtpPage() {
       </div>
       <div className="space-y-6">
         <SmtpClient initial={initial} />
-        <div className="max-w-5xl">
+        <div className="max-w-lg">
           <EmailQueue emails={queuedEmails} />
         </div>
       </div>
