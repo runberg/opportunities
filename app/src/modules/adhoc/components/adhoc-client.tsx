@@ -39,6 +39,7 @@ export type AgreementRow = {
     approvedAt: string | null
     deliveredAt: string | null
     deliveryNoteRef: string | null
+    customer: string | null
     lineItems: { amount: string }[]
     documents: { id: string }[]
   }[]

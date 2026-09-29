@@ -66,6 +66,8 @@ function validateBody(body: Record<string, unknown>, currentStatus: string): str
   const { title, status, createdAt, partiallyApprovedAt, approvedAt, deliveredAt, closedFinanceAt, financeAmount } = body
   if (title !== undefined && (typeof title !== "string" || title.trim() === ""))
     return "Title cannot be empty"
+  if ("customer" in body && body.customer !== null && typeof body.customer !== "string")
+    return "Customer must be text or null"
   if (status !== undefined && !VALID_STATUSES.includes(status as AdhocDeliverableStatus))
     return "Invalid status"
   if (status === "CANCELLED" && NON_CANCELLABLE_STATUSES.includes(currentStatus))
@@ -94,9 +96,13 @@ function validateBody(body: Record<string, unknown>, currentStatus: string): str
 
 function buildChanges(
   body: Record<string, unknown>,
-  prev: { title: string; status: string }
+  prev: { title: string; status: string; customer: string | null }
 ): string[] {
   const changes: string[] = []
+  if ("customer" in body) {
+    const customer = (body.customer as string | null)?.trim() || null
+    if (customer !== prev.customer) changes.push(`customer → ${customer ? `"${customer}"` : "cleared"}`)
+  }
   if (body.status && body.status !== prev.status) changes.push(`status → ${body.status as string}`)
   if (body.title && (body.title as string).trim() !== prev.title)
     changes.push(`title → "${(body.title as string).trim()}"`)
@@ -247,6 +253,7 @@ function buildUpdateData(body: Record<string, unknown>, deliverable: { status: s
     ...resolveFinanceAmount(body, deliverable),
     ...(title !== undefined && { title: (title as string).trim() }),
     ...(description !== undefined && { description: (description as string | null)?.trim() || null }),
+    ...("customer" in body && { customer: (body.customer as string | null)?.trim() || null }),
     ...("approverName" in body && { approverName: (body.approverName as string | null)?.trim() || null }),
     ...("deliveryNoteRef" in body && { deliveryNoteRef: (body.deliveryNoteRef as string | null)?.trim() || null }),
     ...("closedFinanceNote" in body && { closedFinanceNote: (body.closedFinanceNote as string | null)?.trim() || null }),

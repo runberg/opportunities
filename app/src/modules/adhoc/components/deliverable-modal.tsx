@@ -22,13 +22,15 @@ type LineItem = {
   amount: string
 }
 
+type AdhocDocType = "BUDGET" | "APPROVAL" | "DELIVERY_NOTE" | "WORK_REPORT" | "OTHER"
+
 type AdhocDoc = {
   id: string
   displayName: string
   originalName: string
   mimeType: string
   size: number
-  type: "BUDGET" | "APPROVAL" | "DELIVERY_NOTE" | "OTHER"
+  type: AdhocDocType
   notes: string | null
   uploadedAt: string
   uploadedBy: { id: string; name: string }
@@ -59,6 +61,7 @@ type Deliverable = {
   approverName: string | null
   deliveryNoteRef: string | null
   financeAmount: string | null
+  customer: string | null
   status: "NOT_APPROVED" | "PARTIALLY_APPROVED" | "APPROVED" | "DELIVERED" | "CLOSED_FINANCE" | "CANCELLED"
   partiallyApprovedAt: string | null
   approvedAt: string | null
@@ -85,10 +88,11 @@ const STATUS_LABEL: Record<string, string> = {
   CANCELLED: "Cancelled",
 }
 
-const ADHOC_DOC_TYPE_OPTIONS = [
+const ADHOC_DOC_TYPE_OPTIONS: { value: AdhocDocType; label: string }[] = [
   { value: "BUDGET", label: "Budget" },
   { value: "APPROVAL", label: "Approval" },
   { value: "DELIVERY_NOTE", label: "Delivery Note" },
+  { value: "WORK_REPORT", label: "Work Report" },
   { value: "OTHER", label: "Other" },
 ]
 
@@ -584,7 +588,7 @@ function DocumentsTab({
   readonly onRefresh: () => Promise<void>
 }) {
   const [uploading, setUploading] = useState(false)
-  const [docType, setDocType] = useState<"BUDGET" | "APPROVAL" | "DELIVERY_NOTE" | "OTHER">("BUDGET")
+  const [docType, setDocType] = useState<AdhocDocType>("BUDGET")
   const [displayName, setDisplayName] = useState("")
   const [dnRef, setDnRef] = useState("")
   const [approverName, setApproverName] = useState(deliverable.approverName ?? "")
@@ -659,6 +663,7 @@ function DocumentsTab({
   const budget = deliverable.documents.filter((d) => d.type === "BUDGET")
   const approval = deliverable.documents.filter((d) => d.type === "APPROVAL")
   const deliveryNote = deliverable.documents.filter((d) => d.type === "DELIVERY_NOTE")
+  const workReport = deliverable.documents.filter((d) => d.type === "WORK_REPORT")
   const other = deliverable.documents.filter((d) => d.type === "OTHER")
 
   return (
@@ -697,6 +702,15 @@ function DocumentsTab({
         {...editProps}
       />
       <AdhocDocList
+        docs={workReport}
+        label="Work Report"
+        downloadUrl={(id) => `/api/adhoc/documents/${id}`}
+        canDelete={() => isAdmin}
+        onDelete={handleDelete}
+        onView={viewers.openViewer}
+        {...editProps}
+      />
+      <AdhocDocList
         docs={other}
         label="Other"
         downloadUrl={(id) => `/api/adhoc/documents/${id}`}
@@ -728,12 +742,11 @@ function DocumentsTab({
                   id="dm-doc-type"
                   className="w-full rounded border border-gray-600 bg-gray-800 px-2 py-1.5 text-sm text-gray-100"
                   value={docType}
-                  onChange={(e) => setDocType(e.target.value as "BUDGET" | "APPROVAL" | "DELIVERY_NOTE" | "OTHER")}
+                  onChange={(e) => setDocType(e.target.value as AdhocDocType)}
                 >
-                  <option value="BUDGET">Budget</option>
-                  <option value="APPROVAL">Approval</option>
-                  <option value="DELIVERY_NOTE">Delivery Note</option>
-                  <option value="OTHER">Other</option>
+                  {ADHOC_DOC_TYPE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
                 </select>
               </div>
               {docType === "APPROVAL" && (
@@ -821,7 +834,7 @@ function EditableTextField({
   onSaved,
 }: {
   readonly label: string
-  readonly fieldName: "approverName" | "deliveryNoteRef" | "closedFinanceNote"
+  readonly fieldName: "approverName" | "deliveryNoteRef" | "closedFinanceNote" | "customer"
   readonly value: string | null
   readonly deliverableId: string
   readonly isReadOnly?: boolean
@@ -1758,6 +1771,17 @@ export function DeliverableModal({ deliverableId, currentUserId, isAdmin, isRead
         {/* Description */}
         {deliverable && (
           <div className="px-6 py-3 border-b border-gray-700">
+            <div className="mb-2">
+              <EditableTextField
+                label="Customer"
+                fieldName="customer"
+                value={deliverable.customer}
+                deliverableId={deliverable.id}
+                isReadOnly={!!isLocked}
+                placeholder="Customer name"
+                onSaved={refresh}
+              />
+            </div>
             <textarea
               className="w-full appearance-none bg-gray-900 focus:bg-gray-800 border border-transparent hover:border-gray-600 focus:border-blue-500 focus:outline-none text-sm text-gray-300 rounded px-1.5 py-1 resize-none transition-colors disabled:opacity-50 placeholder:text-gray-600"
               rows={3}

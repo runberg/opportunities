@@ -19,6 +19,7 @@ export function findAllAgreements() {
           approvedAt: true,
           deliveredAt: true,
           deliveryNoteRef: true,
+          customer: true,
           lineItems: { select: { amount: true } },
           documents: { select: { id: true } },
         },

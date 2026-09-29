@@ -78,11 +78,12 @@ function buildCsvRow(d: DeliverableRow): string[] {
     d.approverName ?? "",
     isoDate(d.deliveredAt),
     d.deliveryNoteRef ?? "",
+    d.customer ?? "",
   ]
 }
 
 function exportToCsv(agreementTitle: string, deliverables: DeliverableRow[]) {
-  const header = ["ID", "Title", "Created", "Status", "Line Items", "Approved", "Balance", "Approved Date", "Approver", "Delivered Date", "DN Ref."]
+  const header = ["ID", "Title", "Created", "Status", "Line Items", "Approved", "Balance", "Approved Date", "Approver", "Delivered Date", "DN Ref.", "Customer"]
   const csv = [header, ...deliverables.map(buildCsvRow)]
     .map((r) => r.map((c) => `"${String(c).replaceAll('"', '""')}"`).join(","))
     .join("\n")
