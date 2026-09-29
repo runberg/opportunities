@@ -7,10 +7,12 @@ import { FileViewerModals } from "@/shared/components/ui/file-viewer-modals"
 import { useFileViewer } from "@/shared/lib/use-file-viewer"
 import { LogSection, type LogEntry } from "@/shared/components/ui/log-section"
 import { DatePicker } from "@/shared/components/ui/date-picker"
-import { formatAmount, nameFromFile, todayISO } from "@/shared/lib/utils"
+import { cn, formatAmount, nameFromFile, todayISO } from "@/shared/lib/utils"
 import { useDropZone, useWindowDragExpand } from "@/shared/lib/use-drop-zone"
 import { useAutoFocus } from "@/shared/lib/use-autofocus"
 import { FileDropZone } from "@/shared/components/ui/file-drop-zone"
+import { FormField } from "@/shared/components/ui/form-field"
+import { FORM_INPUT_CLS, FORM_TEXTAREA_CLS } from "@/shared/components/ui/form-styles"
 import { AdhocDocList } from "./adhoc-doc-list"
 import { DELIVERABLE_STATUS_BADGE as STATUS_BADGE } from "../constants"
 
@@ -832,7 +834,7 @@ function EditableTextField({
   onSaved,
 }: {
   readonly label: string
-  readonly fieldName: "approverName" | "deliveryNoteRef" | "closedFinanceNote" | "customer"
+  readonly fieldName: "approverName" | "deliveryNoteRef" | "closedFinanceNote"
   readonly value: string | null
   readonly deliverableId: string
   readonly isReadOnly?: boolean
@@ -1480,6 +1482,7 @@ export function DeliverableModal({ deliverableId, isAdmin, isReadOnly = false, o
 
   const [titleDraft, setTitleDraft] = useState("")
   const [descDraft, setDescDraft] = useState("")
+  const [customerDraft, setCustomerDraft] = useState("")
 
   const fetchDeliverable = useCallback(async () => {
     const res = await fetch(`/api/adhoc/deliverables/${deliverableId}`)
@@ -1493,6 +1496,7 @@ export function DeliverableModal({ deliverableId, isAdmin, isReadOnly = false, o
     if (deliverable) {
       setTitleDraft(deliverable.title)
       setDescDraft(deliverable.description ?? "")
+      setCustomerDraft(deliverable.customer ?? "")
     }
   }, [deliverable])
 
@@ -1515,12 +1519,12 @@ export function DeliverableModal({ deliverableId, isAdmin, isReadOnly = false, o
     await onRefresh()
   }
 
-  async function saveField(title: string, description: string | null) {
+  async function saveFields(fields: { title?: string; description?: string | null; customer?: string | null }) {
     if (!deliverable) return
     const res = await fetch(`/api/adhoc/deliverables/${deliverable.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, description }),
+      body: JSON.stringify(fields),
     })
     if (res.ok) await refresh()
   }
@@ -1528,13 +1532,17 @@ export function DeliverableModal({ deliverableId, isAdmin, isReadOnly = false, o
   function handleTitleBlur() {
     const trimmed = titleDraft.trim()
     if (!trimmed) { setTitleDraft(deliverable?.title ?? ""); return }
-    if (trimmed !== deliverable?.title) void saveField(trimmed, deliverable?.description ?? null)
+    if (trimmed !== deliverable?.title) void saveFields({ title: trimmed })
   }
 
   function handleDescBlur() {
     const trimmed = descDraft.trim()
-    const current = deliverable?.description ?? ""
-    if (trimmed !== current) void saveField(deliverable?.title ?? titleDraft, trimmed || null)
+    if (trimmed !== (deliverable?.description ?? "")) void saveFields({ description: trimmed || null })
+  }
+
+  function handleCustomerBlur() {
+    const trimmed = customerDraft.trim()
+    if (trimmed !== (deliverable?.customer ?? "")) void saveFields({ customer: trimmed || null })
   }
 
   async function handleRevoke() {
@@ -1762,30 +1770,35 @@ export function DeliverableModal({ deliverableId, isAdmin, isReadOnly = false, o
           </div>
         )}
 
-        {/* Description */}
+        {/* Customer + details */}
         {deliverable && (
-          <div className="px-6 py-3 border-b border-gray-700">
-            <div className="mb-2">
-              <EditableTextField
-                label="Customer"
-                fieldName="customer"
-                value={deliverable.customer}
-                deliverableId={deliverable.id}
-                isReadOnly={!!isLocked}
-                placeholder="Customer name"
-                onSaved={refresh}
+          <div className="px-6 py-4 border-b border-gray-700 flex flex-col gap-4">
+            <FormField label="Customer">
+              <input
+                className={cn(FORM_INPUT_CLS, isLocked && "pointer-events-none")}
+                placeholder={isLocked ? "" : "Customer name"}
+                value={customerDraft}
+                readOnly={!!isLocked}
+                onChange={(e) => setCustomerDraft(e.target.value)}
+                onBlur={handleCustomerBlur}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") e.currentTarget.blur()
+                  if (e.key === "Escape") setCustomerDraft(deliverable.customer ?? "")
+                }}
               />
-            </div>
-            <textarea
-              className="w-full appearance-none bg-gray-900 focus:bg-gray-800 border border-transparent hover:border-gray-600 focus:border-blue-500 focus:outline-none text-sm text-gray-300 rounded px-1.5 py-1 resize-none transition-colors disabled:opacity-50 placeholder:text-gray-600"
-              rows={3}
-              placeholder={isLocked ? "" : "Add description…"}
-              value={descDraft}
-              disabled={!!isLocked}
-              onChange={(e) => setDescDraft(e.target.value)}
-              onBlur={handleDescBlur}
-              onKeyDown={(e) => { if (e.key === "Escape") setDescDraft(deliverable.description ?? "") }}
-            />
+            </FormField>
+            <FormField label="Details">
+              <textarea
+                className={cn(FORM_TEXTAREA_CLS, isLocked && "pointer-events-none")}
+                rows={3}
+                placeholder={isLocked ? "" : "Additional context, requirements, or background…"}
+                value={descDraft}
+                readOnly={!!isLocked}
+                onChange={(e) => setDescDraft(e.target.value)}
+                onBlur={handleDescBlur}
+                onKeyDown={(e) => { if (e.key === "Escape") setDescDraft(deliverable.description ?? "") }}
+              />
+            </FormField>
           </div>
         )}
 

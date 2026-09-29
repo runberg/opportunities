@@ -7,6 +7,7 @@ import { Button } from "@/shared/components/ui/button"
 import { FormField } from "@/shared/components/ui/form-field"
 import { DatePicker } from "@/shared/components/ui/date-picker"
 import { useAutoFocus } from "@/shared/lib/use-autofocus"
+import { FORM_INPUT_CLS, FORM_TEXTAREA_CLS } from "@/shared/components/ui/form-styles"
 
 interface NewOpportunityModalProps {
   readonly onClose: () => void
@@ -156,7 +157,7 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
                   value={form.customer}
                   onChange={(e) => setField("customer", e.target.value)}
                   placeholder="Customer name"
-                  className={inputCls}
+                  className={FORM_INPUT_CLS}
                   required
                 />
               </FormField>
@@ -166,7 +167,7 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
                   value={form.product}
                   onChange={(e) => setField("product", e.target.value)}
                   placeholder="Requested product or service"
-                  className={inputCls}
+                  className={FORM_INPUT_CLS}
                 />
               </FormField>
 
@@ -174,7 +175,7 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
                 <DatePicker
                   value={form.rfqDate}
                   onChange={(v) => setField("rfqDate", v)}
-                  triggerClassName={inputCls + " flex items-center"}
+                  triggerClassName={FORM_INPUT_CLS + " flex items-center"}
                 />
               </FormField>
 
@@ -184,7 +185,7 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
                   onChange={(e) => setField("description", e.target.value)}
                   rows={3}
                   placeholder="Additional context, requirements, or background…"
-                  className={textareaCls}
+                  className={FORM_TEXTAREA_CLS}
                 />
               </FormField>
             </div>
@@ -215,8 +216,3 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const inputCls =
-  "w-full rounded-md border border-gray-600 bg-gray-700 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500 transition-colors"
-
-const textareaCls =
-  "w-full rounded-md border border-gray-600 bg-gray-700 px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500 resize-none transition-colors"

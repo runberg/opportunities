@@ -15,6 +15,7 @@ import { ProductionSection } from "@/modules/opportunities/components/production
 import { LogSection, type LogEntry } from "@/modules/opportunities/components/log-section"
 import { Button } from "@/shared/components/ui/button"
 import { FormField } from "@/shared/components/ui/form-field"
+import { FORM_INPUT_CLS, FORM_TEXTAREA_CLS } from "@/shared/components/ui/form-styles"
 import { DatePicker } from "@/shared/components/ui/date-picker"
 
 const STATUS_DATE_REQUIRED: Record<string, { field: string; label: string }> = {
@@ -161,8 +162,6 @@ export function OpportunityModal({
 
 // ─── Form helpers ─────────────────────────────────────────────────────────────
 
-const inputCls = "w-full rounded-md border border-gray-600 bg-gray-700 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500 transition-colors"
-const textareaCls = "w-full rounded-md border border-gray-600 bg-gray-700 px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500 resize-none transition-colors"
 const dateInputCls = "w-full rounded-md border border-gray-600 bg-gray-700 px-2 py-1.5 text-xs text-gray-100 focus:outline-none focus:ring-1 focus:ring-gray-500 transition-colors"
 
 function makeForm(data: OpportunityFull) {
@@ -414,8 +413,8 @@ function ViewMode({ data, isAdmin, isReadOnly, onRefresh, onSilentRefresh }: {
   // Pre-computed to keep JSX free of nested ternaries (reduces cognitive complexity)
   const titleCls = cn("flex-1 min-w-0 text-2xl font-semibold text-gray-100 appearance-none bg-gray-800 focus:bg-gray-700 border-b border-transparent hover:border-gray-600 focus:outline-none focus:border-[#006fff] leading-tight transition-colors px-1 py-1.5 resize-none overflow-hidden", isReadOnly && "pointer-events-none select-none")
   const labelCls = cn("inline-flex items-center gap-1.5 px-3 py-1 border border-gray-600 rounded-full bg-gray-700 focus-within:border-[#006fff] transition-colors", isReadOnly ? "pointer-events-none" : "cursor-text")
-  const interactiveCls = cn(inputCls, isReadOnly && "pointer-events-none")
-  const interactiveTextareaCls = cn(textareaCls, isReadOnly && "pointer-events-none")
+  const interactiveCls = cn(FORM_INPUT_CLS, isReadOnly && "pointer-events-none")
+  const interactiveTextareaCls = cn(FORM_TEXTAREA_CLS, isReadOnly && "pointer-events-none")
   const statusControl = isProduction && !isReadOnly
     ? <select value={form.status} onChange={(e) => set("status", e.target.value)}
         className="px-3 py-1 border border-gray-600 rounded-full text-xs font-medium bg-gray-700 text-gray-100 focus:outline-none focus:border-[#006fff] transition-colors">
