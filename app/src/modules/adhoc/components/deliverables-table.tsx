@@ -9,6 +9,7 @@ import { Button } from "@/shared/components/ui/button"
 import { DatePicker } from "@/shared/components/ui/date-picker"
 import { TableFilterBar, type FilterStatusGroup } from "@/shared/components/ui/table-filter-bar"
 import { ClientPagination } from "@/shared/components/ui/client-pagination"
+import { SortableHeader, sortRows, type SortDir } from "@/shared/components/ui/sortable-header"
 import { useAutoFocus } from "@/shared/lib/use-autofocus"
 import { formatAmount, toggleInSet } from "@/shared/lib/utils"
 import { DELIVERABLE_STATUS_BADGE as STATUS_BADGE } from "../constants"
@@ -17,6 +18,19 @@ import { DELIVERABLE_STATUS_BADGE as STATUS_BADGE } from "../constants"
 
 type DeliverableRow = AgreementRow["deliverables"][number]
 type DeliverableStatus = DeliverableRow["status"]
+
+/** A work package with the derived values the table shows and sorts by. */
+type TableRow = DeliverableRow & {
+  approved: number
+  lineTotal: number
+  balance: number
+  docCount: number
+  statusOrder: number
+}
+
+type SortKey = "internalId" | "title" | "customer" | "statusOrder" | "approved" | "lineTotal" | "balance" | "docCount"
+/** null = the default order (newest ID first) until a column header is clicked. */
+type SortState = { key: SortKey; dir: SortDir } | null
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -37,6 +51,20 @@ const STATUS_GROUPS: FilterStatusGroup[] = [
 
 // ─── Module-level helpers ─────────────────────────────────────────────────────
 
+function toTableRow(d: DeliverableRow): TableRow {
+  const approved = Number(d.approvedAmount)
+  const lineTotal = d.lineItems.reduce((s, li) => s + Number(li.amount), 0)
+  return {
+    ...d,
+    approved,
+    lineTotal,
+    balance: approved - lineTotal,
+    docCount: d.documents.length,
+    // Workflow order, so sorting by status follows the process rather than the alphabet.
+    statusOrder: ALL_STATUSES.indexOf(d.status),
+  }
+}
+
 function compareDeliverables(a: DeliverableRow, b: DeliverableRow): number {
   if (a.internalId === null && b.internalId === null) return b.createdAt.localeCompare(a.createdAt)
   if (a.internalId === null) return -1
@@ -44,19 +72,21 @@ function compareDeliverables(a: DeliverableRow, b: DeliverableRow): number {
   return b.internalId.localeCompare(a.internalId)
 }
 
+function matchesSearch(d: DeliverableRow, q: string): boolean {
+  return [d.title, d.internalId, d.customer].some((field) => field?.toLowerCase().includes(q))
+}
+
 function filterDeliverables(
   deliverables: DeliverableRow[],
   query: string,
-  excludedStatuses: Set<DeliverableStatus>
-): DeliverableRow[] {
+  excludedStatuses: Set<DeliverableStatus>,
+  sort: SortState
+): TableRow[] {
   const q = query.trim().toLowerCase()
-  return deliverables
-    .filter((d) => {
-      if (excludedStatuses.has(d.status)) return false
-      if (q && !d.title.toLowerCase().includes(q) && !d.internalId?.toLowerCase().includes(q)) return false
-      return true
-    })
-    .sort(compareDeliverables)
+  const rows = deliverables
+    .filter((d) => !excludedStatuses.has(d.status) && (!q || matchesSearch(d, q)))
+    .map(toTableRow)
+  return sort ? sortRows(rows, sort.key, sort.dir) : rows.sort(compareDeliverables)
 }
 
 function isoDate(value: string | null): string {
@@ -99,16 +129,14 @@ function exportToCsv(agreementTitle: string, deliverables: DeliverableRow[]) {
 // ─── Row component ────────────────────────────────────────────────────────────
 
 type RowProps = {
-  readonly d: DeliverableRow
+  readonly d: TableRow
   readonly isReadOnly: boolean
   readonly onOpen: (id: string) => void
   readonly onComment: (d: DeliverableRow) => void
 }
 
 function DeliverableTableRow({ d, isReadOnly, onOpen, onComment }: RowProps) {
-  const lineTotal = d.lineItems.reduce((s, li) => s + Number(li.amount), 0)
-  const approved = Number(d.approvedAmount)
-  const balance = approved - lineTotal
+  const { approved, lineTotal, balance } = d
   const over = lineTotal > approved && approved > 0
   return (
     <tr
@@ -125,6 +153,12 @@ function DeliverableTableRow({ d, isReadOnly, onOpen, onComment }: RowProps) {
         <p className="text-gray-900 font-medium truncate">{d.title}</p>
       </td>
       <td className="px-4 py-3">
+        {d.customer
+          ? <p className="text-gray-600 truncate" title={d.customer}>{d.customer}</p>
+          : <span className="text-xs text-gray-300">—</span>
+        }
+      </td>
+      <td className="px-4 py-3">
         <span className={`inline-flex px-2 py-0.5 text-xs rounded-full font-medium ${STATUS_BADGE[d.status]}`}>
           {STATUS_LABEL[d.status]}
         </span>
@@ -139,7 +173,7 @@ function DeliverableTableRow({ d, isReadOnly, onOpen, onComment }: RowProps) {
         {approved > 0 ? formatAmount(balance) : "—"}
       </td>
       <td className="px-4 py-3 text-right text-gray-500">
-        {d.documents.length}
+        {d.docCount}
       </td>
       <td className="px-2 py-3 text-right" onClick={(e) => e.stopPropagation()}>
         {!isReadOnly && (
@@ -184,17 +218,26 @@ export function DeliverablesTable({
   // Closed-Finance and cancelled work packages are out of scope for day-to-day review, so they're
   // hidden by default — the status filter can bring them back into view like any other status.
   const [excludedStatuses, setExcludedStatuses] = useState<Set<DeliverableStatus>>(() => new Set(["CLOSED_FINANCE", "CANCELLED"]))
+  const [sort, setSort] = useState<SortState>(null)
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(10)
 
   const canAdd = agreement.status === "SIGNED" || agreement.status === "ACTIVE"
 
   const filtered = useMemo(
-    () => filterDeliverables(agreement.deliverables, search, excludedStatuses),
-    [agreement.deliverables, search, excludedStatuses]
+    () => filterDeliverables(agreement.deliverables, search, excludedStatuses, sort),
+    [agreement.deliverables, search, excludedStatuses, sort]
   )
 
   const paginated = filtered.slice((page - 1) * perPage, page * perPage)
+
+  function handleSort(key: string, dir: SortDir) {
+    setSort({ key: key as SortKey, dir })
+    setPage(1)
+  }
+
+  const headerProps = { currentSort: sort?.key ?? "", currentDir: sort?.dir ?? "asc", onSort: handleSort }
+  const headerCls = "uppercase tracking-wide"
 
   function handleToggleStatus(s: string) {
     const val = s as DeliverableStatus
@@ -290,7 +333,7 @@ export function DeliverablesTable({
           <TableFilterBar
             search={search}
             onSearchChange={(q) => { setSearch(q); setPage(1) }}
-            placeholder="Search by title or ID…"
+            placeholder="Search by title, ID or customer…"
             excludedStatuses={[...excludedStatuses]}
             onToggleStatus={handleToggleStatus}
             onShowAll={() => { setExcludedStatuses(new Set()); setPage(1) }}
@@ -303,20 +346,21 @@ export function DeliverablesTable({
             <table className="w-full text-sm table-fixed">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-32">ID</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Title</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-36">Status</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide w-32">Approved</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide w-28">Line Items</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide w-28">Balance</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide w-14">Docs</th>
+                  <SortableHeader label="ID" sortKey="internalId" {...headerProps} className={`${headerCls} w-32`} />
+                  <SortableHeader label="Title" sortKey="title" {...headerProps} className={headerCls} />
+                  <SortableHeader label="Customer" sortKey="customer" {...headerProps} className={`${headerCls} w-44`} />
+                  <SortableHeader label="Status" sortKey="statusOrder" {...headerProps} className={`${headerCls} w-36`} />
+                  <SortableHeader label="Approved" sortKey="approved" align="right" {...headerProps} className={`${headerCls} w-32`} />
+                  <SortableHeader label="Line Items" sortKey="lineTotal" align="right" {...headerProps} className={`${headerCls} w-28`} />
+                  <SortableHeader label="Balance" sortKey="balance" align="right" {...headerProps} className={`${headerCls} w-28`} />
+                  <SortableHeader label="Docs" sortKey="docCount" align="right" {...headerProps} className={`${headerCls} w-16`} />
                   <th className="px-2 py-3 w-10" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {paginated.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-10 text-center text-gray-400">
+                    <td colSpan={9} className="px-4 py-10 text-center text-gray-400">
                       No work packages match your filters.
                     </td>
                   </tr>

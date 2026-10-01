@@ -3,6 +3,9 @@ import { cn } from "@/shared/lib/utils"
 
 export type SortDir = "asc" | "desc"
 
+const HEADER_ALIGN = { left: "text-left", center: "text-center", right: "text-right" } as const
+const CONTENT_ALIGN = { left: "", center: "justify-center w-full", right: "justify-end w-full" } as const
+
 export function SortableHeader({
   label, sortKey, currentSort, currentDir, onSort, className, align = "left",
 }: {
@@ -12,7 +15,7 @@ export function SortableHeader({
   readonly currentDir: SortDir
   readonly onSort: (key: string, dir: SortDir) => void
   readonly className?: string
-  readonly align?: "left" | "center"
+  readonly align?: "left" | "center" | "right"
 }) {
   const active = currentSort === sortKey
   const nextDir = active && currentDir === "asc" ? "desc" : "asc"
@@ -25,11 +28,11 @@ export function SortableHeader({
       onClick={() => onSort(sortKey, nextDir)}
       className={cn(
         "px-4 py-3 text-xs font-semibold text-gray-500 cursor-pointer select-none hover:text-gray-700 transition-colors",
-        align === "left" ? "text-left" : "text-center",
+        HEADER_ALIGN[align],
         className
       )}
     >
-      <span className={cn("inline-flex items-center gap-1", align === "center" && "justify-center w-full")}>
+      <span className={cn("inline-flex items-center gap-1", CONTENT_ALIGN[align])}>
         {label}
         {sortIcon}
       </span>
