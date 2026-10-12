@@ -22,8 +22,8 @@ export async function PATCH(
   })
   if (!lineItem) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
-  if (lineItem.deliverable.status === "DELIVERED" && session.user.role !== "ADMIN")
-    return NextResponse.json({ error: "Only admins can edit a delivered work package" }, { status: 403 })
+  if (lineItem.deliverable.status === "CLOSED_FINANCE" && session.user.role !== "ADMIN")
+    return NextResponse.json({ error: "Only admins can edit a work package closed by finance" }, { status: 403 })
 
   const body = await req.json()
   const { description, amount } = body
@@ -70,8 +70,8 @@ export async function DELETE(
   })
   if (!lineItem) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
-  if (lineItem.deliverable.status === "DELIVERED" && session.user.role !== "ADMIN")
-    return NextResponse.json({ error: "Only admins can edit a delivered work package" }, { status: 403 })
+  if (lineItem.deliverable.status === "CLOSED_FINANCE" && session.user.role !== "ADMIN")
+    return NextResponse.json({ error: "Only admins can edit a work package closed by finance" }, { status: 403 })
 
   await db.adhocLineItem.delete({ where: { id } })
 

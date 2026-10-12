@@ -37,6 +37,9 @@ export async function PATCH(
   const doc = await db.adhocDocument.findUnique({ where: { id }, include: { deliverable: true } })
   if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
+  if (doc.deliverable.status === "CLOSED_FINANCE" && session.user.role !== "ADMIN")
+    return NextResponse.json({ error: "Only admins can edit a work package closed by finance" }, { status: 403 })
+
   const edit = parseDocumentEdit(
     await req.json().catch(() => null),
     Object.values(AdhocDocumentType) as [string, ...string[]]

@@ -99,7 +99,7 @@ const ADHOC_DOC_TYPE_OPTIONS: { value: AdhocDocType; label: string }[] = [
 ]
 
 /** Statuses that only admins may edit further (mirrors the API's lock). */
-const LOCKED_STATUSES = ["DELIVERED", "CLOSED_FINANCE", "CANCELLED"]
+const LOCKED_STATUSES = ["CLOSED_FINANCE"]
 
 /** Statuses from which a work package can still be cancelled (not yet delivered). */
 const CANCELLABLE_STATUSES = ["NOT_APPROVED", "PARTIALLY_APPROVED", "APPROVED"]

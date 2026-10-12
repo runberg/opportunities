@@ -4,6 +4,11 @@ import { requireSession, hasSectionAccess } from "@/shared/lib/api"
 import { writeLog } from "@/shared/lib/system-log"
 import { AdhocDeliverableStatus } from "@prisma/client"
 import { scheduleNotification } from "@/shared/lib/notify"
+import { z } from "zod"
+
+const patchBodySchema = z.object({
+  customer: z.string().nullable().optional(),
+}).passthrough()
 
 const VALID_STATUSES = Object.values(AdhocDeliverableStatus)
 
@@ -270,11 +275,14 @@ export async function PATCH(
   })
   if (!deliverable) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
-  const body = await req.json() as Record<string, unknown>
+  const parsedBody = patchBodySchema.safeParse(await req.json().catch(() => null))
+  if (!parsedBody.success)
+    return NextResponse.json({ error: "Invalid request body: customer must be text or null" }, { status: 400 })
+  const body = parsedBody.data
 
   const isRevertingDelivered = deliverable.status === "DELIVERED" && body.status === "APPROVED"
   const isRevertingClosedFinance = deliverable.status === "CLOSED_FINANCE" && body.status === "DELIVERED"
-  const isLockedStatus = ["DELIVERED", "CLOSED_FINANCE", "CANCELLED"].includes(deliverable.status)
+  const isLockedStatus = deliverable.status === "CLOSED_FINANCE"
   if (isLockedStatus && session.user.role !== "ADMIN" && !isRevertingDelivered && !isRevertingClosedFinance)
     return NextResponse.json({ error: "Only admins can edit a locked work package" }, { status: 403 })
 

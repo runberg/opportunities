@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
+import { createPortal } from "react-dom"
 import { X, Download } from "lucide-react"
 
 interface ViewerShellProps {
@@ -12,6 +13,9 @@ interface ViewerShellProps {
 }
 
 export function ViewerShell({ fileUrl, docName, onClose, tabs, children }: ViewerShellProps) {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose()
@@ -20,8 +24,11 @@ export function ViewerShell({ fileUrl, docName, onClose, tabs, children }: Viewe
     return () => window.removeEventListener("keydown", onKey)
   }, [onClose])
 
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black/90">
+  if (!mounted) return null
+
+  // Escape parent overflow and stacking contexts, including package drawers.
+  return createPortal(
+    <div role="dialog" aria-modal="true" aria-label={docName} className="fixed inset-0 z-[100] flex flex-col bg-black/90">
       <div className="flex items-center justify-between gap-4 px-4 py-3 bg-gray-900 text-white shrink-0">
         <span className="text-sm font-medium text-gray-100 truncate" title={docName}>{docName}</span>
         <div className="flex items-center gap-2 shrink-0">
@@ -45,6 +52,7 @@ export function ViewerShell({ fileUrl, docName, onClose, tabs, children }: Viewe
       </div>
       {tabs}
       {children}
-    </div>
+    </div>,
+    document.body
   )
 }
