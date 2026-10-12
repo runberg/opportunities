@@ -11,3 +11,5 @@ data/
 postgres_data/
 *.log
 .claude/
+/.vscode/
+/AGENTS.md
