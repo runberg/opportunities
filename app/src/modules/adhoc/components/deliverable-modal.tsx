@@ -62,6 +62,8 @@ type Deliverable = {
   approvedAmount: string
   approverName: string | null
   deliveryNoteRef: string | null
+  poInvoiceReference: string | null
+  inventoryIssueOutDate: string | null
   financeAmount: string | null
   customer: string | null
   status: "NOT_APPROVED" | "PARTIALLY_APPROVED" | "APPROVED" | "DELIVERED" | "CLOSED_FINANCE" | "CANCELLED"
@@ -834,7 +836,7 @@ function EditableTextField({
   onSaved,
 }: {
   readonly label: string
-  readonly fieldName: "approverName" | "deliveryNoteRef" | "closedFinanceNote"
+  readonly fieldName: "approverName" | "deliveryNoteRef" | "closedFinanceNote" | "poInvoiceReference"
   readonly value: string | null
   readonly deliverableId: string
   readonly isReadOnly?: boolean
@@ -1256,7 +1258,7 @@ function DateField({
   readonly label: string
   readonly value: string | null
   readonly deliverableId: string
-  readonly field: "createdAt" | "partiallyApprovedAt" | "approvedAt" | "deliveredAt" | "closedFinanceAt"
+  readonly field: "createdAt" | "partiallyApprovedAt" | "approvedAt" | "deliveredAt" | "closedFinanceAt" | "inventoryIssueOutDate"
   readonly nullable?: boolean
   readonly isReadOnly?: boolean
   readonly onSaved: () => Promise<void>
@@ -1653,6 +1655,7 @@ export function DeliverableModal({ deliverableId, isAdmin, isReadOnly = false, o
         {/* Meta bar */}
         {deliverable && (
           <div className="px-6 py-3 bg-gray-800/50 border-b border-gray-700">
+            <p className="text-xs font-medium text-gray-400 mb-2">Approval</p>
             <div className="flex flex-wrap gap-x-6 gap-y-3">
               <div>
                 <p className="text-xs text-gray-400">Status</p>
@@ -1676,30 +1679,7 @@ export function DeliverableModal({ deliverableId, isAdmin, isReadOnly = false, o
                   onSaved={refresh}
                 />
               )}
-              {(deliverable.status === "DELIVERED" || deliverable.status === "CLOSED_FINANCE" || deliverable.deliveryNoteRef) && (
-                <EditableTextField
-                  label="DN Ref."
-                  fieldName="deliveryNoteRef"
-                  value={deliverable.deliveryNoteRef}
-                  deliverableId={deliverable.id}
-                  isReadOnly={isReadOnly}
-                  placeholder="BT-XXXXXXXXXX"
-                  onSaved={refresh}
-                />
-              )}
-              {(deliverable.status === "CLOSED_FINANCE" || deliverable.closedFinanceNote) && (
-                <EditableTextField
-                  label="Finance Note"
-                  fieldName="closedFinanceNote"
-                  value={deliverable.closedFinanceNote}
-                  deliverableId={deliverable.id}
-                  isReadOnly={isReadOnly}
-                  onSaved={refresh}
-                />
-              )}
-              {deliverable.status === "CLOSED_FINANCE" && (
-                <FinanceAmountField deliverable={deliverable} isReadOnly={isLocked} onSaved={refresh} />
-              )}
+
             </div>
             <ActionButtons
               isReadOnly={isReadOnly}
@@ -1730,9 +1710,51 @@ export function DeliverableModal({ deliverableId, isAdmin, isReadOnly = false, o
               <DateField label="Created" value={deliverable.createdAt} deliverableId={deliverable.id} field="createdAt" nullable={false} isReadOnly={isReadOnly} onSaved={refresh} />
               <DateField label="Partially Approved" value={deliverable.partiallyApprovedAt} deliverableId={deliverable.id} field="partiallyApprovedAt" isReadOnly={isReadOnly} onSaved={refresh} />
               <DateField label="Approved" value={deliverable.approvedAt} deliverableId={deliverable.id} field="approvedAt" isReadOnly={isReadOnly} onSaved={refresh} />
-              <DateField label="Delivered" value={deliverable.deliveredAt} deliverableId={deliverable.id} field="deliveredAt" isReadOnly={isReadOnly} onSaved={refresh} />
-              <DateField label="Closed Finance" value={deliverable.closedFinanceAt} deliverableId={deliverable.id} field="closedFinanceAt" isReadOnly={isReadOnly} onSaved={refresh} />
             </div>
+
+            {(deliverable.status === "DELIVERED" || deliverable.status === "CLOSED_FINANCE") && (
+              <div className="mt-3 pt-3 border-t border-gray-700/60">
+                <p className="text-xs font-medium text-gray-400 mb-2">Delivery &amp; Finance</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {(deliverable.status === "DELIVERED" || deliverable.status === "CLOSED_FINANCE" || deliverable.deliveryNoteRef) && (
+                    <EditableTextField
+                      label="DN Ref."
+                      fieldName="deliveryNoteRef"
+                      value={deliverable.deliveryNoteRef}
+                      deliverableId={deliverable.id}
+                      isReadOnly={isReadOnly}
+                      placeholder="BT-XXXXXXXXXX"
+                      onSaved={refresh}
+                    />
+                  )}
+                  {(deliverable.status === "CLOSED_FINANCE" || deliverable.closedFinanceNote) && (
+                    <EditableTextField
+                      label="Finance Note"
+                      fieldName="closedFinanceNote"
+                      value={deliverable.closedFinanceNote}
+                      deliverableId={deliverable.id}
+                      isReadOnly={isReadOnly}
+                      onSaved={refresh}
+                    />
+                  )}
+                  {deliverable.status === "CLOSED_FINANCE" && (
+                    <FinanceAmountField deliverable={deliverable} isReadOnly={isLocked} onSaved={refresh} />
+                  )}
+                  <DateField label="Delivered" value={deliverable.deliveredAt} deliverableId={deliverable.id} field="deliveredAt" isReadOnly={isReadOnly} onSaved={refresh} />
+                  <DateField label="Closed Finance" value={deliverable.closedFinanceAt} deliverableId={deliverable.id} field="closedFinanceAt" isReadOnly={isReadOnly} onSaved={refresh} />
+                  <EditableTextField
+                    label="PO/Invoice Reference"
+                    fieldName="poInvoiceReference"
+                    value={deliverable.poInvoiceReference}
+                    deliverableId={deliverable.id}
+                    isReadOnly={isReadOnly}
+                    placeholder="Optional reference"
+                    onSaved={refresh}
+                  />
+                  <DateField label="Inventory Issue Out Date" value={deliverable.inventoryIssueOutDate} deliverableId={deliverable.id} field="inventoryIssueOutDate" isReadOnly={isReadOnly} onSaved={refresh} />
+                </div>
+              </div>
+            )}
 
             {missingApprovalDoc && !editingApproval && (
               <p className="mt-2 text-xs text-amber-400 bg-amber-900/20 px-3 py-1.5 rounded-md">

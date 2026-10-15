@@ -8,6 +8,8 @@ import { z } from "zod"
 
 const patchBodySchema = z.object({
   customer: z.string().nullable().optional(),
+  poInvoiceReference: z.string().trim().nullable().optional(),
+  inventoryIssueOutDate: z.string().date().nullable().optional(),
 }).passthrough()
 
 const VALID_STATUSES = Object.values(AdhocDeliverableStatus)
@@ -245,6 +247,8 @@ function buildUpdateData(body: Record<string, unknown>, deliverable: { status: s
     ...("customer" in body && { customer: (body.customer as string | null)?.trim() || null }),
     ...("approverName" in body && { approverName: (body.approverName as string | null)?.trim() || null }),
     ...("deliveryNoteRef" in body && { deliveryNoteRef: (body.deliveryNoteRef as string | null)?.trim() || null }),
+    ...("poInvoiceReference" in body && { poInvoiceReference: (body.poInvoiceReference as string | null)?.trim() || null }),
+    ...("inventoryIssueOutDate" in body && { inventoryIssueOutDate: parseDateField(body.inventoryIssueOutDate) }),
     ...("closedFinanceNote" in body && { closedFinanceNote: (body.closedFinanceNote as string | null)?.trim() || null }),
     ...(newStatus !== undefined && { status: newStatus }),
     ...(newStatus !== undefined && autoStatusDates(newStatus, deliverable, body)),
@@ -277,13 +281,19 @@ export async function PATCH(
 
   const parsedBody = patchBodySchema.safeParse(await req.json().catch(() => null))
   if (!parsedBody.success)
-    return NextResponse.json({ error: "Invalid request body: customer must be text or null" }, { status: 400 })
+    return NextResponse.json({ error: parsedBody.error.issues[0].message }, { status: 400 })
   const body = parsedBody.data
+
+  const deliveryFinanceFields = ["poInvoiceReference", "inventoryIssueOutDate"]
+  const editsDeliveryFinance = deliveryFinanceFields.some((field) => field in body)
+  const onlyDeliveryFinance = Object.keys(body).length > 0 && Object.keys(body).every((field) => deliveryFinanceFields.includes(field))
+  if (editsDeliveryFinance && !["DELIVERED", "CLOSED_FINANCE"].includes(deliverable.status))
+    return NextResponse.json({ error: "Delivery and finance fields can only be edited after delivery" }, { status: 400 })
 
   const isRevertingDelivered = deliverable.status === "DELIVERED" && body.status === "APPROVED"
   const isRevertingClosedFinance = deliverable.status === "CLOSED_FINANCE" && body.status === "DELIVERED"
   const isLockedStatus = deliverable.status === "CLOSED_FINANCE"
-  if (isLockedStatus && session.user.role !== "ADMIN" && !isRevertingDelivered && !isRevertingClosedFinance)
+  if (isLockedStatus && session.user.role !== "ADMIN" && !isRevertingDelivered && !isRevertingClosedFinance && !onlyDeliveryFinance)
     return NextResponse.json({ error: "Only admins can edit a locked work package" }, { status: 403 })
 
   if (body.approve === true)
