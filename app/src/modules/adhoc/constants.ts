@@ -1,4 +1,5 @@
 export const DELIVERABLE_STATUS_BADGE: Record<string, string> = {
+  ARCHIVED: "bg-gray-100 text-gray-600",
   NOT_APPROVED: "bg-red-100 text-red-700",
   PARTIALLY_APPROVED: "bg-amber-100 text-amber-700",
   APPROVED: "bg-blue-100 text-blue-700",
@@ -8,6 +9,7 @@ export const DELIVERABLE_STATUS_BADGE: Record<string, string> = {
 }
 
 export const DELIVERABLE_STATUS_LABEL: Record<string, string> = {
+  ARCHIVED: "Archived",
   NOT_APPROVED: "Not Approved",
   PARTIALLY_APPROVED: "Partial",
   APPROVED: "Approved",

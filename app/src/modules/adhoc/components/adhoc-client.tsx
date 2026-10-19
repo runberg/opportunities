@@ -32,6 +32,7 @@ export type AgreementRow = {
     internalId: string | null
     createdAt: string
     title: string
+    isArchived: boolean
     status: string
     approvedAmount: string
     financeAmount: string | null
@@ -86,6 +87,7 @@ export function AdhocClient({ initialAgreements, isAdmin, isReadOnly = false }: 
         </div>
       ) : (
         <AgreementTabs
+          key={`${initialAgreementId ?? ""}:${initialDeliverableId ?? ""}`}
           agreements={agreements}
           isAdmin={isAdmin}
           isReadOnly={isReadOnly}

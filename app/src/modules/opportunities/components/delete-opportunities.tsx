@@ -8,6 +8,7 @@ import { type SortDir } from "@/shared/components/ui/sortable-header"
 import { OpportunityDataTable } from "@/modules/opportunities/components/opportunity-data-table"
 
 const ALL_STATUSES = [
+  { value: "ARCHIVED", label: "Archived Opportunity" },
   { value: "",                      label: "All Statuses" },
   { value: "RFQ_RECEIVED",          label: "RFQ Received" },
   { value: "QUOTE_SENT",            label: "Quote Sent" },

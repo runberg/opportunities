@@ -13,6 +13,7 @@ export function findAllAgreements() {
           createdAt: true,
           title: true,
           status: true,
+          isArchived: true,
           approvedAmount: true,
           financeAmount: true,
           approverName: true,
@@ -49,6 +50,7 @@ export async function recomputeApprovalStatus(
     where: { id: deliverableId },
     include: { lineItems: true },
   })
+  if (del?.isArchived) return
   if (del?.status !== "APPROVED" && del?.status !== "DELIVERED") return
 
   const lineTotal = del.lineItems.reduce((s, li) => s + Number(li.amount), 0)

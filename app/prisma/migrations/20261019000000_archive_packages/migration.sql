@@ -1,0 +1,2 @@
+ALTER TABLE "Opportunity" ADD COLUMN "isArchived" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "AdhocDeliverable" ADD COLUMN "isArchived" BOOLEAN NOT NULL DEFAULT false;

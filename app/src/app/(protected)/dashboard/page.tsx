@@ -154,28 +154,29 @@ export default async function DashboardPage({
   const [periodData, pipelineCountRaw, recentRaw, deliveryRaw] = await Promise.all([
     Promise.all([
       // Quote date arrays
-      db.opportunity.findMany({ where: { rfqDate: { gte: periodStart, lte: now } }, select: { rfqDate: true } }),
-      db.opportunity.findMany({ where: { quoteSentDate: { gte: periodStart, lte: now } }, select: { quoteSentDate: true } }),
+      db.opportunity.findMany({ where: { isArchived: false, rfqDate: { gte: periodStart, lte: now } }, select: { rfqDate: true } }),
+      db.opportunity.findMany({ where: { isArchived: false, quoteSentDate: { gte: periodStart, lte: now } }, select: { quoteSentDate: true } }),
       db.opportunity.findMany({
-        where: { quoteSentDate: { gte: periodStart, lte: now }, rfqDate: { not: null } },
+        where: { isArchived: false, quoteSentDate: { gte: periodStart, lte: now }, rfqDate: { not: null } },
         select: { rfqDate: true, quoteSentDate: true },
       }),
       // EL date arrays
-      db.opportunity.findMany({ where: { elRequestedDate: { gte: periodStart, lte: now } }, select: { elRequestedDate: true } }),
-      db.opportunity.findMany({ where: { elDraftSharedDate: { gte: periodStart, lte: now } }, select: { elDraftSharedDate: true } }),
-      db.opportunity.findMany({ where: { elSignedSharedDate: { gte: periodStart, lte: now } }, select: { elSignedSharedDate: true } }),
+      db.opportunity.findMany({ where: { isArchived: false, elRequestedDate: { gte: periodStart, lte: now } }, select: { elRequestedDate: true } }),
+      db.opportunity.findMany({ where: { isArchived: false, elDraftSharedDate: { gte: periodStart, lte: now } }, select: { elDraftSharedDate: true } }),
+      db.opportunity.findMany({ where: { isArchived: false, elSignedSharedDate: { gte: periodStart, lte: now } }, select: { elSignedSharedDate: true } }),
       db.opportunity.findMany({
-        where: { elSignedSharedDate: { gte: periodStart, lte: now }, elRequestedDate: { not: null } },
+        where: { isArchived: false, elSignedSharedDate: { gte: periodStart, lte: now }, elRequestedDate: { not: null } },
         select: { elRequestedDate: true, elSignedSharedDate: true },
       }),
       // Production date arrays
-      db.opportunity.findMany({ where: { elCountersignedDate: { gte: periodStart, lte: now } }, select: { elCountersignedDate: true } }),
-      db.opportunity.findMany({ where: { advancePaymentDate: { gte: periodStart, lte: now } }, select: { advancePaymentDate: true } }),
-      db.opportunity.findMany({ where: { fatPassedDate: { gte: periodStart, lte: now } }, select: { fatPassedDate: true } }),
-      db.opportunity.findMany({ where: { deliveredDate: { gte: periodStart, lte: now } }, select: { deliveredDate: true } }),
+      db.opportunity.findMany({ where: { isArchived: false, elCountersignedDate: { gte: periodStart, lte: now } }, select: { elCountersignedDate: true } }),
+      db.opportunity.findMany({ where: { isArchived: false, advancePaymentDate: { gte: periodStart, lte: now } }, select: { advancePaymentDate: true } }),
+      db.opportunity.findMany({ where: { isArchived: false, fatPassedDate: { gte: periodStart, lte: now } }, select: { fatPassedDate: true } }),
+      db.opportunity.findMany({ where: { isArchived: false, deliveredDate: { gte: periodStart, lte: now } }, select: { deliveredDate: true } }),
     ]),
-    Promise.all(PIPELINE_STATUSES.map((s) => db.opportunity.count({ where: { status: s } }))),
+    Promise.all(PIPELINE_STATUSES.map((s) => db.opportunity.count({ where: { isArchived: false, status: s } }))),
     db.opportunity.findMany({
+      where: { isArchived: false },
       select: {
         id: true, title: true, customer: true, internalId: true,
         reference: true, product: true, status: true, updatedAt: true,
@@ -191,6 +192,7 @@ export default async function DashboardPage({
     }),
     db.expectedDelivery.findMany({
       where: {
+        opportunity: { isArchived: false },
         OR: [
           { deliveryYear: { gt: currentYear } },
           { deliveryYear: currentYear, deliveryMonth: { gte: currentMonth } },

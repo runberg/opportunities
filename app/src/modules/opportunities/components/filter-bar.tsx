@@ -25,7 +25,7 @@ export function FilterBar({
   const searchParams = useSearchParams()
 
   const query = searchParams.get("q") ?? ""
-  const excludeParam = searchParams.get("excludeStatus") ?? ""
+  const excludeParam = searchParams.get("excludeStatus") ?? "ARCHIVED"
   const excludedStatuses = excludeParam ? excludeParam.split(",").filter(Boolean) : []
 
   const [inputValue, setInputValue] = useState(query)
@@ -57,8 +57,10 @@ export function FilterBar({
     statuses: g.statuses.map((s) => ({ value: s, label: STATUS_LABELS[s] ?? s })),
   }))
 
+  groups.push({ label: "Archive", statuses: [{ value: "ARCHIVED", label: "Archived Opportunity" }] })
+
   const queryPart = query ? `&q=${encodeURIComponent(query)}` : ""
-  const excludePart = excludeParam ? `&excludeStatus=${encodeURIComponent(excludeParam)}` : ""
+  const excludePart = `&excludeStatus=${encodeURIComponent(excludeParam)}`
   const exportUrl = exportType ? `/api/export?type=${exportType}${queryPart}${excludePart}` : null
 
   const exportNode = exportUrl ? (
@@ -82,9 +84,9 @@ export function FilterBar({
         const next = excludedStatuses.includes(s)
           ? excludedStatuses.filter((x) => x !== s)
           : [...excludedStatuses, s]
-        updateParams({ excludeStatus: next.length > 0 ? next.join(",") : null })
+        updateParams({ excludeStatus: next.join(",") })
       }}
-      onShowAll={() => updateParams({ excludeStatus: null })}
+      onShowAll={() => updateParams({ excludeStatus: "" })}
       onClearAll={() => router.push(basePath)}
       statusGroups={groups}
       exportNode={exportNode}

@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { X } from "lucide-react"
+import { ArchiveButton } from "@/shared/components/ui/archive-button"
 import {
   cn,
   QUOTE_STATUSES, EL_STATUSES, PRODUCTION_STATUSES, STATUS_LABELS,
@@ -40,6 +41,7 @@ interface ModalDelivery {
 }
 
 interface OpportunityFull {
+  isArchived: boolean
   id: string; internalId: string | null; title: string; customer: string
   reference: string | null; projectCode: string | null; rfqDate: string | null; product: string | null
   status: string; waitingOn: string
@@ -144,11 +146,14 @@ export function OpportunityModal({
           <div className="px-6 py-6">
             {loading && !data && <div className="py-16 text-center text-gray-400 text-sm">Loading…</div>}
             {fetchError && <div className="py-16 text-center text-red-500 text-sm">{fetchError}</div>}
+            {!fetchError && data && !isReadOnly && (
+              <div className="mb-4"><ArchiveButton endpoint={`/api/opportunities/${data.id}`} isArchived={data.isArchived} onSaved={refresh} /></div>
+            )}
             {!fetchError && data && (
               <ViewMode
                 data={data}
                 isAdmin={isAdmin}
-                isReadOnly={isReadOnly}
+                isReadOnly={isReadOnly || data.isArchived}
                 onRefresh={refresh}
                 onSilentRefresh={silentRefresh}
               />
@@ -420,7 +425,7 @@ function ViewMode({ data, isAdmin, isReadOnly, onRefresh, onSilentRefresh }: {
         className="px-3 py-1 border border-gray-600 rounded-full text-xs font-medium bg-gray-700 text-gray-100 focus:outline-none focus:border-[#006fff] transition-colors">
         {prodStatusOptions.map((s) => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
       </select>
-    : <StatusBadge status={data.status} />
+    : <StatusBadge status={data.isArchived ? "ARCHIVED" : data.status} />
   const applyLabel = saving ? "Saving…" : "Apply Changes"
 
   return (

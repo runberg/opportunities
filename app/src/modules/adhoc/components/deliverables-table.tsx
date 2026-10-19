@@ -35,6 +35,7 @@ type SortState = { key: SortKey; dir: SortDir } | null
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const STATUS_LABEL: Record<string, string> = {
+  ARCHIVED: "Archived",
   NOT_APPROVED: "Not Approved",
   PARTIALLY_APPROVED: "Partial",
   APPROVED: "Approved",
@@ -43,7 +44,7 @@ const STATUS_LABEL: Record<string, string> = {
   CANCELLED: "Cancelled",
 }
 
-const ALL_STATUSES: DeliverableStatus[] = ["NOT_APPROVED", "PARTIALLY_APPROVED", "APPROVED", "DELIVERED", "CLOSED_FINANCE", "CANCELLED"]
+const ALL_STATUSES: DeliverableStatus[] = ["ARCHIVED", "NOT_APPROVED", "PARTIALLY_APPROVED", "APPROVED", "DELIVERED", "CLOSED_FINANCE", "CANCELLED"]
 
 const STATUS_GROUPS: FilterStatusGroup[] = [
   { label: "", statuses: ALL_STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s] })) },
@@ -56,12 +57,13 @@ function toTableRow(d: DeliverableRow): TableRow {
   const lineTotal = d.lineItems.reduce((s, li) => s + Number(li.amount), 0)
   return {
     ...d,
+    status: d.isArchived ? "ARCHIVED" : d.status,
     approved,
     lineTotal,
     balance: approved - lineTotal,
     docCount: d.documents.length,
     // Workflow order, so sorting by status follows the process rather than the alphabet.
-    statusOrder: ALL_STATUSES.indexOf(d.status),
+    statusOrder: ALL_STATUSES.indexOf(d.isArchived ? "ARCHIVED" : d.status),
   }
 }
 
@@ -84,7 +86,7 @@ function filterDeliverables(
 ): TableRow[] {
   const q = query.trim().toLowerCase()
   const rows = deliverables
-    .filter((d) => !excludedStatuses.has(d.status) && (!q || matchesSearch(d, q)))
+    .filter((d) => !excludedStatuses.has(d.isArchived ? "ARCHIVED" : d.status) && (!q || matchesSearch(d, q)))
     .map(toTableRow)
   return sort ? sortRows(rows, sort.key, sort.dir) : rows.sort(compareDeliverables)
 }
@@ -100,7 +102,7 @@ function buildCsvRow(d: DeliverableRow): string[] {
     d.internalId ?? "",
     d.title,
     isoDate(d.createdAt),
-    STATUS_LABEL[d.status] ?? d.status,
+    d.isArchived ? "Archived" : (STATUS_LABEL[d.status] ?? d.status),
     lineTotal > 0 ? lineTotal.toFixed(2) : "",
     approved > 0 ? approved.toFixed(2) : "",
     approved > 0 ? (approved - lineTotal).toFixed(2) : "",
@@ -217,7 +219,7 @@ export function DeliverablesTable({
   const [search, setSearch] = useState("")
   // Closed-Finance and cancelled work packages are out of scope for day-to-day review, so they're
   // hidden by default — the status filter can bring them back into view like any other status.
-  const [excludedStatuses, setExcludedStatuses] = useState<Set<DeliverableStatus>>(() => new Set(["CLOSED_FINANCE", "CANCELLED"]))
+  const [excludedStatuses, setExcludedStatuses] = useState<Set<DeliverableStatus>>(() => new Set(["CLOSED_FINANCE", "CANCELLED", "ARCHIVED"]))
   const [sort, setSort] = useState<SortState>(null)
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(10)

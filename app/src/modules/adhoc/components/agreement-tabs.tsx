@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Upload } from "lucide-react"
+import { committedAgreementAmount } from "../amounts"
 import type { AgreementRow } from "./adhoc-client"
 import { DeliverablesTable } from "./deliverables-table"
 import { AgreementForm } from "./agreement-form"
@@ -347,9 +348,7 @@ export function AgreementTabs({
   const agreement = agreements[activeTab]
   if (!agreement) return null
 
-  const committedAmount = agreement.deliverables
-    .filter((d) => d.status !== "CANCELLED")
-    .reduce((sum, d) => sum + Number(d.status === "CLOSED_FINANCE" && d.financeAmount != null ? d.financeAmount : d.approvedAmount), 0)
+  const committedAmount = committedAgreementAmount(agreement.deliverables)
   const remaining = Number(agreement.totalAmount) - committedAmount
   const isOver = committedAmount > Number(agreement.totalAmount)
 

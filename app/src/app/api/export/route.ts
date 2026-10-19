@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams
   const type = sp.get("type") ?? "quotes"
   const query = sp.get("q")?.trim() ?? ""
-  const excludedStatuses = sp.get("excludeStatus")?.split(",").filter(Boolean) ?? []
+  const excludedStatuses = sp.get("excludeStatus")?.split(",").filter(Boolean) ?? ["ARCHIVED"]
   let csv = ""
   let filename: string
 
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
     const header = row(["ID", "Title", "Customer", "Reference", "Project Code", "Product", "Status", "RFQ Date", "Quote Sent Date", "Details"])
     const lines = records.map((r) =>
       row([r.internalId, r.title, r.customer, r.reference, r.projectCode, r.product,
-        STATUS_LABELS[r.status] ?? r.status,
+        r.isArchived ? "Archived Opportunity" : (STATUS_LABELS[r.status] ?? r.status),
         r.rfqDate ? formatDate(r.rfqDate) : null,
         r.quoteSentDate ? formatDate(r.quoteSentDate) : null,
         r.description])
@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
     const header = row(["ID", "Title", "Customer", "Reference", "Project Code", "Product", "Status", "EL Requested Date", "EL Draft Shared", "EL Draft Returned", "EL Signed Shared", "Details"])
     const lines = records.map((r) =>
       row([r.internalId, r.title, r.customer, r.reference, r.projectCode, r.product,
-        STATUS_LABELS[r.status] ?? r.status,
+        r.isArchived ? "Archived Opportunity" : (STATUS_LABELS[r.status] ?? r.status),
         r.elRequestedDate ? formatDate(r.elRequestedDate) : null,
         r.elDraftSharedDate ? formatDate(r.elDraftSharedDate) : null,
         r.elDraftReturnedDate ? formatDate(r.elDraftReturnedDate) : null,
@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
     const header = row(["ID", "Title", "Customer", "Reference", "Project Code", "Product", "Status", "Advance Payment Date", "FAT Date", "FAT Passed", "SAT Applicable", "SAT Date", "SAT Passed", "Delivered Date"])
     const lines = records.map((r) =>
       row([r.internalId, r.title, r.customer, r.reference, r.projectCode, r.product,
-        STATUS_LABELS[r.status] ?? r.status,
+        r.isArchived ? "Archived Opportunity" : (STATUS_LABELS[r.status] ?? r.status),
         r.advancePaymentDate ? formatDate(r.advancePaymentDate) : null,
         r.fatDate ? formatDate(r.fatDate) : null,
         r.fatPassedDate ? formatDate(r.fatPassedDate) : null,

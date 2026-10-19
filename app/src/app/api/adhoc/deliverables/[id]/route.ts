@@ -284,6 +284,18 @@ export async function PATCH(
     return NextResponse.json({ error: parsedBody.error.issues[0].message }, { status: 400 })
   const body = parsedBody.data
 
+  if ("isArchived" in body) {
+    const archive = z.object({ isArchived: z.boolean() }).strict().safeParse(body)
+    if (!archive.success) return NextResponse.json({ error: "Send only isArchived as a boolean" }, { status: 400 })
+    const updated = await db.adhocDeliverable.update({ where: { id }, data: archive.data })
+    if (deliverable.isArchived !== archive.data.isArchived) {
+      const message = archive.data.isArchived ? "Archived" : "Unarchived"
+      await writeLog({ type: "ADHOC_DELIVERABLE_UPDATED", message: `"${deliverable.title}": ${message}`, userId: session.user.id, adhocDeliverableId: id })
+    }
+    return NextResponse.json(updated)
+  }
+  if (deliverable.isArchived) return NextResponse.json({ error: "Unarchive before editing this package" }, { status: 409 })
+
   const deliveryFinanceFields = ["poInvoiceReference", "inventoryIssueOutDate"]
   const editsDeliveryFinance = deliveryFinanceFields.some((field) => field in body)
   const onlyDeliveryFinance = Object.keys(body).length > 0 && Object.keys(body).every((field) => deliveryFinanceFields.includes(field))

@@ -217,6 +217,19 @@ export async function PATCH(
   const existing = await db.opportunity.findUnique({ where: { id } })
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
+  if ("isArchived" in body) {
+    const archive = z.object({ isArchived: z.boolean() }).strict().safeParse(body)
+    if (!archive.success) return NextResponse.json({ error: "Send only isArchived as a boolean" }, { status: 400 })
+    const updated = await db.opportunity.update({ where: { id }, data: archive.data })
+    if (existing.isArchived !== archive.data.isArchived) {
+      const message = archive.data.isArchived ? "Archived" : "Unarchived"
+      await writeLog({ type: "OPPORTUNITY_UPDATED", message: `"${existing.title}": ${message}`, userId: session.user.id, opportunityId: id })
+      await db.comment.create({ data: { content: message, system: true, opportunityId: id, authorId: session.user.id } })
+    }
+    return NextResponse.json(updated)
+  }
+  if (existing.isArchived) return NextResponse.json({ error: "Unarchive before editing this package" }, { status: 409 })
+
   const {
     rfqDate, quoteSentDate, elRequestedDate, elDraftSharedDate, elDraftReturnedDate, elSignedSharedDate, elCountersignedDate,
     advancePaymentDate, fatDate, fatPassedDate, satDate, satPassedDate, deliveredDate,

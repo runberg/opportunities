@@ -22,6 +22,8 @@ export async function PATCH(
   })
   if (!lineItem) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
+  if (lineItem.deliverable.isArchived) return NextResponse.json({ error: "Unarchive before editing this package" }, { status: 409 })
+
   if (lineItem.deliverable.status === "CLOSED_FINANCE" && session.user.role !== "ADMIN")
     return NextResponse.json({ error: "Only admins can edit a work package closed by finance" }, { status: 403 })
 
@@ -69,6 +71,8 @@ export async function DELETE(
     include: { deliverable: true },
   })
   if (!lineItem) return NextResponse.json({ error: "Not found" }, { status: 404 })
+
+  if (lineItem.deliverable.isArchived) return NextResponse.json({ error: "Unarchive before editing this package" }, { status: 409 })
 
   if (lineItem.deliverable.status === "CLOSED_FINANCE" && session.user.role !== "ADMIN")
     return NextResponse.json({ error: "Only admins can edit a work package closed by finance" }, { status: 403 })

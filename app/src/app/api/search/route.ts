@@ -24,7 +24,7 @@ async function searchOpportunities(q: string) {
         { product: { contains: q, mode: "insensitive" } },
       ],
     },
-    select: { id: true, internalId: true, title: true, customer: true, status: true, updatedAt: true },
+    select: { id: true, internalId: true, title: true, customer: true, status: true, isArchived: true, updatedAt: true },
     orderBy: { updatedAt: "desc" },
     take: RESULT_LIMIT,
   })
@@ -34,7 +34,7 @@ async function searchOpportunities(q: string) {
     title: o.title,
     subtitle: o.customer,
     internalId: o.internalId,
-    status: o.status as string,
+    status: o.isArchived ? "ARCHIVED" : o.status as string,
     group: opportunityGroup(o.status),
     basePath: opportunityBasePath(o.status),
   }))
@@ -50,7 +50,7 @@ async function searchAdhoc(q: string) {
       ],
     },
     select: {
-      id: true, internalId: true, title: true, status: true, deliveryNoteRef: true,
+      id: true, internalId: true, title: true, status: true, isArchived: true, deliveryNoteRef: true,
       agreement: { select: { id: true, title: true } },
     },
     orderBy: { updatedAt: "desc" },
@@ -61,7 +61,7 @@ async function searchAdhoc(q: string) {
     id: d.id,
     title: d.title,
     subtitle: d.deliveryNoteRef ? `${d.agreement.title} · DN ${d.deliveryNoteRef}` : d.agreement.title,
-    status: d.status as string,
+    status: d.isArchived ? "ARCHIVED" : d.status as string,
     href: `/adhoc?agreement=${d.agreement.id}&deliverable=${d.id}`,
   }))
 }

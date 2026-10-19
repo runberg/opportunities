@@ -26,7 +26,7 @@ export default async function OpportunitiesPage({
   ])
 
   const query = params.q?.trim() ?? ""
-  const excludedStatuses = params.excludeStatus ? params.excludeStatus.split(",").filter(Boolean) : []
+  const excludedStatuses = params.excludeStatus !== undefined ? params.excludeStatus.split(",").filter(Boolean) : ["ARCHIVED"]
   const perPage = parseParam(params.perPage, 50)
   const page = parseParam(params.page, 1)
 
@@ -52,7 +52,7 @@ export default async function OpportunitiesPage({
     rfqDate: opp.rfqDate ? opp.rfqDate.toISOString() : null,
     quoteSentDate: opp.quoteSentDate ? opp.quoteSentDate.toISOString() : null,
     product: opp.product,
-    status: opp.status,
+    status: opp.isArchived ? "ARCHIVED" : opp.status,
     statusSince: statusSinceDate(opp.status, opp).toISOString(),
     _count: opp._count,
   }))

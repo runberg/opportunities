@@ -18,6 +18,8 @@ export async function POST(
   const deliverable = await db.adhocDeliverable.findUnique({ where: { id } })
   if (!deliverable) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
+  if (deliverable.isArchived) return NextResponse.json({ error: "Unarchive before editing this package" }, { status: 409 })
+
   if (deliverable.status === "CLOSED_FINANCE" && session.user.role !== "ADMIN")
     return NextResponse.json({ error: "Only admins can edit a work package closed by finance" }, { status: 403 })
 

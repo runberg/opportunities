@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where: any = {
     AND: [
-      status ? { status } : {},
+      status === "ARCHIVED" ? { isArchived: true } : { isArchived: false, ...(status ? { status } : {}) },
       dateCond,
       q
         ? {
@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
       where,
       select: {
         id: true, internalId: true, title: true, customer: true,
-        reference: true, projectCode: true, product: true, status: true,
+        reference: true, projectCode: true, product: true, status: true, isArchived: true,
         createdAt: true, updatedAt: true,
         rfqDate: true, quoteSentDate: true,
         elRequestedDate: true, elDraftSharedDate: true, elDraftReturnedDate: true,
@@ -95,6 +95,7 @@ export async function GET(req: NextRequest) {
 
   const withStatusSince = items.map((item) => ({
     ...item,
+    status: item.isArchived ? "ARCHIVED" : item.status,
     statusSince: statusSinceDate(item.status, item).toISOString(),
   }))
 

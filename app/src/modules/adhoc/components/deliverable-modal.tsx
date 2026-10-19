@@ -1,5 +1,7 @@
 "use client"
 
+import { ArchiveButton } from "@/shared/components/ui/archive-button"
+
 import { useState, useEffect, useCallback } from "react"
 import { Upload } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
@@ -55,6 +57,7 @@ type CommentEntry = {
 }
 
 type Deliverable = {
+  isArchived: boolean
   id: string
   internalId: string | null
   title: string
@@ -1470,8 +1473,9 @@ type Props = {
   readonly onRefresh: () => Promise<void>
 }
 
-export function DeliverableModal({ deliverableId, isAdmin, isReadOnly = false, onClose, onRefresh }: Props) {
+export function DeliverableModal({ deliverableId, isAdmin, isReadOnly: accessReadOnly = false, onClose, onRefresh }: Props) {
   const [deliverable, setDeliverable] = useState<Deliverable | null>(null)
+  const isReadOnly = accessReadOnly || !!deliverable?.isArchived
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<"items" | "documents" | "log">("items")
   const [showUpload, setShowUpload] = useState(false)
@@ -1655,12 +1659,13 @@ export function DeliverableModal({ deliverableId, isAdmin, isReadOnly = false, o
         {/* Meta bar */}
         {deliverable && (
           <div className="px-6 py-3 bg-gray-800/50 border-b border-gray-700">
+            {!accessReadOnly && <div className="mb-3"><ArchiveButton endpoint={`/api/adhoc/deliverables/${deliverable.id}`} isArchived={deliverable.isArchived} onSaved={refresh} /></div>}
             <p className="text-xs font-medium text-gray-400 mb-2">Approval</p>
             <div className="flex flex-wrap gap-x-6 gap-y-3">
               <div>
                 <p className="text-xs text-gray-400">Status</p>
                 <span className={`inline-flex mt-0.5 px-2 py-0.5 text-xs rounded-full font-medium ${STATUS_BADGE[deliverable.status]}`}>
-                  {STATUS_LABEL[deliverable.status]}
+                  {deliverable.isArchived ? "Archived" : STATUS_LABEL[deliverable.status]}
                 </span>
               </div>
               <div>

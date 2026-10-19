@@ -185,6 +185,7 @@ export function displayName(name: string): string {
 }
 
 export const STATUS_SHORT_LABELS: Record<string, string> = {
+  ARCHIVED: "Archived",
   NEW: "New",
   RFQ_RECEIVED: "RFQ Rcvd",
   QUOTE_SENT: "Quoted",
@@ -201,6 +202,7 @@ export const STATUS_SHORT_LABELS: Record<string, string> = {
 }
 
 export const STATUS_LABELS: Record<string, string> = {
+  ARCHIVED: "Archived Opportunity",
   NEW: "New",
   RFQ_RECEIVED: "RFQ Received",
   QUOTE_SENT: "Quote Sent",
@@ -319,7 +321,7 @@ export function parseParam(val: string | undefined, fallback: number): number {
 /** Builds the Prisma `where` for a status-scoped opportunity list (Quotes/ELs/Production).
  * `excludedStatuses` are statuses the user has hidden via the filter — everything else in
  * `defaultStatuses` (that page's full set of relevant statuses) stays visible. Excluding
- * nothing (the common case) shows the page's whole default set, same as before. */
+ * nothing shows active and archived records in that workflow. Default views exclude ARCHIVED. */
 export function buildOpportunityWhere(
   query: string,
   excludedStatuses: string[],
@@ -340,7 +342,10 @@ export function buildOpportunityWhere(
             ],
           }
         : {},
-      { status: { in: visibleStatuses as never[] } },
+      { OR: [
+        { isArchived: false, status: { in: visibleStatuses as never[] } },
+        ...(!excludedStatuses.includes("ARCHIVED") ? [{ isArchived: true, status: { in: defaultStatuses as never[] } }] : []),
+      ] },
     ],
   }
 }

@@ -60,6 +60,7 @@ model Opportunity {
   projectCode String?           // Internal project code — up to 6 digits
   rfqDate     DateTime?         // Date the RFQ was received
   product     String?           // One-line product/service description
+  isArchived    Boolean           @default(false)
   status        OpportunityStatus @default(NEW)
   waitingOn     WaitingOn         @default(INTERNAL)
   quoteSentDate      DateTime?         // Date the quote was shared with the customer
@@ -261,6 +262,7 @@ model AdhocDeliverable {
   deliveryNoteRef     String?
   poInvoiceReference  String?
   inventoryIssueOutDate DateTime?             @db.Date
+  isArchived          Boolean                @default(false)
   status              AdhocDeliverableStatus @default(NOT_APPROVED)
   partiallyApprovedAt DateTime?
   approvedAt          DateTime?
