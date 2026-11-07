@@ -1,5 +1,7 @@
 # Opportunities Project
 
+Keep private conversation summaries outside this repository. Only publish reviewed, project-specific coding guidance.
+
 Read the shared ../AGENTS.md when available. This is the canonical project guide;
 the former .claude/CLAUDE.md contained the same guidance and is not required.
 

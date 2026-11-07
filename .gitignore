@@ -15,3 +15,6 @@ postgres_data/
 
 # Private migration archives; never publish secrets, runtime data or uploads.
 /.local-state/
+
+# Private conversational context belongs outside the repository.
+/PROJECT-CONTEXT.md
