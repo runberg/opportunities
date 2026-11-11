@@ -37,7 +37,8 @@ export function findAllAgreements() {
  * After a line item is added, updated, or deleted, check whether the deliverable
  * should be downgraded because line items now exceed the approved amount.
  *
- * Applies when status is APPROVED or DELIVERED:
+ * Partial items become APPROVED when line items are covered by the approved amount.
+ * Downgrades apply when status is APPROVED or DELIVERED:
  *   - lineTotal > approvedAmount and approvedAmount > 0  → PARTIALLY_APPROVED
  *   - lineTotal > approvedAmount and approvedAmount == 0 → NOT_APPROVED
  * Also clears deliveredAt when downgrading from DELIVERED.
@@ -51,13 +52,27 @@ export async function recomputeApprovalStatus(
     include: { lineItems: true },
   })
   if (del?.isArchived) return
-  if (del?.status !== "APPROVED" && del?.status !== "DELIVERED") return
+  if (del?.status !== "APPROVED" && del?.status !== "DELIVERED" && del?.status !== "PARTIALLY_APPROVED") return
 
   const lineTotal = del.lineItems.reduce((s, li) => s + Number(li.amount), 0)
   const approvedAmount = Number(del.approvedAmount)
-  if (lineTotal <= approvedAmount) return
+  if (lineTotal <= approvedAmount) {
+    if (del.status !== "PARTIALLY_APPROVED") return
+    await db.adhocDeliverable.update({
+      where: { id: deliverableId },
+      data: { status: "APPROVED", approvedAt: del.approvedAt ?? new Date() },
+    })
+    await writeLog({
+      type: "ADHOC_DELIVERABLE_UPDATED",
+      message: `"${del.title}" approved — line items are covered by approved amount`,
+      userId,
+      adhocDeliverableId: deliverableId,
+    })
+    return
+  }
 
   const newStatus = approvedAmount > 0 ? "PARTIALLY_APPROVED" : "NOT_APPROVED"
+  if (newStatus === del.status) return
   const wasDelivered = del.status === "DELIVERED"
 
   await db.adhocDeliverable.update({

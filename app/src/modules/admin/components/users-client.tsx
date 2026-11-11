@@ -82,6 +82,7 @@ export function AdminUsersClient({
   const [newUser, setNewUser] = useState({
     email: "",
     password: "",
+    sendWelcomeEmail: false,
     role: "USER",
     opportunitiesAccess: "FULL" as SectionAccess,
     adhocAccess: "FULL" as SectionAccess,
@@ -123,7 +124,7 @@ export function AdminUsersClient({
     }
 
     setShowCreate(false)
-    setNewUser({ email: "", password: "", role: "USER", opportunitiesAccess: "FULL", adhocAccess: "FULL", inventoryAccess: "FULL" })
+    setNewUser({ email: "", password: "", sendWelcomeEmail: false, role: "USER", opportunitiesAccess: "FULL", adhocAccess: "FULL", inventoryAccess: "FULL" })
     router.refresh()
   }
 
@@ -248,16 +249,26 @@ export function AdminUsersClient({
             />
           </div>
           <div>
-            <Label htmlFor="create-password">Initial Password *</Label>
-            <Input
-              id="create-password"
-              type="password"
-              value={newUser.password}
-              onChange={(e) => setNewUser((p) => ({ ...p, password: e.target.value }))}
-              required
-              minLength={8}
-              placeholder="Minimum 8 characters"
-            />
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={newUser.sendWelcomeEmail}
+                onChange={(e) => setNewUser((p) => ({ ...p, sendWelcomeEmail: e.target.checked }))} />
+              Send welcome email
+            </label>
+            {newUser.sendWelcomeEmail && <p className="text-sm text-gray-500">Sets the initial password to change_me and emails login details with instructions to change it on first login. Requires enabled SMTP.</p>}
+            {!newUser.sendWelcomeEmail && (
+              <>
+                <Label htmlFor="create-password">Initial Password *</Label>
+                <Input
+                  id="create-password"
+                  type="password"
+                  value={newUser.password}
+                  onChange={(e) => setNewUser((p) => ({ ...p, password: e.target.value }))}
+                  required
+                  minLength={8}
+                  placeholder="Minimum 8 characters"
+                />
+              </>
+            )}
           </div>
           <div>
             <Label htmlFor="create-role">Role</Label>
