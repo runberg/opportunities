@@ -3,10 +3,11 @@
 import { useState } from "react"
 import { Button } from "./button"
 
-export function ArchiveButton({ endpoint, isArchived, onSaved }: {
+export function ArchiveButton({ endpoint, isArchived, onSaved, className }: {
   readonly endpoint: string
   readonly isArchived: boolean
   readonly onSaved: () => void | Promise<void>
+  readonly className?: string
 }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
@@ -37,7 +38,7 @@ export function ArchiveButton({ endpoint, isArchived, onSaved }: {
 
   return (
     <div className="flex items-center gap-3">
-      <Button variant="secondary" size="sm" disabled={saving} onClick={toggleArchive}>
+      <Button variant="secondary" size="sm" className={className} disabled={saving} onClick={toggleArchive}>
         {saving ? "Saving…" : actionLabel}
       </Button>
       {isArchived && <span className="text-xs text-gray-400">Archived · Unarchive to resume the previous stage.</span>}

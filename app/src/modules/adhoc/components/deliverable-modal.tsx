@@ -1404,6 +1404,9 @@ function DeliverableTabContent({ loading, deliverable, activeTab, showUpload, on
 
 // ─── Action buttons ───────────────────────────────────────────────────────────
 
+const MUTED_ACTION_CLASSES = "border border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-gray-100"
+const REVERT_ACTION_CLASSES = "border border-red-900 bg-red-950/30 text-red-300 hover:bg-red-950/60 hover:text-red-200"
+
 type ActionButtonsProps = {
   readonly isReadOnly: boolean
   readonly canApprove: boolean
@@ -1441,31 +1444,31 @@ function ActionButtons({
   if (isReadOnly || !anyAction) return null
 
   return (
-    <div className="flex items-center gap-2 mt-3">
+    <div className="flex flex-wrap items-center gap-2 mt-3">
       {canApprove && !approvePanelOpen && (
-        <Button size="sm" variant="outline" onClick={onOpenApprove}>Approve</Button>
+        <Button size="sm" variant="primary" onClick={onOpenApprove}>Approve</Button>
       )}
       {canEditApproval && !editingApproval && (
         <>
-          <Button size="sm" variant="ghost" onClick={onEditApproval}>Edit Approval</Button>
-          <Button size="sm" variant="ghost" onClick={onRevoke} disabled={revoking}>
+          <Button size="sm" variant={canDeliver ? "secondary" : "primary"} className={canDeliver ? MUTED_ACTION_CLASSES : undefined} onClick={onEditApproval}>Edit Approval</Button>
+          <Button size="sm" variant="ghost" className={REVERT_ACTION_CLASSES} onClick={onRevoke} disabled={revoking}>
             {revoking ? "Revoking…" : "Revoke Approval"}
           </Button>
         </>
       )}
       {canDeliver && !deliverPanelOpen && (
-        <Button size="sm" variant="outline" onClick={onOpenDeliver}>Mark Delivered</Button>
+        <Button size="sm" variant="primary" onClick={onOpenDeliver}>Mark Delivered</Button>
       )}
       {canRevertDelivered && (
-        <Button size="sm" variant="ghost" onClick={onRevertDelivered} disabled={transitioning}>
+        <Button size="sm" variant="ghost" className={REVERT_ACTION_CLASSES} onClick={onRevertDelivered} disabled={transitioning}>
           {transitioning ? "Saving…" : "Revert to Approved"}
         </Button>
       )}
       {canCloseFinance && !closeFinancePanelOpen && (
-        <Button size="sm" variant="outline" onClick={onOpenCloseFinance}>Close Finance</Button>
+        <Button size="sm" variant="primary" onClick={onOpenCloseFinance}>Close Finance</Button>
       )}
       {canRevertClosedFinance && (
-        <Button size="sm" variant="ghost" onClick={onRevertClosedFinance} disabled={transitioning}>
+        <Button size="sm" variant="ghost" className={REVERT_ACTION_CLASSES} onClick={onRevertClosedFinance} disabled={transitioning}>
           {transitioning ? "Saving…" : "Revert to Delivered"}
         </Button>
       )}
@@ -1674,7 +1677,7 @@ export function DeliverableModal({ deliverableId, isAdmin, isReadOnly: accessRea
         {/* Meta bar */}
         {deliverable && (
           <div className="px-6 py-3 bg-gray-800/50 border-b border-gray-700">
-            {!accessReadOnly && <div className="mb-3"><ArchiveButton endpoint={`/api/adhoc/deliverables/${deliverable.id}`} isArchived={deliverable.isArchived} onSaved={refresh} /></div>}
+            {!accessReadOnly && <div className="mb-3"><ArchiveButton endpoint={`/api/adhoc/deliverables/${deliverable.id}`} isArchived={deliverable.isArchived} className={MUTED_ACTION_CLASSES} onSaved={refresh} /></div>}
             <p className="text-xs font-medium text-gray-400 mb-2">Approval</p>
             <div className="flex flex-wrap gap-x-6 gap-y-3">
               <div>
