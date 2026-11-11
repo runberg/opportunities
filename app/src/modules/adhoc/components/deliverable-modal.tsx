@@ -189,8 +189,11 @@ function ApproveForm({
       if (!res.ok) { setError((await res.json() as { error?: string }).error ?? "Save failed"); return }
       reset()
       await onDone()
+    } catch {
+      setError("The request failed. Please check your connection and try again.")
     } finally {
       setSaving(false)
+      setUploading(false)
     }
   }
 
@@ -212,7 +215,7 @@ function ApproveForm({
               placeholder="0.00"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") handleApprove() }}
+              onKeyDown={(e) => { if (e.key === "Enter") void handleApprove() }}
             />
           </div>
           <div>
@@ -226,7 +229,7 @@ function ApproveForm({
               placeholder="Approver name"
               value={approverName}
               onChange={(e) => setApproverName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") handleApprove() }}
+              onKeyDown={(e) => { if (e.key === "Enter") void handleApprove() }}
             />
           </div>
         </div>
@@ -316,6 +319,8 @@ function ApprovalEditPanel({
       if (!res.ok) { setError((await res.json() as { error?: string }).error ?? "Save failed"); return }
       onClose()
       await onDone()
+    } catch {
+      setError("The request failed. Please check your connection and try again.")
     } finally {
       setSaving(false)
     }
@@ -333,6 +338,8 @@ function ApprovalEditPanel({
       if (!res.ok) { setError((await res.json() as { error?: string }).error ?? "Failed"); return }
       onClose()
       await onDone()
+    } catch {
+      setError("The request failed. Please check your connection and try again.")
     } finally {
       setRemoving(false)
     }
@@ -353,7 +360,7 @@ function ApprovalEditPanel({
           className="w-36 rounded border border-gray-600 bg-gray-800 px-2 py-1.5 text-sm text-right text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") handleUpdate() }}
+          onKeyDown={(e) => { if (e.key === "Enter") void handleUpdate() }}
         />
       </div>
 
@@ -420,6 +427,8 @@ function LineItemsTab({
       if (!res.ok) { setError((await res.json() as { error?: string }).error ?? "Save failed"); return }
       setEditingId(null)
       await onRefresh()
+    } catch {
+      setError("The request failed. Please check your connection and try again.")
     } finally {
       setSaving(false)
     }
@@ -450,6 +459,8 @@ function LineItemsTab({
       setNewAmt("")
       setAdding(false)
       await onRefresh()
+    } catch {
+      setError("The request failed. Please check your connection and try again.")
     } finally {
       setSaving(false)
     }
@@ -555,7 +566,7 @@ function LineItemsTab({
               placeholder="Amount"
               value={newAmt}
               onChange={(e) => setNewAmt(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") addItem() }}
+              onKeyDown={(e) => { if (e.key === "Enter") void addItem() }}
             />
             <Button size="sm" variant="primary" onClick={addItem} disabled={saving || !newDesc.trim() || newAmt === ""}>
               {saving ? "…" : "Add"}
@@ -1473,6 +1484,10 @@ type Props = {
   readonly onRefresh: () => Promise<void>
 }
 
+function countLabel(label: string, count: number | undefined) {
+  return count === undefined ? label : `${label} (${count})`
+}
+
 export function DeliverableModal({ deliverableId, isAdmin, isReadOnly: accessReadOnly = false, onClose, onRefresh }: Props) {
   const [deliverable, setDeliverable] = useState<Deliverable | null>(null)
   const isReadOnly = accessReadOnly || !!deliverable?.isArchived
@@ -1608,8 +1623,8 @@ export function DeliverableModal({ deliverableId, isAdmin, isReadOnly: accessRea
     canEditApproval &&
     (deliverable?.documents.filter((d) => d.type === "APPROVAL").length ?? 0) === 0
 
-  const itemsLabel = deliverable ? `Line Items (${deliverable.lineItems.length})` : "Line Items"
-  const docsLabel = deliverable ? `Documents (${deliverable.documents.length})` : "Documents"
+  const itemsLabel = countLabel("Line Items", deliverable?.lineItems.length)
+  const docsLabel = countLabel("Documents", deliverable?.documents.length)
   const tabs = [
     { key: "items" as const, label: itemsLabel },
     { key: "documents" as const, label: docsLabel },

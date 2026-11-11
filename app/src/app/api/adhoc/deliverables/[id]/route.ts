@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/shared/lib/db"
 import { requireSession, hasSectionAccess } from "@/shared/lib/api"
 import { writeLog } from "@/shared/lib/system-log"
-import { AdhocDeliverableStatus } from "@prisma/client"
+import { AdhocDeliverableStatus, type AdhocDeliverable } from "@prisma/client"
 import { scheduleNotification } from "@/shared/lib/notify"
 import { z } from "zod"
 
@@ -63,24 +63,28 @@ function validateBody(body: Record<string, unknown>, currentStatus: string): str
     return "Invalid status"
   if (status === "CANCELLED" && NON_CANCELLABLE_STATUSES.includes(currentStatus))
     return "A delivered work package cannot be cancelled"
-  if (financeAmount !== undefined && financeAmount !== null) {
-    const amount = Number(financeAmount)
-    if (financeAmount === "" || Number.isNaN(amount) || amount < 0)
-      return "Finance amount must be 0 or more"
-  }
-  if (createdAt !== undefined) {
-    if (createdAt === null || typeof createdAt !== "string" || Number.isNaN(Date.parse(createdAt)))
-      return "createdAt must be a valid date"
-  }
-  const dateFields = [
-    ["partiallyApprovedAt", partiallyApprovedAt], ["approvedAt", approvedAt],
-    ["deliveredAt", deliveredAt], ["closedFinanceAt", closedFinanceAt],
-  ] as const
-  for (const [field, value] of dateFields) {
-    if (value !== undefined && value !== null) {
-      if (typeof value !== "string" || Number.isNaN(Date.parse(value as string)))
-        return `${field} must be a valid date or null`
-    }
+  const financeError = validateFinanceAmount(financeAmount)
+  if (financeError) return financeError
+  return validateDates({ createdAt, partiallyApprovedAt, approvedAt, deliveredAt, closedFinanceAt })
+}
+
+function validateFinanceAmount(value: unknown): string | null {
+  if (value === undefined || value === null) return null
+  const amount = Number(value)
+  return value === "" || Number.isNaN(amount) || amount < 0 ? "Finance amount must be 0 or more" : null
+}
+
+function isValidDate(value: unknown): boolean {
+  return typeof value === "string" && !Number.isNaN(Date.parse(value))
+}
+
+function validateDates(body: Record<string, unknown>): string | null {
+  if (body.createdAt !== undefined && (body.createdAt === null || !isValidDate(body.createdAt)))
+    return "createdAt must be a valid date"
+  for (const field of ["partiallyApprovedAt", "approvedAt", "deliveredAt", "closedFinanceAt"]) {
+    const value = body[field]
+    if (value !== undefined && value !== null && !isValidDate(value))
+      return `${field} must be a valid date or null`
   }
   return null
 }
@@ -92,7 +96,8 @@ function buildChanges(
   const changes: string[] = []
   if ("customer" in body) {
     const customer = (body.customer as string | null)?.trim() || null
-    if (customer !== prev.customer) changes.push(`customer → ${customer ? `"${customer}"` : "cleared"}`)
+    const customerLabel = customer ? `"${customer}"` : "cleared"
+    if (customer !== prev.customer) changes.push(`customer → ${customerLabel}`)
   }
   if (body.status && body.status !== prev.status) changes.push(`status → ${body.status as string}`)
   if (body.title && (body.title as string).trim() !== prev.title)
@@ -262,6 +267,33 @@ function buildUpdateData(body: Record<string, unknown>, deliverable: { status: s
 
 // ─── PATCH ────────────────────────────────────────────────────────────────────
 
+function editRestriction(body: Record<string, unknown>, currentStatus: string, role: string) {
+  const deliveryFinanceFields = ["poInvoiceReference", "inventoryIssueOutDate"]
+  const editsDeliveryFinance = deliveryFinanceFields.some((field) => field in body)
+  const onlyDeliveryFinance = Object.keys(body).length > 0 && Object.keys(body).every((field) => deliveryFinanceFields.includes(field))
+  if (editsDeliveryFinance && !["DELIVERED", "CLOSED_FINANCE"].includes(currentStatus))
+    return { error: "Delivery and finance fields can only be edited after delivery", status: 400 }
+
+  const isRevertingDelivered = currentStatus === "DELIVERED" && body.status === "APPROVED"
+  const isRevertingClosedFinance = currentStatus === "CLOSED_FINANCE" && body.status === "DELIVERED"
+  const isLockedStatus = currentStatus === "CLOSED_FINANCE"
+  if (isLockedStatus && role !== "ADMIN" && !isRevertingDelivered && !isRevertingClosedFinance && !onlyDeliveryFinance)
+    return { error: "Only admins can edit a locked work package", status: 403 }
+
+  return null
+}
+
+async function updateArchive(id: string, body: Record<string, unknown>, deliverable: Pick<AdhocDeliverable, "title" | "isArchived">, userId: string) {
+  const archive = z.object({ isArchived: z.boolean() }).strict().safeParse(body)
+  if (!archive.success) return NextResponse.json({ error: "Send only isArchived as a boolean" }, { status: 400 })
+  const updated = await db.adhocDeliverable.update({ where: { id }, data: archive.data })
+  if (deliverable.isArchived !== archive.data.isArchived) {
+    const message = archive.data.isArchived ? "Archived" : "Unarchived"
+    await writeLog({ type: "ADHOC_DELIVERABLE_UPDATED", message: `"${deliverable.title}": ${message}`, userId, adhocDeliverableId: id })
+  }
+  return NextResponse.json(updated)
+}
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -284,29 +316,11 @@ export async function PATCH(
     return NextResponse.json({ error: parsedBody.error.issues[0].message }, { status: 400 })
   const body = parsedBody.data
 
-  if ("isArchived" in body) {
-    const archive = z.object({ isArchived: z.boolean() }).strict().safeParse(body)
-    if (!archive.success) return NextResponse.json({ error: "Send only isArchived as a boolean" }, { status: 400 })
-    const updated = await db.adhocDeliverable.update({ where: { id }, data: archive.data })
-    if (deliverable.isArchived !== archive.data.isArchived) {
-      const message = archive.data.isArchived ? "Archived" : "Unarchived"
-      await writeLog({ type: "ADHOC_DELIVERABLE_UPDATED", message: `"${deliverable.title}": ${message}`, userId: session.user.id, adhocDeliverableId: id })
-    }
-    return NextResponse.json(updated)
-  }
+  if ("isArchived" in body) return updateArchive(id, body, deliverable, session.user.id)
   if (deliverable.isArchived) return NextResponse.json({ error: "Unarchive before editing this package" }, { status: 409 })
 
-  const deliveryFinanceFields = ["poInvoiceReference", "inventoryIssueOutDate"]
-  const editsDeliveryFinance = deliveryFinanceFields.some((field) => field in body)
-  const onlyDeliveryFinance = Object.keys(body).length > 0 && Object.keys(body).every((field) => deliveryFinanceFields.includes(field))
-  if (editsDeliveryFinance && !["DELIVERED", "CLOSED_FINANCE"].includes(deliverable.status))
-    return NextResponse.json({ error: "Delivery and finance fields can only be edited after delivery" }, { status: 400 })
-
-  const isRevertingDelivered = deliverable.status === "DELIVERED" && body.status === "APPROVED"
-  const isRevertingClosedFinance = deliverable.status === "CLOSED_FINANCE" && body.status === "DELIVERED"
-  const isLockedStatus = deliverable.status === "CLOSED_FINANCE"
-  if (isLockedStatus && session.user.role !== "ADMIN" && !isRevertingDelivered && !isRevertingClosedFinance && !onlyDeliveryFinance)
-    return NextResponse.json({ error: "Only admins can edit a locked work package" }, { status: 403 })
+  const restriction = editRestriction(body, deliverable.status, session.user.role)
+  if (restriction) return NextResponse.json({ error: restriction.error }, { status: restriction.status })
 
   if (body.approve === true)
     return handleApprove(id, body.approvedAmount, body.approverName, session.user.id, deliverable.lineItems, deliverable)

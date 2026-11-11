@@ -213,7 +213,7 @@ function AgreementDocs({ agreement, isAdmin, isReadOnly = false, onRefresh }: Ag
 
 type SignDialogProps = {
   readonly agreementId: string
-  readonly onDone: () => void
+  readonly onDone: () => void | Promise<void>
   readonly onCancel: () => void
 }
 
@@ -251,7 +251,9 @@ function SignDialog({ agreementId, onDone, onCancel }: SignDialogProps) {
         body: JSON.stringify({ status: "SIGNED", signedDate }),
       })
       if (!res.ok) { setError((await res.json() as { error?: string }).error ?? "Failed to save"); return }
-      onDone()
+      await onDone()
+    } catch {
+      setError("The request failed. Please check your connection and try again.")
     } finally {
       setSaving(false)
     }
@@ -482,7 +484,7 @@ export function AgreementTabs({
       {showSignDialog && (
         <SignDialog
           agreementId={agreement.id}
-          onDone={() => { setShowSignDialog(false); onRefresh() }}
+          onDone={async () => { setShowSignDialog(false); await onRefresh() }}
           onCancel={() => setShowSignDialog(false)}
         />
       )}
@@ -491,7 +493,7 @@ export function AgreementTabs({
         <AgreementForm
           agreement={editingAgreement}
           onClose={() => setEditingAgreement(null)}
-          onSaved={() => { setEditingAgreement(null); onRefresh() }}
+          onSaved={async () => { setEditingAgreement(null); await onRefresh() }}
         />
       )}
     </div>

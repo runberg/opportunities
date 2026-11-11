@@ -33,24 +33,29 @@ export function PackageCard({ pkg, isReadOnly, isAdmin, onRefresh, onEditPackage
   const newProductRef = useAutoFocus<HTMLInputElement>()
 
   async function addItem() {
-    const qty = Number(newQty)
-    if (!newProduct.trim() || !Number.isInteger(qty) || qty <= 0) return
-    setSaving(true)
-    setError("")
-    const res = await fetch(`/api/inventory/packages/${pkg.id}/items`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ productName: newProduct.trim(), originalQuantity: qty }),
-    })
-    setSaving(false)
-    if (!res.ok) {
-      setError((await res.json().catch(() => ({}))).error ?? "Failed to add item.")
-      return
+    try {
+      const qty = Number(newQty)
+      if (!newProduct.trim() || !Number.isInteger(qty) || qty <= 0) return
+      setSaving(true)
+      setError("")
+      const res = await fetch(`/api/inventory/packages/${pkg.id}/items`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productName: newProduct.trim(), originalQuantity: qty }),
+      })
+      if (!res.ok) {
+        setError((await res.json().catch(() => ({}))).error ?? "Failed to add item.")
+        return
+      }
+      setNewProduct("")
+      setNewQty("")
+      setAdding(false)
+      await onRefresh()
+    } catch {
+      setError("The request failed. Please check your connection and try again.")
+    } finally {
+      setSaving(false)
     }
-    setNewProduct("")
-    setNewQty("")
-    setAdding(false)
-    await onRefresh()
   }
 
   async function deleteUtilization(utilizationId: string) {
@@ -194,7 +199,7 @@ export function PackageCard({ pkg, isReadOnly, isAdmin, onRefresh, onEditPackage
                 step={1}
                 value={newQty}
                 onChange={(e) => setNewQty(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") addItem() }}
+                onKeyDown={(e) => { if (e.key === "Enter") void addItem() }}
                 className="w-24 px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm text-right focus:outline-none focus:ring-1 focus:ring-gray-400"
               />
             </div>

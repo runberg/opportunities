@@ -199,6 +199,18 @@ function buildChangeEvents(
   return events
 }
 
+async function updateArchive(id: string, body: Record<string, unknown>, existing: Pick<Opportunity, "title" | "isArchived">, userId: string) {
+  const archive = z.object({ isArchived: z.boolean() }).strict().safeParse(body)
+  if (!archive.success) return NextResponse.json({ error: "Send only isArchived as a boolean" }, { status: 400 })
+  const updated = await db.opportunity.update({ where: { id }, data: archive.data })
+  if (existing.isArchived !== archive.data.isArchived) {
+    const message = archive.data.isArchived ? "Archived" : "Unarchived"
+    await writeLog({ type: "OPPORTUNITY_UPDATED", message: `"${existing.title}": ${message}`, userId, opportunityId: id })
+    await db.comment.create({ data: { content: message, system: true, opportunityId: id, authorId: userId } })
+  }
+  return NextResponse.json(updated)
+}
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -217,17 +229,7 @@ export async function PATCH(
   const existing = await db.opportunity.findUnique({ where: { id } })
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
-  if ("isArchived" in body) {
-    const archive = z.object({ isArchived: z.boolean() }).strict().safeParse(body)
-    if (!archive.success) return NextResponse.json({ error: "Send only isArchived as a boolean" }, { status: 400 })
-    const updated = await db.opportunity.update({ where: { id }, data: archive.data })
-    if (existing.isArchived !== archive.data.isArchived) {
-      const message = archive.data.isArchived ? "Archived" : "Unarchived"
-      await writeLog({ type: "OPPORTUNITY_UPDATED", message: `"${existing.title}": ${message}`, userId: session.user.id, opportunityId: id })
-      await db.comment.create({ data: { content: message, system: true, opportunityId: id, authorId: session.user.id } })
-    }
-    return NextResponse.json(updated)
-  }
+  if ("isArchived" in body) return updateArchive(id, body, existing, session.user.id)
   if (existing.isArchived) return NextResponse.json({ error: "Unarchive before editing this package" }, { status: 409 })
 
   const {

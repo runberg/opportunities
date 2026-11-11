@@ -27,22 +27,27 @@ export function CommentDialog({ target, commentEndpoint, onClose }: CommentDialo
   const commentRef = useAutoFocus<HTMLTextAreaElement>()
 
   async function submit() {
-    if (!target || !comment.trim()) return
-    setSubmitting(true)
-    setError("")
-    const res = await fetch(commentEndpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: comment.trim() }),
-    })
-    setSubmitting(false)
-    if (!res.ok) {
-      setError((await res.json().catch(() => ({}))).error ?? "Failed to save comment.")
-      return
+    try {
+      if (!target || !comment.trim()) return
+      setSubmitting(true)
+      setError("")
+      const res = await fetch(commentEndpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: comment.trim() }),
+      })
+      if (!res.ok) {
+        setError((await res.json().catch(() => ({}))).error ?? "Failed to save comment.")
+        return
+      }
+      setComment("")
+      onClose()
+      router.refresh()
+    } catch {
+      setError("The request failed. Please check your connection and try again.")
+    } finally {
+      setSubmitting(false)
     }
-    setComment("")
-    onClose()
-    router.refresh()
   }
 
   function handleClose() {
@@ -65,7 +70,7 @@ export function CommentDialog({ target, commentEndpoint, onClose }: CommentDialo
             onChange={(e) => setComment(e.target.value)}
             placeholder="Write a comment…"
             rows={4}
-            onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) submit() }}
+            onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) void submit() }}
           />
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex items-center gap-3">

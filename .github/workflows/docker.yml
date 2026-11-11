@@ -30,7 +30,10 @@ jobs:
           cache-dependency-path: app/package-lock.json
 
       - name: Install locked dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
+
+      - name: Generate Prisma client
+        run: npx --no-install prisma generate
 
       - name: Lint
         run: npm run lint

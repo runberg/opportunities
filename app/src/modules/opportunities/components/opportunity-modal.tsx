@@ -84,6 +84,7 @@ export function OpportunityModal({
     fetch(`/api/opportunities/${opportunityId}`)
       .then((r) => r.ok ? r.json() : null)
       .then((d) => { if (d) setData(d) })
+      .catch(() => setFetchError("Could not refresh the opportunity. Please reopen it to try again."))
   }, [opportunityId])
 
   useEffect(() => {

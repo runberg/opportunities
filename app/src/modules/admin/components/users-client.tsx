@@ -252,7 +252,7 @@ export function AdminUsersClient({
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={newUser.sendWelcomeEmail}
                 onChange={(e) => setNewUser((p) => ({ ...p, sendWelcomeEmail: e.target.checked }))} />
-              Send welcome email
+              <span>Send welcome email</span>
             </label>
             {newUser.sendWelcomeEmail && <p className="text-sm text-gray-500">Sets the initial password to change_me and emails login details with instructions to change it on first login. Requires enabled SMTP.</p>}
             {!newUser.sendWelcomeEmail && (

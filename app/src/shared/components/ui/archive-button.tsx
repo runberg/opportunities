@@ -33,10 +33,12 @@ export function ArchiveButton({ endpoint, isArchived, onSaved }: {
     }
   }
 
+  const actionLabel = isArchived ? "Unarchive" : "Archive"
+
   return (
     <div className="flex items-center gap-3">
       <Button variant="secondary" size="sm" disabled={saving} onClick={toggleArchive}>
-        {saving ? "Saving…" : isArchived ? "Unarchive" : "Archive"}
+        {saving ? "Saving…" : actionLabel}
       </Button>
       {isArchived && <span className="text-xs text-gray-400">Archived · Unarchive to resume the previous stage.</span>}
       {error && <span role="alert" className="text-xs text-red-500">{error}</span>}

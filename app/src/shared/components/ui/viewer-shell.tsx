@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { X, Download } from "lucide-react"
 
@@ -14,21 +14,27 @@ interface ViewerShellProps {
 
 export function ViewerShell({ fileUrl, docName, onClose, tabs, children }: ViewerShellProps) {
   const [mounted, setMounted] = useState(false)
+  const dialogRef = useRef<HTMLDialogElement>(null)
   useEffect(() => { setMounted(true) }, [])
 
   useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose()
-    }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [onClose])
+    if (!mounted) return
+    const dialog = dialogRef.current
+    dialog?.showModal()
+    return () => dialog?.close()
+  }, [mounted])
 
   if (!mounted) return null
 
   // Escape parent overflow and stacking contexts, including package drawers.
   return createPortal(
-    <div role="dialog" aria-modal="true" aria-label={docName} className="fixed inset-0 z-[100] flex flex-col bg-black/90">
+    <dialog
+      ref={dialogRef}
+      aria-label={docName}
+      onCancel={(event) => { event.preventDefault(); onClose() }}
+      onKeyDown={(event) => { if (event.key === "Escape") event.stopPropagation() }}
+      className="fixed inset-0 m-0 h-dvh w-screen max-h-none max-w-none border-0 p-0 hidden open:flex flex-col bg-black/90 backdrop:bg-black/90"
+    >
       <div className="flex items-center justify-between gap-4 px-4 py-3 bg-gray-900 text-white shrink-0">
         <span className="text-sm font-medium text-gray-100 truncate" title={docName}>{docName}</span>
         <div className="flex items-center gap-2 shrink-0">
@@ -52,7 +58,7 @@ export function ViewerShell({ fileUrl, docName, onClose, tabs, children }: Viewe
       </div>
       {tabs}
       {children}
-    </div>,
+    </dialog>,
     document.body
   )
 }

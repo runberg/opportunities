@@ -60,13 +60,22 @@ export function AdhocClient({ initialAgreements, isAdmin, isReadOnly = false }: 
   const initialAgreementId = searchParams.get("agreement") ?? undefined
   const initialDeliverableId = searchParams.get("deliverable") ?? undefined
 
+  const [refreshError, setRefreshError] = useState("")
+
   async function refresh() {
-    const res = await fetch("/api/adhoc/agreements")
-    if (res.ok) setAgreements(await res.json())
+    setRefreshError("")
+    try {
+      const res = await fetch("/api/adhoc/agreements")
+      if (!res.ok) throw new Error("Refresh failed")
+      setAgreements(await res.json())
+    } catch {
+      setRefreshError("Could not refresh agreements. Please reload the page.")
+    }
   }
 
   return (
     <div>
+      {refreshError && <p role="alert" className="text-sm text-red-600">{refreshError}</p>}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Ad Hoc Deliveries</h1>
@@ -100,9 +109,9 @@ export function AdhocClient({ initialAgreements, isAdmin, isReadOnly = false }: 
       {showForm && (
         <AgreementForm
           onClose={() => setShowForm(false)}
-          onSaved={() => {
+          onSaved={async () => {
             setShowForm(false)
-            refresh()
+            await refresh()
           }}
         />
       )}

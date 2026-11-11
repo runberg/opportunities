@@ -8,7 +8,7 @@ import type { AgreementRow } from "./adhoc-client"
 type Props = {
   readonly agreement?: AgreementRow
   readonly onClose: () => void
-  readonly onSaved: () => void
+  readonly onSaved: () => void | Promise<void>
 }
 
 export function AgreementForm({ agreement, onClose, onSaved }: Props) {
@@ -35,7 +35,9 @@ export function AgreementForm({ agreement, onClose, onSaved }: Props) {
         body: JSON.stringify({ title: title.trim(), totalAmount: Number(totalAmount) }),
       })
       if (!res.ok) { setError((await res.json()).error ?? "Save failed"); return }
-      onSaved()
+      await onSaved()
+    } catch {
+      setError("The request failed. Please check your connection and try again.")
     } finally {
       setSaving(false)
     }

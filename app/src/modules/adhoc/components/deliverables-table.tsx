@@ -266,6 +266,8 @@ export function DeliverablesTable({
       setNewDate(new Date().toISOString().slice(0, 10))
       setAdding(false)
       await onRefresh()
+    } catch {
+      setError("The request failed. Please check your connection and try again.")
     } finally {
       setSaving(false)
     }
@@ -312,7 +314,7 @@ export function DeliverablesTable({
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") handleAdd()
+              if (e.key === "Enter") void handleAdd()
               if (e.key === "Escape") { setAdding(false); setNewTitle("") }
             }}
           />

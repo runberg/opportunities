@@ -42,26 +42,31 @@ export function LogSection({
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
   async function handleSubmit() {
-    if (!content.trim()) return
-    setSubmitting(true)
-    setError("")
+    try {
+      if (!content.trim()) return
+      setSubmitting(true)
+      setError("")
 
-    const res = await fetch(commentEndpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: content.trim() }),
-    })
+      const res = await fetch(commentEndpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: content.trim() }),
+      })
 
-    setSubmitting(false)
-    if (!res.ok) {
-      setError("Failed to post comment.")
-      return
+      if (!res.ok) {
+        setError("Failed to post comment.")
+        return
+      }
+
+      setContent("")
+      setShowForm(false)
+      onRefresh?.()
+      router.refresh()
+    } catch {
+      setError("The request failed. Please check your connection and try again.")
+    } finally {
+      setSubmitting(false)
     }
-
-    setContent("")
-    setShowForm(false)
-    onRefresh?.()
-    router.refresh()
   }
 
   return (
@@ -109,7 +114,7 @@ export function LogSection({
             placeholder="Write a comment…"
             rows={3}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleSubmit()
+              if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) void handleSubmit()
             }}
             className="w-full px-3 py-2 border border-gray-600 rounded-lg text-sm bg-gray-700 text-gray-100 placeholder-gray-500 resize-none focus:outline-none focus:ring-1 focus:ring-gray-500"
           />
