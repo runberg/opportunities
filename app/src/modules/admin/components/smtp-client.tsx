@@ -7,6 +7,7 @@ import { Input } from "@/shared/components/ui/input"
 import { Label } from "@/shared/components/ui/label"
 import { Send } from "lucide-react"
 import { cn } from "@/shared/lib/utils"
+import { DEFAULT_WELCOME_SUBJECT, DEFAULT_WELCOME_BODY } from "@/modules/admin/welcome-email"
 
 const DEFAULT_OPP_SUBJECT = "Opportunity update: {{title}}"
 const DEFAULT_OPP_BODY = [
@@ -57,6 +58,13 @@ const ADHOC_PLACEHOLDERS = [
   { token: "{{link}}", desc: "Direct link to the work package" },
 ]
 
+const WELCOME_PLACEHOLDERS = [
+  { token: "{{email}}", desc: "New user's email / username" },
+  { token: "{{password}}", desc: "Initial password (change_me)" },
+  { token: "{{loginUrl}}", desc: "Link to sign in" },
+  { token: "{{profileUrl}}", desc: "Link to change the password under Profile" },
+]
+
 interface SmtpForm {
   host: string
   port: number
@@ -71,6 +79,8 @@ interface SmtpForm {
   opportunityNotificationBody: string
   adhocNotificationSubject: string
   adhocNotificationBody: string
+  welcomeEmailSubject: string
+  welcomeEmailBody: string
 }
 
 interface InitialConfig {
@@ -87,6 +97,8 @@ interface InitialConfig {
   readonly opportunityNotificationBody: string
   readonly adhocNotificationSubject: string
   readonly adhocNotificationBody: string
+  readonly welcomeEmailSubject: string
+  readonly welcomeEmailBody: string
 }
 
 function PlaceholderList({ items }: { readonly items: typeof OPP_PLACEHOLDERS }) {
@@ -166,6 +178,8 @@ export function SmtpClient({ initial }: { readonly initial: InitialConfig | null
     opportunityNotificationBody: initial?.opportunityNotificationBody ?? "",
     adhocNotificationSubject: initial?.adhocNotificationSubject ?? "",
     adhocNotificationBody: initial?.adhocNotificationBody ?? "",
+    welcomeEmailSubject: initial?.welcomeEmailSubject ?? "",
+    welcomeEmailBody: initial?.welcomeEmailBody ?? "",
   })
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState<{ ok: boolean; text: string } | null>(null)
@@ -343,6 +357,22 @@ export function SmtpClient({ initial }: { readonly initial: InitialConfig | null
               defaultBody={DEFAULT_ADHOC_BODY}
               onSubjectChange={(v) => set("adhocNotificationSubject", v)}
               onBodyChange={(v) => set("adhocNotificationBody", v)}
+            />
+          </div>
+
+          <div className="pt-2 border-t border-gray-100">
+            <h3 className="text-sm font-semibold text-gray-800 mb-3">New Users — Welcome Email Template</h3>
+            <p className="text-xs text-gray-500 mb-3">Used when Send welcome email is selected during user creation. Include the login details and instructions to change the password on first login.</p>
+            <PlaceholderList items={WELCOME_PLACEHOLDERS} />
+            <TemplateFields
+              subjectId="welcome-subject"
+              bodyId="welcome-body"
+              subjectValue={form.welcomeEmailSubject}
+              bodyValue={form.welcomeEmailBody}
+              defaultSubject={DEFAULT_WELCOME_SUBJECT}
+              defaultBody={DEFAULT_WELCOME_BODY}
+              onSubjectChange={(v) => set("welcomeEmailSubject", v)}
+              onBodyChange={(v) => set("welcomeEmailBody", v)}
             />
           </div>
 

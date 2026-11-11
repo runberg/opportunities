@@ -5,7 +5,7 @@ import { z } from "zod"
 import { requireAdmin, ACCESS_LEVELS } from "@/shared/lib/api"
 import { writeLog } from "@/shared/lib/system-log"
 import { enqueueEmails } from "@/shared/lib/email-outbox"
-import { buildWelcomeEmail } from "@/modules/admin/welcome-email"
+import { buildWelcomeEmail, INITIAL_USER_PASSWORD } from "@/modules/admin/welcome-email"
 
 const createSchema = z.object({
   email: z.string().email(),
@@ -42,14 +42,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "A user with this email already exists." }, { status: 409 })
   }
 
+  const smtp = parsed.data.sendWelcomeEmail
+    ? await db.smtpConfig.findUnique({ where: { id: "default" } })
+    : null
   if (parsed.data.sendWelcomeEmail) {
-    const smtp = await db.smtpConfig.findUnique({ where: { id: "default" } })
     if (!smtp?.enabled || !process.env.NEXTAUTH_URL) {
       return NextResponse.json({ error: "Enable SMTP and configure NEXTAUTH_URL before sending welcome emails." }, { status: 400 })
     }
   }
 
-  const hashed = await bcrypt.hash(parsed.data.sendWelcomeEmail ? "change_me" : parsed.data.password!, 12)
+  const hashed = await bcrypt.hash(parsed.data.sendWelcomeEmail ? INITIAL_USER_PASSWORD : parsed.data.password!, 12)
   const user = await db.$transaction(async (tx) => {
     const created = await tx.user.create({
       data: {
@@ -64,7 +66,7 @@ export async function POST(req: NextRequest) {
       select: { id: true, email: true, role: true, active: true, createdAt: true, opportunitiesAccess: true, adhocAccess: true, inventoryAccess: true },
     })
     if (parsed.data.sendWelcomeEmail) {
-      await enqueueEmails([buildWelcomeEmail(created.email, process.env.NEXTAUTH_URL!)], tx)
+      await enqueueEmails([buildWelcomeEmail(created.email, process.env.NEXTAUTH_URL!, smtp ?? {})], tx)
     }
     return created
   })

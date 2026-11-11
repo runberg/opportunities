@@ -446,6 +446,8 @@ model SmtpConfig {
   opportunityNotificationBody    String @default("")
   adhocNotificationSubject       String @default("")
   adhocNotificationBody          String @default("")
+  welcomeEmailSubject            String @default("")
+  welcomeEmailBody               String @default("")
   updatedAt                    DateTime @updatedAt
 }
 

@@ -18,6 +18,8 @@ const schema = z.object({
   opportunityNotificationBody: z.string(),
   adhocNotificationSubject: z.string(),
   adhocNotificationBody: z.string(),
+  welcomeEmailSubject: z.string().max(200).regex(/^[^\r\n]*$/).optional(),
+  welcomeEmailBody: z.string().max(20000).optional(),
 })
 
 export async function GET() {

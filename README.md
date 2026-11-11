@@ -77,6 +77,7 @@ Track stock that gets drawn down over the life of a project — independent of, 
 - **Audit log** — package, item, and utilization events appear in the system log under the Inventory filter
 
 ### Email notifications
+- Admins can edit the welcome-email subject and body in **Admin → Email / SMTP**, using `{{email}}`, `{{password}}`, `{{loginUrl}}`, and `{{profileUrl}}`. Blank fields use the default template. Saved changes apply to emails queued afterwards.
 - Admins can select **Send welcome email** when creating a user. This sets the initial password to `change_me` and queues an email with the login URL and instructions to change the password under Profile on first login. SMTP must be configured and enabled, and `NEXTAUTH_URL` must point to the application. Password changes are instructed, not enforced. Failed deliveries use the existing email retry queue.
 - Users choose a notification level per module from their profile page (only visible when an admin has configured and enabled SMTP)
 - Three levels per module: **Off** (no emails), **Status changes only** (email when status changes), **All updates** (email on any change — field edits, documents, comments)

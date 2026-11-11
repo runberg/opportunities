@@ -30,6 +30,8 @@ export default async function SmtpPage() {
         opportunityNotificationBody: config.opportunityNotificationBody,
         adhocNotificationSubject: config.adhocNotificationSubject,
         adhocNotificationBody: config.adhocNotificationBody,
+        welcomeEmailSubject: config.welcomeEmailSubject,
+        welcomeEmailBody: config.welcomeEmailBody,
       }
     : null
 
