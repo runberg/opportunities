@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/shared/lib/db"
 import { requireSession, hasSectionAccess } from "@/shared/lib/api"
 import { writeLog } from "@/shared/lib/system-log"
-import { AdhocDeliverableStatus, type AdhocDeliverable } from "@prisma/client"
+import { AdhocDeliverableStatus, Prisma, type AdhocDeliverable } from "@prisma/client"
 import { scheduleNotification } from "@/shared/lib/notify"
 import { z } from "zod"
 
@@ -45,7 +45,12 @@ export async function GET(
   const deliverable = await db.adhocDeliverable.findUnique({ where: { id }, include: FULL_INCLUDE })
 
   if (!deliverable) return NextResponse.json({ error: "Not found" }, { status: 404 })
-  return NextResponse.json(deliverable)
+  return NextResponse.json({
+    ...deliverable,
+    canManageClient: !deliverable.isArchived && hasSectionAccess(result.session, "clients", "FULL") &&
+      hasSectionAccess(result.session, "adhoc", "FULL") &&
+      (deliverable.status !== "CLOSED_FINANCE" || result.session.user.role === "ADMIN"),
+  })
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -331,11 +336,19 @@ export async function PATCH(
   const validationError = validateBody(body, deliverable.status)
   if (validationError) return NextResponse.json({ error: validationError }, { status: 400 })
 
+  if ("customer" in body && deliverable.clientId) {
+    return NextResponse.json({ error: "Change the linked client to update this customer." }, { status: 409 })
+  }
+
   const updated = await db.adhocDeliverable.update({
-    where: { id },
+    where: { id, ...("customer" in body && { clientId: null }) },
     data: buildUpdateData(body, deliverable),
     include: FULL_INCLUDE,
+  }).catch((error) => {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") return null
+    throw error
   })
+  if (!updated) return NextResponse.json({ error: "The work package changed. Refresh and try again." }, { status: 409 })
 
   const changes = buildChanges(body, deliverable)
   const changeSuffix = changes.length ? `: ${changes.join(", ")}` : ""

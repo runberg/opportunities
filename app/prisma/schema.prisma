@@ -24,11 +24,17 @@ model User {
   name                      String
   email                     String            @unique
   password                  String
+  credentialVersion         Int               @default(0)
+  temporaryPasswordExpiresAt DateTime?
+  lastLoginAt               DateTime?
+  passwordChangedAt         DateTime?
   role                      Role              @default(USER)
   active                    Boolean           @default(true)
   opportunitiesAccess       SectionAccess     @default(FULL)
   adhocAccess               SectionAccess     @default(FULL)
   inventoryAccess           SectionAccess     @default(FULL)
+  clientsAccess             SectionAccess     @default(NONE)
+  clientCommunications      ClientCommunication[]
   opportunityNotifications  NotificationLevel @default(NONE)
   adhocNotifications        NotificationLevel @default(NONE)
   createdAt                 DateTime          @default(now())
@@ -51,11 +57,39 @@ enum Role {
   USER
 }
 
+model Client {
+  id             String                @id @default(cuid())
+  name           String
+  codeName       String
+  codeNameKey    String                @unique
+  description    String
+  opportunities  Opportunity[]
+  adhocPackages  AdhocDeliverable[]
+  communications ClientCommunication[]
+}
+
+model ClientCommunication {
+  id             String   @id @default(cuid())
+  clientId       String
+  client         Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  communicatedAt DateTime
+  channel        String
+  recipient      String
+  summary        String
+  authorId       String
+  author         User     @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  createdAt      DateTime @default(now())
+
+  @@index([clientId, communicatedAt])
+}
+
 model Opportunity {
   id          String            @id @default(cuid())
   internalId  String?           // Our internal reference (e.g. OPP-2024-001)
   title       String
   customer    String
+  clientId    String?
+  client      Client? @relation(fields: [clientId], references: [id], onDelete: Restrict)
   reference   String?           // Customer / RFQ reference number
   projectCode String?           // Internal project code — up to 6 digits
   rfqDate     DateTime?         // Date the RFQ was received
@@ -88,8 +122,11 @@ model Opportunity {
   documents   Document[]
   systemLogs  SystemLog[]
   deliveries  ExpectedDelivery[]
+  preSalesCosts PreSalesCost[]
   inventoryPackages InventoryPackage[]
   inventoryUtilizations InventoryUtilization[]
+
+  @@index([clientId])
 }
 
 enum OpportunityStatus {
@@ -126,6 +163,34 @@ model ExpectedDelivery {
 
   opportunityId String
   opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  shipments     DeliveryShipment[]
+}
+
+model PreSalesCost {
+  id              String      @id @default(cuid())
+  opportunityId   String
+  opportunity     Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  item            String
+  estimatedAmount Decimal     @db.Decimal(12, 2)
+  note            String?
+  createdAt       DateTime    @default(now())
+
+  @@index([opportunityId])
+}
+
+model DeliveryShipment {
+  id            String           @id @default(cuid())
+  deliveryId    String
+  delivery      ExpectedDelivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  quantity      Int
+  deliveredOn   DateTime         @db.Date
+  comment       String?
+  filename      String?
+  originalName  String?
+  mimeType      String?
+  createdAt     DateTime         @default(now())
+
+  @@index([deliveryId])
 }
 
 model Comment {
@@ -196,6 +261,9 @@ model SystemLog {
 }
 
 enum SystemLogType {
+  CLIENT_CREATED
+  CLIENT_UPDATED
+  CLIENT_DELETED
   LOGIN
   PASSWORD_CHANGED
   OPPORTUNITY_CREATED
@@ -271,6 +339,8 @@ model AdhocDeliverable {
   closedFinanceNote   String?
   financeAmount       Decimal?               @db.Decimal(10, 2)
   customer            String?
+  clientId            String?
+  client              Client? @relation(fields: [clientId], references: [id], onDelete: Restrict)
   createdAt           DateTime               @default(now())
   updatedAt           DateTime               @updatedAt
 
@@ -284,6 +354,8 @@ model AdhocDeliverable {
   documents    AdhocDocument[]
   systemLogs   SystemLog[]
   comments     Comment[]
+
+  @@index([clientId])
 }
 
 enum AdhocDeliverableStatus {
@@ -448,6 +520,8 @@ model SmtpConfig {
   adhocNotificationBody          String @default("")
   welcomeEmailSubject            String @default("")
   welcomeEmailBody               String @default("")
+  resetEmailSubject              String @default("")
+  resetEmailBody                 String @default("")
   updatedAt                    DateTime @updatedAt
 }
 
@@ -474,6 +548,7 @@ model PendingNotification {
 
 /// One outgoing email. Written before sending so failures are recorded and retried.
 model EmailOutbox {
+  credentialVersion Int?
   id            String      @id @default(cuid())
   to            String
   subject       String

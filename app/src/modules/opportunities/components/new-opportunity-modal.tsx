@@ -51,21 +51,24 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
     setSaving(true)
     setError("")
 
-    const res = await fetch("/api/opportunities", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    })
-
-    setSaving(false)
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}))
-      setError(data.error ?? "Failed to create opportunity.")
-      return
+    try {
+      const res = await fetch("/api/opportunities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, rfqDate: form.status === "NEW" ? undefined : form.rfqDate }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setError(data.error ?? "Failed to create opportunity.")
+        return
+      }
+      const data = await res.json()
+      onCreated(data.id)
+    } catch {
+      setError("Could not reach the portal. Check the opportunities list before retrying.")
+    } finally {
+      setSaving(false)
     }
-
-    const data = await res.json()
-    onCreated(data.id)
   }
 
   return (
@@ -109,6 +112,7 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
               {/* Status + Pending + ID + Ref inline */}
               <div className="flex flex-wrap items-center gap-2 mt-3">
                 <select
+                  aria-label="Starting stage"
                   value={form.status}
                   onChange={(e) => setField("status", e.target.value)}
                   className="px-3 py-1 border border-gray-600 rounded-full text-xs font-medium bg-gray-700 text-gray-100 focus:outline-none focus:ring-1 focus:ring-gray-500"
@@ -171,13 +175,15 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
                 />
               </FormField>
 
-              <FormField label="RFQ Date">
-                <DatePicker
-                  value={form.rfqDate}
-                  onChange={(v) => setField("rfqDate", v)}
-                  triggerClassName={FORM_INPUT_CLS + " flex items-center"}
-                />
-              </FormField>
+              {form.status !== "NEW" && (
+                <FormField label="RFQ Date">
+                  <DatePicker
+                    value={form.rfqDate}
+                    onChange={(v) => setField("rfqDate", v)}
+                    triggerClassName={FORM_INPUT_CLS + " flex items-center"}
+                  />
+                </FormField>
+              )}
 
               <FormField label="Details">
                 <textarea

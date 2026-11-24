@@ -50,7 +50,7 @@ export function DeliveryPlan({ items, isAdmin, isReadOnly = false }: {
         <h2 className="text-base font-semibold text-gray-900 mb-6">Delivery Plan</h2>
 
         {groups.length === 0 ? (
-          <p className="text-sm text-gray-400">No planned deliveries.</p>
+          <p className="text-sm text-gray-400">No upcoming deliveries outstanding.</p>
         ) : (
           <div className="flex flex-col gap-6">
             {groups.map((group) => (
@@ -69,7 +69,7 @@ export function DeliveryPlan({ items, isAdmin, isReadOnly = false }: {
                       <span className="text-sm font-semibold text-gray-800 w-10 text-right shrink-0">
                         {item.quantity}
                       </span>
-                      <span className="text-sm text-gray-600 flex-1">{item.unitType}</span>
+                      <span className="text-sm text-gray-600 flex-1">{item.unitType} remaining</span>
                       <span className="text-xs text-gray-400 shrink-0">
                         {item.opportunity.internalId ?? "—"}
                       </span>

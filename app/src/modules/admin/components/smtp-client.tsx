@@ -7,7 +7,7 @@ import { Input } from "@/shared/components/ui/input"
 import { Label } from "@/shared/components/ui/label"
 import { Send } from "lucide-react"
 import { cn } from "@/shared/lib/utils"
-import { DEFAULT_WELCOME_SUBJECT, DEFAULT_WELCOME_BODY } from "@/modules/admin/welcome-email"
+import { DEFAULT_WELCOME_SUBJECT, DEFAULT_WELCOME_BODY, DEFAULT_RESET_SUBJECT, DEFAULT_RESET_BODY } from "@/modules/admin/credential-email-templates"
 
 const DEFAULT_OPP_SUBJECT = "Opportunity update: {{title}}"
 const DEFAULT_OPP_BODY = [
@@ -59,10 +59,9 @@ const ADHOC_PLACEHOLDERS = [
 ]
 
 const WELCOME_PLACEHOLDERS = [
-  { token: "{{email}}", desc: "New user's email / username" },
-  { token: "{{password}}", desc: "Initial password (change_me)" },
+  { token: "{{email}}", desc: "Account email / username" },
+  { token: "{{password}}", desc: "Temporary password (required in the message body)" },
   { token: "{{loginUrl}}", desc: "Link to sign in" },
-  { token: "{{profileUrl}}", desc: "Link to change the password under Profile" },
 ]
 
 interface SmtpForm {
@@ -81,6 +80,8 @@ interface SmtpForm {
   adhocNotificationBody: string
   welcomeEmailSubject: string
   welcomeEmailBody: string
+  resetEmailSubject: string
+  resetEmailBody: string
 }
 
 interface InitialConfig {
@@ -99,6 +100,8 @@ interface InitialConfig {
   readonly adhocNotificationBody: string
   readonly welcomeEmailSubject: string
   readonly welcomeEmailBody: string
+  readonly resetEmailSubject: string
+  readonly resetEmailBody: string
 }
 
 function PlaceholderList({ items }: { readonly items: typeof OPP_PLACEHOLDERS }) {
@@ -180,6 +183,8 @@ export function SmtpClient({ initial }: { readonly initial: InitialConfig | null
     adhocNotificationBody: initial?.adhocNotificationBody ?? "",
     welcomeEmailSubject: initial?.welcomeEmailSubject ?? "",
     welcomeEmailBody: initial?.welcomeEmailBody ?? "",
+    resetEmailSubject: initial?.resetEmailSubject ?? "",
+    resetEmailBody: initial?.resetEmailBody ?? "",
   })
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState<{ ok: boolean; text: string } | null>(null)
@@ -362,7 +367,7 @@ export function SmtpClient({ initial }: { readonly initial: InitialConfig | null
 
           <div className="pt-2 border-t border-gray-100">
             <h3 className="text-sm font-semibold text-gray-800 mb-3">New Users — Welcome Email Template</h3>
-            <p className="text-xs text-gray-500 mb-3">Used when Send welcome email is selected during user creation. Include the login details and instructions to change the password on first login.</p>
+            <p className="text-xs text-gray-500 mb-3">Sent when an admin creates an account by email. Custom message bodies must include the temporary password placeholder.</p>
             <PlaceholderList items={WELCOME_PLACEHOLDERS} />
             <TemplateFields
               subjectId="welcome-subject"
@@ -373,6 +378,21 @@ export function SmtpClient({ initial }: { readonly initial: InitialConfig | null
               defaultBody={DEFAULT_WELCOME_BODY}
               onSubjectChange={(v) => set("welcomeEmailSubject", v)}
               onBodyChange={(v) => set("welcomeEmailBody", v)}
+            />
+          </div>
+
+          <div className="pt-2 border-t border-gray-100">
+            <h3 className="text-sm font-semibold text-gray-800 mb-3">Password Reset Email Template</h3>
+            <p className="text-xs text-gray-500 mb-3">Sent when an admin issues a temporary password by email. Uses the same placeholders as the welcome email.</p>
+            <TemplateFields
+              subjectId="reset-subject"
+              bodyId="reset-body"
+              subjectValue={form.resetEmailSubject}
+              bodyValue={form.resetEmailBody}
+              defaultSubject={DEFAULT_RESET_SUBJECT}
+              defaultBody={DEFAULT_RESET_BODY}
+              onSubjectChange={(v) => set("resetEmailSubject", v)}
+              onBodyChange={(v) => set("resetEmailBody", v)}
             />
           </div>
 

@@ -1,5 +1,7 @@
 "use client"
 
+import { ClientWorkLink } from "@/shared/components/clients/client-work-link"
+
 import { useEffect, useState, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { X } from "lucide-react"
@@ -12,6 +14,9 @@ import {
 import { StatusBadge } from "@/modules/opportunities/components/status-badge"
 import { QuoteSection } from "@/modules/opportunities/components/quote-section"
 import { EL_STAGE_KINDS, PRODUCTION_STAGE_KINDS, QUOTE_STAGE_KINDS } from "@/modules/opportunities/document-kinds"
+import { PreSalesCosts } from "./pre-sales-costs"
+import { canEditPreSalesCosts, type PreSalesEstimate } from "../pre-sales/types"
+import type { DeliveryLine } from "../deliveries/types"
 import { ProductionSection } from "@/modules/opportunities/components/production-section"
 import { LogSection, type LogEntry } from "@/modules/opportunities/components/log-section"
 import { Button } from "@/shared/components/ui/button"
@@ -35,14 +40,12 @@ interface ModalDoc {
   uploadedAt: string; uploadedBy: { id: string; name: string }
 }
 
-interface ModalDelivery {
-  id: string; unitType: string; quantity: number
-  deliveryMonth: number; deliveryYear: number
-}
-
 interface OpportunityFull {
+  preSalesEstimate: PreSalesEstimate
   isArchived: boolean
   id: string; internalId: string | null; title: string; customer: string
+  clientId: string | null
+  canManageClient: boolean
   reference: string | null; projectCode: string | null; rfqDate: string | null; product: string | null
   status: string; waitingOn: string
   quoteSentDate: string | null; elRequestedDate: string | null
@@ -54,7 +57,7 @@ interface OpportunityFull {
   satDate: string | null; satPassedDate: string | null; deliveredDate: string | null
   description: string | null; createdAt: string; updatedAt: string
   createdBy: { id: string; name: string }
-  comments: LogEntry[]; documents: ModalDoc[]; deliveries: ModalDelivery[]
+  comments: LogEntry[]; documents: ModalDoc[]; deliveries: DeliveryLine[]
 }
 
 // ─── Main modal ──────────────────────────────────────────────────────────────
@@ -371,6 +374,11 @@ function ViewMode({ data, isAdmin, isReadOnly, onRefresh, onSilentRefresh }: {
     }
   }
 
+  const [recordingRfq, setRecordingRfq] = useState(false)
+  const [rfqReceivedDate, setRfqReceivedDate] = useState(todayISO())
+  const [rfqSaving, setRfqSaving] = useState(false)
+  const [rfqError, setRfqError] = useState("")
+
   // Quote accepted panel
   const [acceptingQuote, setAcceptingQuote] = useState(false)
   const [elDate, setElDate] = useState(todayISO())
@@ -388,6 +396,14 @@ function ViewMode({ data, isAdmin, isReadOnly, onRefresh, onSilentRefresh }: {
   const [counterSignDate, setCounterSignDate] = useState(todayISO())
   const [counterSignSaving, setCounterSignSaving] = useState(false)
   const [counterSignError, setCounterSignError] = useState("")
+
+  function handleRecordRfq() {
+    return patchOppTransition(
+      data.id,
+      { status: "RFQ_RECEIVED", rfqDate: rfqReceivedDate },
+      setRfqSaving, setRfqError, () => setRecordingRfq(false), onRefresh,
+    )
+  }
 
   function handleSkipToEL() {
     return patchOppTransition(
@@ -443,6 +459,9 @@ function ViewMode({ data, isAdmin, isReadOnly, onRefresh, onSilentRefresh }: {
         />
         {!isReadOnly && (
           <div className="flex items-center gap-2 flex-shrink-0 mt-1">
+            {data.status === "NEW" && !recordingRfq && (
+              <Button size="sm" onClick={() => setRecordingRfq(true)}>Record RFQ received</Button>
+            )}
             {canSkipToEL && !skippingToEL && (
               <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white border-0"
                 onClick={() => setSkippingToEL(true)}>
@@ -484,6 +503,20 @@ function ViewMode({ data, isAdmin, isReadOnly, onRefresh, onSilentRefresh }: {
             readOnly={isReadOnly} inputMode="numeric" maxLength={6} placeholder="000000" className="text-xs font-medium text-gray-100 bg-transparent outline-none w-16" />
         </label>
       </div>
+
+      {data.status === "NEW" && recordingRfq && !isReadOnly && (
+        <TransitionPanel
+          title="Record RFQ received"
+          description="Move this opportunity to RFQ Received and keep its pre-sales estimate."
+          dateLabel="RFQ received date"
+          date={rfqReceivedDate}
+          onDateChange={setRfqReceivedDate}
+          onConfirm={handleRecordRfq}
+          saving={rfqSaving}
+          onCancel={() => { setRecordingRfq(false); setRfqError("") }}
+          error={rfqError}
+        />
+      )}
 
       {skippingToEL && (
         <TransitionPanel
@@ -532,7 +565,8 @@ function ViewMode({ data, isAdmin, isReadOnly, onRefresh, onSilentRefresh }: {
       <div className="flex flex-col gap-4 mb-4">
         <FormField label="Customer" required>
           <input value={form.customer} onChange={(e) => set("customer", e.target.value)}
-            readOnly={isReadOnly} placeholder="Customer name" className={interactiveCls} />
+            readOnly={isReadOnly || !!data.clientId} placeholder="Customer name" className={interactiveCls} />
+          {data.canManageClient && !isReadOnly && <ClientWorkLink kind="opportunities" workId={data.id} linked={!!data.clientId} />}
         </FormField>
         <FormField label="Product / Service">
           <input value={form.product} onChange={(e) => set("product", e.target.value)}
@@ -565,6 +599,11 @@ function ViewMode({ data, isAdmin, isReadOnly, onRefresh, onSilentRefresh }: {
           the most relevant to the current stage, with EL then Quote documents below it. */}
       {isProduction && (
         <ProductionSection data={data} deliveries={data.deliveries} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} />
+      )}
+
+      {(canEditPreSalesCosts(data.status) || data.preSalesEstimate.items.length > 0) && (
+        <PreSalesCosts opportunityId={data.id} estimate={data.preSalesEstimate}
+          canWrite={!isReadOnly && canEditPreSalesCosts(data.status)} onRefresh={onSilentRefresh} />
       )}
 
       <div className={isProduction ? "mt-6" : undefined}>
@@ -851,7 +890,7 @@ function DateSection({ data, form, onSetDate, onRefresh, onDirectPatch }: {
     if (err) setRevertError(err); else { setRevertTarget(null); onRefresh() }
   }
 
-  if (!isQuote && !isEL) return null
+  if (data.status === "NEW" || (!isQuote && !isEL)) return null
 
   return (
     <div>

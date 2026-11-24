@@ -4,6 +4,13 @@ import { z } from "zod"
 import { requireAdmin } from "@/shared/lib/api"
 import { writeLog } from "@/shared/lib/system-log"
 
+const credentialSubject = z.string().max(200).regex(/^[^\r\n]*$/).refine(
+  (value) => !value.includes("{{password}}"), "Keep the temporary password out of the subject.",
+)
+const credentialBody = z.string().max(20000).refine(
+  (value) => !value.trim() || value.includes("{{password}}"), "Include {{password}} in the credential email body.",
+)
+
 const schema = z.object({
   host: z.string().min(1),
   port: z.number().int().min(1).max(65535),
@@ -18,8 +25,10 @@ const schema = z.object({
   opportunityNotificationBody: z.string(),
   adhocNotificationSubject: z.string(),
   adhocNotificationBody: z.string(),
-  welcomeEmailSubject: z.string().max(200).regex(/^[^\r\n]*$/).optional(),
-  welcomeEmailBody: z.string().max(20000).optional(),
+  welcomeEmailSubject: credentialSubject.optional(),
+  welcomeEmailBody: credentialBody.optional(),
+  resetEmailSubject: credentialSubject.optional(),
+  resetEmailBody: credentialBody.optional(),
 })
 
 export async function GET() {
@@ -40,7 +49,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   const parsed = schema.safeParse(body)
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input" }, { status: 400 })
+    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 })
   }
 
   const { password, ...rest } = parsed.data

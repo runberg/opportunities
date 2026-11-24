@@ -45,9 +45,9 @@ export interface DateColumn {
 // ─── Phase cell ───────────────────────────────────────────────────────────────
 
 function PhaseCell({ done, na = false }: { readonly done: boolean; readonly na?: boolean }) {
-  if (na) return <Minus size={13} className="text-gray-300" />
-  if (done) return <Check size={13} className="text-green-500" />
-  return <span className="w-3 h-3 rounded-full border-2 border-gray-300 inline-block" />
+  if (na) return <Minus size={13} className="inline-block align-middle text-gray-300" />
+  if (done) return <Check size={13} className="inline-block align-middle text-green-500" />
+  return <span className="w-3 h-3 rounded-full border-2 border-gray-300 inline-block align-middle" />
 }
 
 /** "How long ago" label for the moment a row entered its current status — calendar-date

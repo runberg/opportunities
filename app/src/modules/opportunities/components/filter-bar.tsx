@@ -8,13 +8,13 @@ import { TableFilterBar, type FilterStatusGroup } from "@/shared/components/ui/t
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type RawStatusGroup = { label: string; statuses: string[] }
+type RawStatusGroup = { label: string; statuses: readonly string[] }
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function FilterBar({
   basePath = "/opportunities",
-  statusGroups = STATUS_GROUPS as RawStatusGroup[],
+  statusGroups = STATUS_GROUPS,
   exportType,
 }: {
   readonly basePath?: string

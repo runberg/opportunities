@@ -47,10 +47,11 @@ async function searchAdhoc(q: string) {
         { title: { contains: q, mode: "insensitive" } },
         { internalId: { contains: q, mode: "insensitive" } },
         { deliveryNoteRef: { contains: q, mode: "insensitive" } },
+        { customer: { contains: q, mode: "insensitive" } },
       ],
     },
     select: {
-      id: true, internalId: true, title: true, status: true, isArchived: true, deliveryNoteRef: true,
+      id: true, internalId: true, title: true, status: true, isArchived: true, deliveryNoteRef: true, customer: true,
       agreement: { select: { id: true, title: true } },
     },
     orderBy: { updatedAt: "desc" },
@@ -60,7 +61,7 @@ async function searchAdhoc(q: string) {
   return deliverables.map((d) => ({
     id: d.id,
     title: d.title,
-    subtitle: d.deliveryNoteRef ? `${d.agreement.title} · DN ${d.deliveryNoteRef}` : d.agreement.title,
+    subtitle: [d.customer, d.agreement.title, d.deliveryNoteRef && `DN ${d.deliveryNoteRef}`].filter(Boolean).join(" · "),
     status: d.isArchived ? "ARCHIVED" : d.status as string,
     href: `/adhoc?agreement=${d.agreement.id}&deliverable=${d.id}`,
   }))

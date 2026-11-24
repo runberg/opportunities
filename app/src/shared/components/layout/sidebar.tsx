@@ -30,11 +30,12 @@ interface SidebarProps {
   readonly opportunitiesAccess: string
   readonly adhocAccess: string
   readonly inventoryAccess: string
+  readonly clientsAccess: string
   /** Admins only: emails that exhausted their automatic retries. */
   readonly failedEmailCount: number
 }
 
-export function Sidebar({ userName, userRole, opportunitiesAccess, adhocAccess, inventoryAccess, failedEmailCount }: SidebarProps) {
+export function Sidebar({ userName, userRole, opportunitiesAccess, adhocAccess, inventoryAccess, clientsAccess, failedEmailCount }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const isAdmin = userRole === "ADMIN"
@@ -92,6 +93,9 @@ export function Sidebar({ userName, userRole, opportunitiesAccess, adhocAccess, 
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        {(isAdmin || clientsAccess !== "NONE") && (
+          <Link href="/clients" className={linkCls("/clients")}><Users size={18} /> Clients</Link>
+        )}
         {showOpportunities && (
           <>
             <div className="pt-2 pb-1 px-3">

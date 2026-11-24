@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { deleteOpportunitiesWithDeliveryNotes, deliveryErrorResponse } from "@/modules/opportunities/deliveries/server"
 import { db } from "@/shared/lib/db"
 import { z } from "zod"
 import { OpportunityStatus, WaitingOn } from "@prisma/client"
@@ -12,7 +13,7 @@ const createSchema = z.object({
   customer: z.string().min(1),
   reference: z.string().optional(),
   projectCode: z.string().regex(PROJECT_CODE_REGEX, "Project code must be up to 6 digits").optional(),
-  rfqDate: z.string().optional(),
+  rfqDate: z.union([z.iso.date(), z.literal("")]).optional(),
   quoteSentDate: z.string().optional(),
   product: z.string().optional(),
   status: z.nativeEnum(OpportunityStatus).optional(),
@@ -116,8 +117,11 @@ export async function DELETE(req: NextRequest) {
   }
   const stringIds = ids.filter((id): id is string => typeof id === "string")
 
-  const { count } = await db.opportunity.deleteMany({ where: { id: { in: stringIds } } })
-  return NextResponse.json({ deleted: count })
+  try {
+    return NextResponse.json({ deleted: await deleteOpportunitiesWithDeliveryNotes(stringIds) })
+  } catch (error) {
+    return deliveryErrorResponse(error)
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -143,8 +147,8 @@ export async function POST(req: NextRequest) {
         customer,
         reference: reference || null,
         projectCode: projectCode || null,
-        rfqDate: rfqDate ? new Date(rfqDate) : null,
-        quoteSentDate: quoteSentDate ? new Date(quoteSentDate) : null,
+        rfqDate: status !== "NEW" && rfqDate ? new Date(rfqDate) : null,
+        quoteSentDate: status !== "NEW" && quoteSentDate ? new Date(quoteSentDate) : null,
         product: product || null,
         status: status ?? "RFQ_RECEIVED",
         waitingOn: waitingOn ?? "INTERNAL",

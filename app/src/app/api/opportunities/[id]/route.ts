@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/shared/lib/db"
 import { z } from "zod"
-import { type Opportunity, OpportunityStatus, WaitingOn } from "@prisma/client"
+import { type Opportunity, Prisma, OpportunityStatus, WaitingOn } from "@prisma/client"
 import { STATUS_LABELS, toDateString, WAITING_LABELS, PROJECT_CODE_REGEX } from "@/shared/lib/utils"
 import { requireSession, requireAdmin, hasSectionAccess } from "@/shared/lib/api"
 import { writeLog } from "@/shared/lib/system-log"
+import { deleteOpportunitiesWithDeliveryNotes, deliveryErrorResponse, shipmentSummary } from "@/modules/opportunities/deliveries/server"
 import { scheduleNotification } from "@/shared/lib/notify"
 
 export async function GET(
@@ -20,6 +21,10 @@ export async function GET(
   const opportunity = await db.opportunity.findUnique({
     where: { id },
     include: {
+      preSalesCosts: {
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        select: { id: true, item: true, estimatedAmount: true, note: true },
+      },
       createdBy: { select: { id: true, name: true } },
       comments: {
         include: { author: { select: { id: true, name: true } } },
@@ -31,12 +36,21 @@ export async function GET(
       },
       deliveries: {
         orderBy: [{ deliveryYear: "asc" }, { deliveryMonth: "asc" }],
+        include: { shipments: { orderBy: [{ deliveredOn: "desc" }, { createdAt: "desc" }], select: shipmentSummary } },
       },
     },
   })
 
   if (!opportunity) return NextResponse.json({ error: "Not found" }, { status: 404 })
-  return NextResponse.json(opportunity)
+  const { preSalesCosts, ...details } = opportunity
+  return NextResponse.json({
+    ...details,
+    preSalesEstimate: {
+      items: preSalesCosts,
+      total: preSalesCosts.reduce((sum, cost) => sum.plus(cost.estimatedAmount), new Prisma.Decimal(0)).toFixed(2),
+    },
+    canManageClient: !opportunity.isArchived && hasSectionAccess(session, "clients", "FULL") && hasSectionAccess(session, "opportunities", "FULL"),
+  })
 }
 
 const updateSchema = z.object({
@@ -45,7 +59,7 @@ const updateSchema = z.object({
   customer: z.string().min(1).optional(),
   reference: z.string().optional().nullable(),
   projectCode: z.string().regex(PROJECT_CODE_REGEX, "Project code must be up to 6 digits").optional().nullable(),
-  rfqDate: z.string().optional().nullable(),
+  rfqDate: z.iso.date().optional().nullable(),
   product: z.string().optional().nullable(),
   status: z.nativeEnum(OpportunityStatus).optional(),
   waitingOn: z.nativeEnum(WaitingOn).optional(),
@@ -238,6 +252,10 @@ export async function PATCH(
     ...rest
   } = parsed.data
 
+  if (rest.customer !== undefined && existing.clientId) {
+    return NextResponse.json({ error: "Change the linked client to update this customer." }, { status: 409 })
+  }
+
   const dates: DateFields = {
     rfqDate, quoteSentDate, elRequestedDate, elDraftSharedDate, elDraftReturnedDate, elSignedSharedDate, elCountersignedDate,
     advancePaymentDate, fatDate, fatPassedDate, satDate, satPassedDate, deliveredDate,
@@ -247,8 +265,23 @@ export async function PATCH(
   const autoStatus = inferAutoStatus(existing, dates, rest.status)
   const nextStatus = autoStatus ?? existing.status
 
+  if (existing.status === "NEW" && !["NEW", "RFQ_RECEIVED", "CANCELLED"].includes(nextStatus)) {
+    return NextResponse.json({ error: "Record the RFQ before moving to a later stage." }, { status: 409 })
+  }
+  if (existing.status === "NEW" && nextStatus === "RFQ_RECEIVED" && !rfqDate) {
+    return NextResponse.json({ error: "Enter the date the RFQ was received." }, { status: 400 })
+  }
+  const hasLaterMilestone = Object.entries(dates).some(([field, value]) => field !== "rfqDate" && value)
+  if ((nextStatus === "NEW" && (existing.status !== "NEW" || rfqDate)) ||
+      (existing.status === "NEW" && hasLaterMilestone)) {
+    return NextResponse.json({ error: "An Open Opportunity starts before the RFQ and quote milestones." }, { status: 409 })
+  }
+
   const updated = await db.opportunity.update({
-    where: { id },
+    where: {
+      id, ...(rest.customer !== undefined && { clientId: null }),
+      ...(existing.status === "NEW" && nextStatus !== "NEW" && { status: "NEW", isArchived: false }),
+    },
     data: {
       ...rest,
       rfqDate: dateOrNull(rfqDate),
@@ -267,7 +300,11 @@ export async function PATCH(
       status: autoStatus ?? rest.status,
       waitingOn: rest.waitingOn,
     },
+  }).catch((error) => {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") return null
+    throw error
   })
+  if (!updated) return NextResponse.json({ error: "The opportunity changed. Refresh and try again." }, { status: 409 })
 
   const events = buildChangeEvents(existing, dates, rest, prevStatus, nextStatus)
 
@@ -292,7 +329,7 @@ export async function PATCH(
       actorId: session.user.id,
       title: existing.title,
       internalId: existing.internalId,
-      customer: existing.customer,
+      customer: updated.customer,
       changes: events,
       statusChanges,
     }).catch((err) => console.error("Failed to schedule notification:", err))
@@ -309,6 +346,10 @@ export async function DELETE(
   if (error) return error
 
   const { id } = await params
-  await db.opportunity.delete({ where: { id } })
-  return NextResponse.json({ ok: true })
+  try {
+    const count = await deleteOpportunitiesWithDeliveryNotes([id])
+    return count ? NextResponse.json({ ok: true }) : NextResponse.json({ error: "Not found" }, { status: 404 })
+  } catch (error) {
+    return deliveryErrorResponse(error)
+  }
 }

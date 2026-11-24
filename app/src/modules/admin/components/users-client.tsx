@@ -2,13 +2,13 @@
 
 import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { formatDate } from "@/shared/lib/utils"
+import { formatDate, formatDateTime } from "@/shared/lib/utils"
 import { Button } from "@/shared/components/ui/button"
 import { Dialog } from "@/shared/components/ui/dialog"
 import { Input } from "@/shared/components/ui/input"
 import { Label } from "@/shared/components/ui/label"
 import { Select } from "@/shared/components/ui/select"
-import { UserPlus, Pencil } from "lucide-react"
+import { UserPlus, Pencil, KeyRound } from "lucide-react"
 import { SortableHeader, sortRows, type SortDir } from "@/shared/components/ui/sortable-header"
 
 type SectionAccess = "FULL" | "READ_ONLY" | "NONE"
@@ -19,9 +19,53 @@ interface User {
   role: string
   active: boolean
   createdAt: Date | string
+  lastLoginAt: Date | string | null
+  passwordChangedAt: Date | string | null
+  temporaryPasswordExpiresAt: Date | string | null
+  recoveryAdmin: boolean
   opportunitiesAccess: SectionAccess
   adhocAccess: SectionAccess
   inventoryAccess: SectionAccess
+  clientsAccess: SectionAccess
+}
+
+const NEW_USER = {
+  email: "",
+  role: "USER",
+  opportunitiesAccess: "FULL" as SectionAccess,
+  adhocAccess: "FULL" as SectionAccess,
+  inventoryAccess: "FULL" as SectionAccess,
+  clientsAccess: "NONE" as SectionAccess,
+}
+
+function PasswordSetupStatus({ user }: { readonly user: User }) {
+  if (user.temporaryPasswordExpiresAt) {
+    return <span className="text-amber-700">
+      Awaiting password change
+      {new Date(user.temporaryPasswordExpiresAt).getTime() <= Date.now() && " (expired)"}
+    </span>
+  }
+  if (user.passwordChangedAt) return <>Changed {formatDate(user.passwordChangedAt)}</>
+  return <span className="text-gray-500">Unknown</span>
+}
+
+function CredentialDeliveryOptions({
+  manual,
+  onChange,
+}: {
+  readonly manual: boolean
+  readonly onChange: (value: boolean) => void
+}) {
+  return (
+    <details className="text-sm text-gray-300">
+      <summary className="cursor-pointer">More options{manual && " · Manual handoff selected"}</summary>
+      <label className="mt-2 flex items-center gap-2">
+        <input type="checkbox" checked={manual} onChange={(event) => onChange(event.target.checked)} />
+        Hand off the temporary password manually
+      </label>
+      <p className="mt-1 text-xs text-gray-400">Use this if email is unavailable. The portal shows the password once.</p>
+    </details>
+  )
 }
 
 const ACCESS_LABELS: Record<SectionAccess, string> = {
@@ -30,7 +74,7 @@ const ACCESS_LABELS: Record<SectionAccess, string> = {
   NONE: "No access",
 }
 
-function AccessBadge({ level }: { readonly level: SectionAccess }) {
+function AccessBadge({ level, fullLabel = "Full" }: { readonly level: SectionAccess; readonly fullLabel?: string }) {
   const colours: Record<SectionAccess, string> = {
     FULL: "bg-green-100 text-green-700",
     READ_ONLY: "bg-yellow-100 text-yellow-700",
@@ -38,7 +82,7 @@ function AccessBadge({ level }: { readonly level: SectionAccess }) {
   }
   return (
     <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${colours[level]}`}>
-      {ACCESS_LABELS[level]}
+      {level === "FULL" ? fullLabel : ACCESS_LABELS[level]}
     </span>
   )
 }
@@ -47,14 +91,16 @@ function AccessSelect({
   id,
   value,
   onChange,
+  writeLabel = "Full access",
 }: {
+  readonly writeLabel?: string
   readonly id: string
   readonly value: SectionAccess
   readonly onChange: (v: SectionAccess) => void
 }) {
   return (
     <Select id={id} value={value} onChange={(e) => onChange(e.target.value as SectionAccess)}>
-      <option value="FULL">Full access</option>
+      <option value="FULL">{writeLabel}</option>
       <option value="READ_ONLY">Read only</option>
       <option value="NONE">No access</option>
     </Select>
@@ -71,6 +117,10 @@ export function AdminUsersClient({
   const router = useRouter()
   const [showCreate, setShowCreate] = useState(false)
   const [editUser, setEditUser] = useState<User | null>(null)
+  const [resetUser, setResetUser] = useState<User | null>(null)
+  const [manual, setManual] = useState(false)
+  const [issued, setIssued] = useState<{ email: string; password: string } | null>(null)
+  const [notice, setNotice] = useState("")
   const [error, setError] = useState("")
   const [saving, setSaving] = useState(false)
   const [sortKey, setSortKey] = useState("email")
@@ -79,53 +129,66 @@ export function AdminUsersClient({
   function handleSort(key: string, dir: SortDir) { setSortKey(key); setSortDir(dir) }
   const sorted = useMemo(() => sortRows(users, sortKey, sortDir), [users, sortKey, sortDir])
 
-  const [newUser, setNewUser] = useState({
-    email: "",
-    password: "",
-    sendWelcomeEmail: false,
-    role: "USER",
-    opportunitiesAccess: "FULL" as SectionAccess,
-    adhocAccess: "FULL" as SectionAccess,
-    inventoryAccess: "FULL" as SectionAccess,
-  })
+  const [newUser, setNewUser] = useState(NEW_USER)
   const [editForm, setEditForm] = useState({
     email: "",
     role: "USER",
     active: true,
-    newPassword: "",
     opportunitiesAccess: "FULL" as SectionAccess,
     adhocAccess: "FULL" as SectionAccess,
     inventoryAccess: "FULL" as SectionAccess,
+    clientsAccess: "NONE" as SectionAccess,
   })
 
   async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError("")
 
-    if (newUser.role !== "ADMIN" && newUser.opportunitiesAccess === "NONE" && newUser.adhocAccess === "NONE" && newUser.inventoryAccess === "NONE") {
+    if (newUser.role !== "ADMIN" && newUser.opportunitiesAccess === "NONE" && newUser.adhocAccess === "NONE" && newUser.inventoryAccess === "NONE" && newUser.clientsAccess === "NONE") {
       setError("A user must have access to at least one section.")
       return
     }
 
-    setSaving(true)
-
-    const res = await fetch("/api/admin/users", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newUser),
-    })
-
-    setSaving(false)
-
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}))
-      setError(data.error ?? "Failed to create user.")
-      return
+    if (await issuePassword("/api/admin/users", newUser.email, "Welcome email queued.", newUser)) {
+      setShowCreate(false)
+      setNewUser(NEW_USER)
     }
+  }
 
-    setShowCreate(false)
-    setNewUser({ email: "", password: "", sendWelcomeEmail: false, role: "USER", opportunitiesAccess: "FULL", adhocAccess: "FULL", inventoryAccess: "FULL" })
-    router.refresh()
+  async function issuePassword(path: string, email: string, message: string, account = {}) {
+    setSaving(true)
+    setError("")
+    setNotice("")
+    try {
+      const res = await fetch(path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...account, delivery: manual ? "manual" : "email" }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setError(data.error ?? "Could not issue a temporary password.")
+        return false
+      }
+      if (data.temporaryPassword) setIssued({ email, password: data.temporaryPassword })
+      else setNotice(message)
+      router.refresh()
+      return true
+    } catch {
+      setError("Could not reach the portal. Check the user list before retrying.")
+      return false
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleReset(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!resetUser) return
+    const succeeded = await issuePassword(
+      `/api/admin/users/${resetUser.id}/reset-password`, resetUser.email, "Password reset email queued.",
+    )
+    if (succeeded) setResetUser(null)
   }
 
   function openEdit(user: User) {
@@ -134,10 +197,10 @@ export function AdminUsersClient({
       email: user.email,
       role: user.role,
       active: user.active,
-      newPassword: "",
       opportunitiesAccess: user.opportunitiesAccess,
       adhocAccess: user.adhocAccess,
       inventoryAccess: user.inventoryAccess,
+      clientsAccess: user.clientsAccess,
     })
     setError("")
   }
@@ -147,7 +210,7 @@ export function AdminUsersClient({
     if (!editUser) return
     setError("")
 
-    if (editForm.role !== "ADMIN" && editForm.opportunitiesAccess === "NONE" && editForm.adhocAccess === "NONE" && editForm.inventoryAccess === "NONE") {
+    if (editForm.role !== "ADMIN" && editForm.opportunitiesAccess === "NONE" && editForm.adhocAccess === "NONE" && editForm.inventoryAccess === "NONE" && editForm.clientsAccess === "NONE") {
       setError("A user must have access to at least one section.")
       return
     }
@@ -175,22 +238,23 @@ export function AdminUsersClient({
   return (
     <>
       <div className="flex justify-end mb-4">
-        <Button onClick={() => setShowCreate(true)}>
+        <Button onClick={() => { setManual(false); setError(""); setShowCreate(true) }}>
           <UserPlus size={16} className="mr-1.5" />
           Add User
         </Button>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      {notice && <p role="status" className="mb-3 text-sm text-green-700">{notice}</p>}
+      <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <SortableHeader label="Email" sortKey="email" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} />
               <SortableHeader label="Role" sortKey="role" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} />
               <SortableHeader label="Status" sortKey="active" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} />
-              <th className="px-4 py-3 text-left font-medium text-gray-600 hidden lg:table-cell">Opportunities</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-600 hidden lg:table-cell">Ad Hoc</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-600 hidden lg:table-cell">Inventory</th>
+              <th className="px-4 py-3 text-left font-medium text-gray-600 hidden lg:table-cell">Section access</th>
+              <SortableHeader label="Last sign-in" sortKey="lastLoginAt" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} />
+              <th className="px-4 py-3 text-left font-medium text-gray-600">Password setup</th>
               <SortableHeader label="Created" sortKey="createdAt" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} className="hidden md:table-cell" />
               <th className="px-4 py-3" />
             </tr>
@@ -210,23 +274,37 @@ export function AdminUsersClient({
                   </span>
                 </td>
                 <td className="px-4 py-3 hidden lg:table-cell">
-                  <AccessBadge level={user.opportunitiesAccess} />
+                  <div className="grid grid-cols-[auto_auto] gap-x-2 gap-y-1 text-xs items-center w-fit">
+                    <span>Opportunities</span><AccessBadge level={user.opportunitiesAccess} />
+                    <span>Ad Hoc</span><AccessBadge level={user.adhocAccess} />
+                    <span>Inventory</span><AccessBadge level={user.inventoryAccess} />
+                    <span>Clients</span><AccessBadge level={user.clientsAccess} fullLabel="Write" />
+                  </div>
                 </td>
-                <td className="px-4 py-3 hidden lg:table-cell">
-                  <AccessBadge level={user.adhocAccess} />
-                </td>
-                <td className="px-4 py-3 hidden lg:table-cell">
-                  <AccessBadge level={user.inventoryAccess} />
-                </td>
+                <td className="px-4 py-3">{user.lastLoginAt ? formatDateTime(user.lastLoginAt) : "No sign-in recorded"}</td>
+                <td className="px-4 py-3"><PasswordSetupStatus user={user} /></td>
                 <td className="px-4 py-3 text-gray-400 hidden md:table-cell">{formatDate(user.createdAt)}</td>
                 <td className="px-4 py-3">
                   <button
                     type="button"
+                    aria-label={`Edit ${user.email}`}
+                    title="Edit user"
                     onClick={() => openEdit(user)}
                     className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
                   >
                     <Pencil size={14} />
                   </button>
+                  {!user.recoveryAdmin && user.id !== currentUserId && (
+                    <button
+                      type="button"
+                      aria-label={`Reset password for ${user.email}`}
+                      title="Reset password"
+                      className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded"
+                      onClick={() => { setManual(false); setError(""); setResetUser(user) }}
+                    >
+                      <KeyRound size={14} />
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -235,7 +313,7 @@ export function AdminUsersClient({
       </div>
 
       {/* Create user dialog */}
-      <Dialog open={showCreate} onClose={() => { setShowCreate(false); setError("") }} title="Add User">
+      <Dialog open={showCreate} onClose={() => { if (!saving) setShowCreate(false) }} title="Add User">
         <form onSubmit={handleCreate} className="space-y-4">
           <div>
             <Label htmlFor="create-email">Email (username) *</Label>
@@ -247,28 +325,6 @@ export function AdminUsersClient({
               placeholder="user@company.com"
               required
             />
-          </div>
-          <div>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={newUser.sendWelcomeEmail}
-                onChange={(e) => setNewUser((p) => ({ ...p, sendWelcomeEmail: e.target.checked }))} />
-              <span>Send welcome email</span>
-            </label>
-            {newUser.sendWelcomeEmail && <p className="text-sm text-gray-500">Sets the initial password to change_me and emails login details with instructions to change it on first login. Requires enabled SMTP.</p>}
-            {!newUser.sendWelcomeEmail && (
-              <>
-                <Label htmlFor="create-password">Initial Password *</Label>
-                <Input
-                  id="create-password"
-                  type="password"
-                  value={newUser.password}
-                  onChange={(e) => setNewUser((p) => ({ ...p, password: e.target.value }))}
-                  required
-                  minLength={8}
-                  placeholder="Minimum 8 characters"
-                />
-              </>
-            )}
           </div>
           <div>
             <Label htmlFor="create-role">Role</Label>
@@ -307,14 +363,42 @@ export function AdminUsersClient({
                   onChange={(v) => setNewUser((p) => ({ ...p, inventoryAccess: v }))}
                 />
               </div>
+              <div>
+                <Label htmlFor="create-clients-access">Clients Access</Label>
+                <AccessSelect id="create-clients-access" value={newUser.clientsAccess}
+                  onChange={(v) => setNewUser((p) => ({ ...p, clientsAccess: v }))} writeLabel="Write access" />
+              </div>
             </>
           )}
-          {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+          <CredentialDeliveryOptions manual={manual} onChange={setManual} />
+          {error && <p role="alert" className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
           <div className="flex gap-2 pt-1">
-            <Button type="submit" disabled={saving}>{saving ? "Creating…" : "Create User"}</Button>
-            <Button type="button" variant="ghost" onClick={() => { setShowCreate(false); setError("") }}>Cancel</Button>
+            <Button type="submit" disabled={saving}>{saving ? "Creating…" : manual ? "Create manually" : "Create and send welcome email"}</Button>
+            <Button type="button" variant="ghost" disabled={saving} onClick={() => setShowCreate(false)}>Cancel</Button>
           </div>
         </form>
+      </Dialog>
+
+      <Dialog open={!!resetUser} onClose={() => { if (!saving) setResetUser(null) }} title="Reset password">
+        <form onSubmit={handleReset} className="space-y-4">
+          <p className="text-sm text-gray-300">
+            Issue a temporary password for <strong>{resetUser?.email}</strong>? This signs the user out and replaces their current password.
+          </p>
+          <CredentialDeliveryOptions manual={manual} onChange={setManual} />
+          {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
+          <div className="flex gap-2">
+            <Button type="submit" disabled={saving}>{saving ? "Resetting…" : manual ? "Reset manually" : "Reset and send email"}</Button>
+            <Button type="button" variant="ghost" disabled={saving} onClick={() => setResetUser(null)}>Cancel</Button>
+          </div>
+        </form>
+      </Dialog>
+
+      <Dialog open={!!issued} onClose={() => setIssued(null)} title="Temporary password">
+        <div className="space-y-4 text-sm text-gray-300">
+          <p>Share this password with <strong>{issued?.email}</strong> through a trusted channel. It expires in 48 hours and is shown here once.</p>
+          <Input aria-label="Temporary password" className="font-mono" readOnly value={issued?.password ?? ""} onFocus={(event) => event.currentTarget.select()} />
+          <Button type="button" onClick={() => setIssued(null)}>Done</Button>
+        </div>
       </Dialog>
 
       {/* Edit user dialog */}
@@ -370,22 +454,13 @@ export function AdminUsersClient({
                   onChange={(v) => setEditForm((p) => ({ ...p, inventoryAccess: v }))}
                 />
               </div>
+              <div>
+                <Label htmlFor="edit-clients-access">Clients Access</Label>
+                <AccessSelect id="edit-clients-access" value={editForm.clientsAccess}
+                  onChange={(v) => setEditForm((p) => ({ ...p, clientsAccess: v }))} writeLabel="Write access" />
+              </div>
             </>
           )}
-          <div>
-            <Label htmlFor="edit-password">
-              New Password <span className="font-normal text-gray-400">(leave blank to keep current)</span>
-            </Label>
-            <Input
-              id="edit-password"
-              type="password"
-              value={editForm.newPassword}
-              onChange={(e) => setEditForm((p) => ({ ...p, newPassword: e.target.value }))}
-              minLength={8}
-              placeholder="Minimum 8 characters"
-            />
-          </div>
-          <p className="text-xs text-gray-400">Access level changes take effect on the user&apos;s next login.</p>
           {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
           <div className="flex gap-2 pt-1">
             <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save Changes"}</Button>

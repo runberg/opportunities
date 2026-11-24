@@ -1,39 +1,12 @@
 "use client"
 
 import { useState } from "react"
+import type { SystemLogType } from "@prisma/client"
 import { useRouter, usePathname } from "next/navigation"
 import { cn } from "@/shared/lib/utils"
 import { OpportunityModal } from "@/modules/opportunities/components/opportunity-modal"
 
-type LogType =
-  | "LOGIN"
-  | "PASSWORD_CHANGED"
-  | "OPPORTUNITY_CREATED"
-  | "OPPORTUNITY_UPDATED"
-  | "USER_CREATED"
-  | "USER_UPDATED"
-  | "SMTP_UPDATED"
-  | "ADHOC_AGREEMENT_CREATED"
-  | "ADHOC_AGREEMENT_UPDATED"
-  | "ADHOC_AGREEMENT_SIGNED"
-  | "ADHOC_AGREEMENT_DOCUMENT_UPLOADED"
-  | "ADHOC_AGREEMENT_DOCUMENT_DELETED"
-  | "ADHOC_DELIVERABLE_CREATED"
-  | "ADHOC_DELIVERABLE_UPDATED"
-  | "ADHOC_LINE_ITEM_ADDED"
-  | "ADHOC_LINE_ITEM_UPDATED"
-  | "ADHOC_LINE_ITEM_DELETED"
-  | "ADHOC_DOCUMENT_UPLOADED"
-  | "ADHOC_DOCUMENT_DELETED"
-  | "INVENTORY_PACKAGE_CREATED"
-  | "INVENTORY_PACKAGE_UPDATED"
-  | "INVENTORY_PACKAGE_DELETED"
-  | "INVENTORY_ITEM_CREATED"
-  | "INVENTORY_ITEM_UPDATED"
-  | "INVENTORY_ITEM_DELETED"
-  | "INVENTORY_ITEM_UTILIZED"
-  | "INVENTORY_UTILIZATION_UPDATED"
-  | "INVENTORY_UTILIZATION_DELETED"
+type LogType = SystemLogType
 
 interface LogEntry {
   readonly id: string
@@ -50,6 +23,9 @@ interface LogEntry {
 
 const TYPE_LABELS: Record<LogType, string> = {
   LOGIN: "Login",
+  CLIENT_CREATED: "Client Created",
+  CLIENT_UPDATED: "Client Updated",
+  CLIENT_DELETED: "Client Deleted",
   PASSWORD_CHANGED: "Password",
   OPPORTUNITY_CREATED: "Opp. Created",
   OPPORTUNITY_UPDATED: "Opp. Updated",
@@ -84,6 +60,9 @@ const INVENTORY_COLOR = "bg-cyan-50 text-cyan-700 border-cyan-200"
 
 const TYPE_COLORS: Record<LogType, string> = {
   LOGIN: "bg-blue-50 text-blue-700 border-blue-200",
+  CLIENT_CREATED: "bg-indigo-50 text-indigo-700 border-indigo-200",
+  CLIENT_UPDATED: "bg-indigo-50 text-indigo-700 border-indigo-200",
+  CLIENT_DELETED: "bg-red-50 text-red-700 border-red-200",
   PASSWORD_CHANGED: "bg-amber-50 text-amber-700 border-amber-200",
   OPPORTUNITY_CREATED: "bg-green-50 text-green-700 border-green-200",
   OPPORTUNITY_UPDATED: "bg-gray-100 text-gray-700 border-gray-200",
@@ -118,6 +97,7 @@ const FILTER_GROUPS = [
   { label: "Opportunities", types: ["OPPORTUNITY_CREATED", "OPPORTUNITY_UPDATED"] as LogType[] },
   { label: "Ad Hoc", types: ["ADHOC_AGREEMENT_CREATED", "ADHOC_AGREEMENT_UPDATED", "ADHOC_AGREEMENT_SIGNED", "ADHOC_AGREEMENT_DOCUMENT_UPLOADED", "ADHOC_AGREEMENT_DOCUMENT_DELETED", "ADHOC_DELIVERABLE_CREATED", "ADHOC_DELIVERABLE_UPDATED", "ADHOC_LINE_ITEM_ADDED", "ADHOC_LINE_ITEM_UPDATED", "ADHOC_LINE_ITEM_DELETED", "ADHOC_DOCUMENT_UPLOADED", "ADHOC_DOCUMENT_DELETED"] as LogType[] },
   { label: "Inventory", types: ["INVENTORY_PACKAGE_CREATED", "INVENTORY_PACKAGE_UPDATED", "INVENTORY_PACKAGE_DELETED", "INVENTORY_ITEM_CREATED", "INVENTORY_ITEM_UPDATED", "INVENTORY_ITEM_DELETED", "INVENTORY_ITEM_UTILIZED", "INVENTORY_UTILIZATION_UPDATED", "INVENTORY_UTILIZATION_DELETED"] as LogType[] },
+  { label: "Clients", types: ["CLIENT_CREATED", "CLIENT_UPDATED", "CLIENT_DELETED"] as LogType[] },
   { label: "Users", types: ["USER_CREATED", "USER_UPDATED", "PASSWORD_CHANGED"] as LogType[] },
   { label: "Login", types: ["LOGIN"] as LogType[] },
   { label: "Config", types: ["SMTP_UPDATED"] as LogType[] },
@@ -129,6 +109,7 @@ const GROUP_FILTER_VALUES: Record<string, string> = {
   "Ad Hoc": "ADHOC",
   Inventory: "INVENTORY",
   Users: "USERS",
+  Clients: "CLIENTS",
   Login: "LOGIN",
   Config: "CONFIG",
 }
