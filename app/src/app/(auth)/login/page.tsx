@@ -1,7 +1,8 @@
 "use client"
 
 import { Suspense, useState } from "react"
-import { signIn } from "next-auth/react"
+import { getSession, signIn } from "next-auth/react"
+import { safeSignInDestination } from "@/shared/lib/sign-in-destination"
 import { useRouter, useSearchParams } from "next/navigation"
 
 function LoginForm() {
@@ -12,26 +13,33 @@ function LoginForm() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
-  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard"
+  const callbackUrl = searchParams.get("callbackUrl")
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError("")
     setLoading(true)
 
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    })
+    try {
+      const result = await signIn("credentials", { email, password, redirect: false })
+      if (!result?.ok || result.error) {
+        setError("Invalid email or password.")
+        return
+      }
 
-    setLoading(false)
-
-    if (result?.error) {
-      setError("Invalid email or password.")
-    } else {
-      router.push(callbackUrl)
+      const received = callbackUrl && URL.canParse(callbackUrl, window.location.origin)
+        ? new URL(callbackUrl, window.location.origin)
+        : null
+      const destination = received?.origin === window.location.origin
+        ? safeSignInDestination(received.pathname + received.search + received.hash)
+        : "/dashboard"
+      const session = await getSession()
+      router.push(session?.user.mustChangePassword ? `/choose-password?next=${encodeURIComponent(destination)}` : destination)
       router.refresh()
+    } catch {
+      setError("Could not reach the portal. Check your connection and try again.")
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -81,6 +89,7 @@ function LoginForm() {
       >
         {loading ? "Signing in…" : "Sign in"}
       </button>
+      <p className="text-sm text-gray-400">Forgot your password? Contact your portal administrator.</p>
     </form>
   )
 }

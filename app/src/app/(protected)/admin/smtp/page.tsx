@@ -1,13 +1,12 @@
 import { db } from "@/shared/lib/db"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/shared/lib/auth"
+import { requirePortalPageSession } from "@/shared/lib/page-access"
 import { redirect } from "next/navigation"
 import { SmtpClient } from "@/modules/admin/components/smtp-client"
 import { EmailQueue } from "@/modules/admin/components/email-queue"
 import { listQueuedEmails } from "@/shared/lib/email-outbox"
 
 export default async function SmtpPage() {
-  const session = await getServerSession(authOptions)
+  const session = await requirePortalPageSession()
   if (session?.user.role !== "ADMIN") redirect("/dashboard")
 
   const [config, queuedEmails] = await Promise.all([
@@ -32,6 +31,8 @@ export default async function SmtpPage() {
         adhocNotificationBody: config.adhocNotificationBody,
         welcomeEmailSubject: config.welcomeEmailSubject,
         welcomeEmailBody: config.welcomeEmailBody,
+        resetEmailSubject: config.resetEmailSubject,
+        resetEmailBody: config.resetEmailBody,
       }
     : null
 

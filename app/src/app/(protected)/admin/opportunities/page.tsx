@@ -1,10 +1,9 @@
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/shared/lib/auth"
+import { requirePortalPageSession } from "@/shared/lib/page-access"
 import { redirect } from "next/navigation"
 import { DeletePageTabs } from "@/modules/admin/components/delete-page-tabs"
 
 export default async function AdminOpportunitiesPage() {
-  const session = await getServerSession(authOptions)
+  const session = await requirePortalPageSession()
   if (session?.user.role !== "ADMIN") redirect("/dashboard")
 
   return (

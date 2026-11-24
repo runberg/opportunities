@@ -161,22 +161,21 @@ function getChangesForLevel(entry: PendingNotification, level: NotificationLevel
   return entry.changes
 }
 
-/** Deep link straight to the item — the opportunity's current stage page (Quotes/ELs/
- * Production) for opportunities, or the owning agreement's tab for ad hoc work packages.
- * Falls back to the module's plain list page if the item was deleted before the
- * (delayed/batched) notification fired. */
-async function buildDeepLink(entry: PendingNotification, appUrl: string): Promise<string> {
-  if (!appUrl) return ""
-
+/** Resolve the destination and public customer label at notification time. */
+async function resolveNotificationWork(entry: PendingNotification, appUrl: string) {
   if (entry.module === "opportunity") {
-    const opp = await db.opportunity.findUnique({ where: { id: entry.itemId }, select: { status: true } })
-    if (!opp) return `${appUrl}/opportunities`
-    return `${appUrl}${opportunityBasePath(opp.status)}?open=${entry.itemId}`
+    const opportunity = await db.opportunity.findUnique({
+      where: { id: entry.itemId }, select: { status: true, customer: true },
+    })
+    const path = opportunity ? `${opportunityBasePath(opportunity.status)}?open=${entry.itemId}` : "/opportunities"
+    return { link: appUrl ? appUrl + path : "", customer: opportunity?.customer ?? entry.customer }
   }
 
-  const deliverable = await db.adhocDeliverable.findUnique({ where: { id: entry.itemId }, select: { agreementId: true } })
-  if (!deliverable) return `${appUrl}/adhoc`
-  return `${appUrl}/adhoc?agreement=${deliverable.agreementId}&deliverable=${entry.itemId}`
+  const deliverable = await db.adhocDeliverable.findUnique({
+    where: { id: entry.itemId }, select: { agreementId: true, customer: true },
+  })
+  const path = deliverable ? `/adhoc?agreement=${deliverable.agreementId}&deliverable=${entry.itemId}` : "/adhoc"
+  return { link: appUrl ? appUrl + path : "", customer: deliverable?.customer ?? entry.customer }
 }
 
 async function buildEmails(entry: PendingNotification): Promise<OutboxEmail[]> {
@@ -205,17 +204,17 @@ async function buildEmails(entry: PendingNotification): Promise<OutboxEmail[]> {
     (isOpp ? config.opportunityNotificationBody : config.adhocNotificationBody) ||
     (isOpp ? DEFAULT_OPP_BODY : DEFAULT_ADHOC_BODY)
 
-  const [actor, link] = await Promise.all([
+  const [actor, work] = await Promise.all([
     db.user.findUnique({ where: { id: entry.actorId }, select: { name: true } }),
-    buildDeepLink(entry, appUrl),
+    resolveNotificationWork(entry, appUrl),
   ])
 
   const baseVars: Record<string, string> = {
     title: entry.title,
     internalId: entry.internalId ? `${entry.internalId} - ` : "",
-    customer: entry.customer,
+    customer: work.customer,
     actor: actor?.name ?? "Someone",
-    link,
+    link: work.link,
   }
 
   const emails: OutboxEmail[] = []

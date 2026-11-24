@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/shared/lib/db"
-import { requireSession } from "@/shared/lib/api"
+import { hasSectionAccess, requireSession } from "@/shared/lib/api"
 import { formatDate, buildOpportunityWhere, STATUS_LABELS, QUOTE_STATUSES, EL_STATUSES, PRODUCTION_STATUSES } from "@/shared/lib/utils"
 
 function cell(v: string | number | null | undefined): string {
@@ -16,8 +16,11 @@ function row(values: (string | number | null | undefined)[]): string {
 }
 
 export async function GET(req: NextRequest) {
-  const { error } = await requireSession()
+  const { session, error } = await requireSession()
   if (error) return error
+  if (!hasSectionAccess(session, "opportunities", "READ_ONLY")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
 
   const sp = req.nextUrl.searchParams
   const type = sp.get("type") ?? "quotes"

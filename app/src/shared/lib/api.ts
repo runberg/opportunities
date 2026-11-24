@@ -7,11 +7,14 @@ type Result =
   | { session: Session; error: null }
   | { session: null; error: NextResponse }
 
-/** Returns the session, or a 401 response if unauthenticated. */
-export async function requireSession(): Promise<Result> {
+/** Returns a portal session, or an error if authentication or password setup is required. */
+export async function requireSession({ allowPasswordSetup = false } = {}): Promise<Result> {
   const session = await getServerSession(authOptions)
   if (!session) {
     return { session: null, error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) }
+  }
+  if (session.user.mustChangePassword && !allowPasswordSetup) {
+    return { session: null, error: NextResponse.json({ error: "Choose a new password to continue." }, { status: 403 }) }
   }
   return { session, error: null }
 }
@@ -34,7 +37,7 @@ export const ACCESS_LEVELS = ["FULL", "READ_ONLY", "NONE"] as const
  */
 export function hasSectionAccess(
   session: Session,
-  section: "opportunities" | "adhoc" | "inventory",
+  section: "opportunities" | "adhoc" | "inventory" | "clients",
   minimum: "READ_ONLY" | "FULL",
 ): boolean {
   if (session.user.role === "ADMIN") return true
@@ -43,8 +46,9 @@ export function hasSectionAccess(
   return level === "FULL"
 }
 
-function sectionAccessLevel(session: Session, section: "opportunities" | "adhoc" | "inventory"): string {
+function sectionAccessLevel(session: Session, section: "opportunities" | "adhoc" | "inventory" | "clients"): string {
   if (section === "opportunities") return session.user.opportunitiesAccess
   if (section === "adhoc") return session.user.adhocAccess
+  if (section === "clients") return session.user.clientsAccess
   return session.user.inventoryAccess
 }

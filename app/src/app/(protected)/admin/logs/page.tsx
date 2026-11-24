@@ -1,6 +1,5 @@
 import { db } from "@/shared/lib/db"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/shared/lib/auth"
+import { requirePortalPageSession } from "@/shared/lib/page-access"
 import { redirect } from "next/navigation"
 import { SystemLogType } from "@prisma/client"
 import { SystemLogClient } from "@/modules/admin/components/logs-client"
@@ -21,6 +20,7 @@ const GROUP_TYPES: Record<string, SystemLogType[]> = {
     "INVENTORY_ITEM_CREATED", "INVENTORY_ITEM_UPDATED", "INVENTORY_ITEM_DELETED",
     "INVENTORY_ITEM_UTILIZED", "INVENTORY_UTILIZATION_UPDATED", "INVENTORY_UTILIZATION_DELETED",
   ],
+  CLIENTS: ["CLIENT_CREATED", "CLIENT_UPDATED", "CLIENT_DELETED"],
   USERS: ["USER_CREATED", "USER_UPDATED", "PASSWORD_CHANGED"],
   LOGIN: ["LOGIN"],
   CONFIG: ["SMTP_UPDATED"],
@@ -38,7 +38,7 @@ export default async function SystemLogPage({
 }: {
   readonly searchParams: Promise<{ page?: string; type?: string }>
 }) {
-  const [session, params] = await Promise.all([getServerSession(authOptions), searchParams])
+  const [session, params] = await Promise.all([requirePortalPageSession(), searchParams])
   if (session?.user.role !== "ADMIN") redirect("/dashboard")
 
   const page = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1)

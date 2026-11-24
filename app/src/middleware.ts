@@ -9,5 +9,6 @@ export const config = {
     "/admin/:path*",
     "/profile/:path*",
     "/adhoc/:path*",
+    "/clients/:path*",
   ],
 }

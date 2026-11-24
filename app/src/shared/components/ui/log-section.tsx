@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { MessageSquarePlus, Cpu } from "lucide-react"
@@ -7,12 +8,26 @@ import { formatDateTime, initials } from "@/shared/lib/utils"
 import { Button } from "@/shared/components/ui/button"
 import { useAutoFocus } from "@/shared/lib/use-autofocus"
 
+export interface ActivitySource {
+  label: string
+  href?: string
+}
+
+export function ActivitySourceLabel({ source }: { readonly source: ActivitySource }) {
+  const styles = "inline-block rounded bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300"
+  return source.href
+    ? <Link href={source.href} className={styles + " hover:underline"}>{source.label}</Link>
+    : <span className={styles}>{source.label}</span>
+}
+
 export interface LogEntry {
   id: string
   content: string
   system: boolean
   createdAt: Date | string
   author: { id: string; name: string } | null
+  source?: ActivitySource
+  context?: string
 }
 
 interface LogSectionProps {
@@ -74,7 +89,7 @@ export function LogSection({
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-base font-semibold text-gray-100">
-          Log{" "}
+          Activity{" "}
           <span className="text-gray-400 font-normal">({userEntries.length})</span>
         </h2>
         <div className="flex items-center gap-2">
@@ -157,13 +172,15 @@ function UserEntry({ entry }: { readonly entry: LogEntry }) {
         </span>
       </div>
       <div className="flex-1 min-w-0">
-        <div className="flex items-baseline gap-2 mb-1">
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 mb-1">
+          {entry.source && <ActivitySourceLabel source={entry.source} />}
           <span className="text-sm font-medium text-gray-100">
             {entry.author?.name ?? "Unknown"}
           </span>
           <span className="text-xs text-gray-400">{formatDateTime(entry.createdAt)}</span>
         </div>
-        <p className="text-sm text-gray-300 whitespace-pre-wrap">{entry.content}</p>
+        {entry.context && <p className="mb-1 text-xs text-gray-400">{entry.context}</p>}
+        <p className="text-sm text-gray-300 whitespace-pre-wrap break-words">{entry.content}</p>
       </div>
     </div>
   )

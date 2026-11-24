@@ -186,7 +186,7 @@ export function displayName(name: string): string {
 
 export const STATUS_SHORT_LABELS: Record<string, string> = {
   ARCHIVED: "Archived",
-  NEW: "New",
+  NEW: "Open Opportunity",
   RFQ_RECEIVED: "RFQ Rcvd",
   QUOTE_SENT: "Quoted",
   EL_REQUEST_RECEIVED: "EL Req",
@@ -203,7 +203,7 @@ export const STATUS_SHORT_LABELS: Record<string, string> = {
 
 export const STATUS_LABELS: Record<string, string> = {
   ARCHIVED: "Archived Opportunity",
-  NEW: "New",
+  NEW: "Open Opportunity",
   RFQ_RECEIVED: "RFQ Received",
   QUOTE_SENT: "Quote Sent",
   EL_REQUEST_RECEIVED: "EL Requested",
@@ -219,7 +219,7 @@ export const STATUS_LABELS: Record<string, string> = {
 }
 
 // Statuses available in each workflow stage
-export const QUOTE_STATUSES = ["RFQ_RECEIVED", "QUOTE_SENT"] as const
+export const QUOTE_STATUSES = ["NEW", "RFQ_RECEIVED", "QUOTE_SENT"] as const
 export const EL_STATUSES = ["EL_REQUEST_RECEIVED", "EL_DRAFT_SHARED", "EL_DRAFT_RETURNED", "EL_SIGNED_SHARED", "EL_FULLY_SIGNED"] as const
 export const PRODUCTION_STATUSES = [
   "PENDING_ADVANCE_PAYMENT",
@@ -245,7 +245,7 @@ export function opportunityBasePath(status: string): string {
 export const STATUS_GROUPS = [
   {
     label: "Quote",
-    statuses: ["RFQ_RECEIVED", "QUOTE_SENT"],
+    statuses: QUOTE_STATUSES,
   },
   {
     label: "Engagement Letter",

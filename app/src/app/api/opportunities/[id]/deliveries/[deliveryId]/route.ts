@@ -1,54 +1,50 @@
 import { NextRequest, NextResponse } from "next/server"
-import { z } from "zod"
-import { db } from "@/shared/lib/db"
-import { requireSession, hasSectionAccess } from "@/shared/lib/api"
+import {
+  changeDelivery, deliveryErrorResponse, DeliveryError, deliveryPlanInput, getDeliveredQuantity,
+  getWritableDelivery, requireDeliveryAccess,
+} from "@/modules/opportunities/deliveries/server"
 
-const updateSchema = z.object({
-  unitType:      z.string().min(1).optional(),
-  quantity:      z.number().int().positive().optional(),
-  deliveryMonth: z.number().int().min(1).max(12).optional(),
-  deliveryYear:  z.number().int().min(2020).optional(),
-})
+type Context = { params: Promise<{ id: string; deliveryId: string }> }
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string; deliveryId: string }> }
-) {
-  const { session, error } = await requireSession()
+export async function PATCH(req: NextRequest, { params }: Context) {
+  const { error } = await requireDeliveryAccess("FULL")
   if (error) return error
-  if (!hasSectionAccess(session, "opportunities", "FULL"))
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-
   const { id, deliveryId } = await params
-  const existing = await db.expectedDelivery.findUnique({ where: { id: deliveryId } })
-  if (existing?.opportunityId !== id) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 })
+  const parsed = deliveryPlanInput.partial().safeParse(await req.json().catch(() => null))
+  if (!parsed.success) return NextResponse.json({ error: "Invalid delivery plan." }, { status: 400 })
+
+  try {
+    const updated = await changeDelivery(async (tx) => {
+      const delivery = await getWritableDelivery(tx, id, deliveryId)
+      const delivered = await getDeliveredQuantity(tx, deliveryId)
+      if (parsed.data.quantity !== undefined && parsed.data.quantity < delivered) {
+        throw new DeliveryError(`Planned quantity must be at least the ${delivered} already delivered.`)
+      }
+      if (delivered && parsed.data.unitType !== undefined && parsed.data.unitType !== delivery.unitType) {
+        throw new DeliveryError("The unit type cannot change after a shipment is recorded.")
+      }
+      return tx.expectedDelivery.update({ where: { id: deliveryId }, data: parsed.data })
+    })
+    return NextResponse.json(updated)
+  } catch (error) {
+    return deliveryErrorResponse(error)
   }
-
-  const body = await req.json().catch(() => null)
-  if (!body) return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
-  const parsed = updateSchema.safeParse(body)
-  if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 })
-
-  const updated = await db.expectedDelivery.update({ where: { id: deliveryId }, data: parsed.data })
-  return NextResponse.json(updated)
 }
 
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string; deliveryId: string }> }
-) {
-  const { session, error } = await requireSession()
+export async function DELETE(_req: NextRequest, { params }: Context) {
+  const { error } = await requireDeliveryAccess("FULL")
   if (error) return error
-  if (!hasSectionAccess(session, "opportunities", "FULL"))
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-
   const { id, deliveryId } = await params
-  const existing = await db.expectedDelivery.findUnique({ where: { id: deliveryId } })
-  if (existing?.opportunityId !== id) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 })
+  try {
+    await changeDelivery(async (tx) => {
+      await getWritableDelivery(tx, id, deliveryId)
+      if (await getDeliveredQuantity(tx, deliveryId)) {
+        throw new DeliveryError("A delivery with recorded shipments cannot be removed.")
+      }
+      await tx.expectedDelivery.delete({ where: { id: deliveryId } })
+    })
+    return NextResponse.json({ ok: true })
+  } catch (error) {
+    return deliveryErrorResponse(error)
   }
-
-  await db.expectedDelivery.delete({ where: { id: deliveryId } })
-  return NextResponse.json({ ok: true })
 }

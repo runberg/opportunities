@@ -1,3 +1,4 @@
+import { openCredentialEmailBody } from "./credential-email-body"
 import type { Prisma } from "@prisma/client"
 import { db } from "./db"
 import { sendMail } from "./mailer"
@@ -38,9 +39,30 @@ export interface OutboxEmail {
   text: string
   module?: string
   itemId?: string
+  credentialVersion?: number
 }
 
 export type SendResult = "sent" | "retrying" | "failed" | "skipped"
+
+async function getMessageBody(email: {
+  to: string
+  itemId: string | null
+  credentialVersion: number | null
+  html: string
+  text: string
+}) {
+  if (email.credentialVersion === null) return { text: email.text, html: email.html }
+  const secret = process.env.NEXTAUTH_SECRET
+  if (!secret || !email.itemId) return null
+  const user = await db.user.findUnique({
+    where: { id: email.itemId },
+    select: { email: true, credentialVersion: true, temporaryPasswordExpiresAt: true },
+  })
+  if (user?.email !== email.to || user.credentialVersion !== email.credentialVersion ||
+      !user.temporaryPasswordExpiresAt || user.temporaryPasswordExpiresAt <= new Date()) return null
+
+  return openCredentialEmailBody(email.html, secret)
+}
 
 /** Queues emails for the worker to send on its next tick. Pass `tx` to queue them atomically
  * with other writes. */
@@ -75,10 +97,19 @@ async function attemptSend(id: string, fromStatus: "PENDING" | "FAILED", autoRet
   if (!email) return "skipped"
 
   try {
-    await sendMail({ to: email.to, subject: email.subject, html: email.html, text: email.text })
+    const body = await getMessageBody(email)
+    if (!body) {
+      await db.emailOutbox.delete({ where: { id } })
+      return "skipped"
+    }
+
+    await sendMail({ to: email.to, subject: email.subject, ...body })
     await db.emailOutbox.update({
       where: { id },
-      data: { status: "SENT", sentAt: new Date(), attempts: { increment: 1 }, lastError: null },
+      data: {
+        status: "SENT", sentAt: new Date(), attempts: { increment: 1 }, lastError: null,
+        ...(email.credentialVersion !== null && { html: "", text: "" }),
+      },
     })
     return "sent"
   } catch (err: unknown) {
@@ -88,7 +119,7 @@ async function attemptSend(id: string, fromStatus: "PENDING" | "FAILED", autoRet
       where: { id },
       data: {
         attempts,
-        lastError: errorMessage(err),
+        lastError: email.credentialVersion === null ? errorMessage(err) : "Credential email could not be sent.",
         status: retryDelay === undefined ? "FAILED" : "PENDING",
         ...(retryDelay !== undefined && { nextAttemptAt: minutesFromNow(retryDelay) }),
       },
@@ -136,6 +167,9 @@ export async function discardEmails(ids: string[]): Promise<number> {
 
 /** Housekeeping: requeue rows orphaned in SENDING and drop old sent emails. */
 export async function maintainOutbox(): Promise<void> {
+  await db.emailOutbox.deleteMany({
+    where: { credentialVersion: { not: null }, status: { in: ["PENDING", "FAILED"] }, createdAt: { lt: minutesFromNow(-48 * 60) } },
+  })
   await db.emailOutbox.updateMany({
     where: { status: "SENDING", updatedAt: { lt: minutesFromNow(-STALE_SENDING_MINUTES) } },
     data: { status: "PENDING", nextAttemptAt: new Date() },

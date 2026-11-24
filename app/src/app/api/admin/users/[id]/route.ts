@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/shared/lib/db"
-import bcrypt from "bcryptjs"
 import { z } from "zod"
 import { requireAdmin, ACCESS_LEVELS } from "@/shared/lib/api"
 import { writeLog } from "@/shared/lib/system-log"
@@ -10,32 +9,30 @@ const updateSchema = z.object({
   email: z.string().email().optional(),
   role: z.enum(["ADMIN", "USER"]).optional(),
   active: z.boolean().optional(),
-  newPassword: z.string().min(8).optional().or(z.literal("")),
   opportunitiesAccess: z.enum(ACCESS_LEVELS).optional(),
   adhocAccess: z.enum(ACCESS_LEVELS).optional(),
   inventoryAccess: z.enum(ACCESS_LEVELS).optional(),
+  clientsAccess: z.enum(ACCESS_LEVELS).optional(),
 })
 
 type AccessFields = {
   opportunitiesAccess?: string
   adhocAccess?: string
   inventoryAccess?: string
+  clientsAccess?: string
 }
 
-async function buildUserData(
+function buildUserData(
   rest: { name?: string; email?: string; role?: string; active?: boolean },
-  newPassword: string | undefined,
   access: AccessFields,
-): Promise<Record<string, unknown>> {
+): Record<string, unknown> {
   const data: Record<string, unknown> = { ...rest, ...access }
   if (rest.email) data.name = rest.email
-  if (newPassword) data.password = await bcrypt.hash(newPassword, 12)
   return data
 }
 
 function buildUserChanges(
   rest: { name?: string; email?: string; role?: string; active?: boolean },
-  newPassword: string | undefined,
   access: AccessFields,
 ): string[] {
   const changes: string[] = []
@@ -43,10 +40,10 @@ function buildUserChanges(
   if (rest.email) changes.push(`email set to "${rest.email}"`)
   if (rest.role) changes.push(`role set to ${rest.role}`)
   if (rest.active !== undefined) changes.push(rest.active ? "account activated" : "account deactivated")
-  if (newPassword) changes.push("password reset")
   if (access.opportunitiesAccess) changes.push(`opportunities access → ${access.opportunitiesAccess}`)
   if (access.adhocAccess) changes.push(`ad hoc access → ${access.adhocAccess}`)
   if (access.inventoryAccess) changes.push(`inventory access → ${access.inventoryAccess}`)
+  if (access.clientsAccess) changes.push(`clients access → ${access.clientsAccess}`)
   return changes
 }
 
@@ -64,19 +61,20 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid input" }, { status: 400 })
   }
 
-  const { newPassword, opportunitiesAccess, adhocAccess, inventoryAccess, ...rest } = parsed.data
-  const access: AccessFields = { opportunitiesAccess, adhocAccess, inventoryAccess }
+  const { opportunitiesAccess, adhocAccess, inventoryAccess, clientsAccess, ...rest } = parsed.data
+  const access: AccessFields = { opportunitiesAccess, adhocAccess, inventoryAccess, clientsAccess }
 
-  if (opportunitiesAccess !== undefined || adhocAccess !== undefined || inventoryAccess !== undefined) {
+  if (opportunitiesAccess !== undefined || adhocAccess !== undefined || inventoryAccess !== undefined || clientsAccess !== undefined || rest.role !== undefined) {
     const current = await db.user.findUnique({
       where: { id },
-      select: { opportunitiesAccess: true, adhocAccess: true, inventoryAccess: true },
+      select: { opportunitiesAccess: true, adhocAccess: true, inventoryAccess: true, clientsAccess: true, role: true },
     })
     if (!current) return NextResponse.json({ error: "User not found" }, { status: 404 })
     const resolvedOpps = opportunitiesAccess ?? current.opportunitiesAccess
     const resolvedAdhoc = adhocAccess ?? current.adhocAccess
     const resolvedInventory = inventoryAccess ?? current.inventoryAccess
-    if (resolvedOpps === "NONE" && resolvedAdhoc === "NONE" && resolvedInventory === "NONE") {
+    const resolvedClients = clientsAccess ?? current.clientsAccess
+    if ((rest.role ?? current.role) !== "ADMIN" && [resolvedOpps, resolvedAdhoc, resolvedInventory, resolvedClients].every((level) => level === "NONE")) {
       return NextResponse.json(
         { error: "A user must have access to at least one section." },
         { status: 400 }
@@ -94,15 +92,15 @@ export async function PATCH(
     }
   }
 
-  const data = await buildUserData(rest, newPassword || undefined, access)
+  const data = buildUserData(rest, access)
 
   const user = await db.user.update({
     where: { id },
     data,
-    select: { id: true, email: true, role: true, active: true, createdAt: true, opportunitiesAccess: true, adhocAccess: true, inventoryAccess: true },
+    select: { id: true, email: true, role: true, active: true, createdAt: true, opportunitiesAccess: true, adhocAccess: true, inventoryAccess: true, clientsAccess: true },
   })
 
-  const changes = buildUserChanges(rest, newPassword || undefined, access)
+  const changes = buildUserChanges(rest, access)
 
   await writeLog({
     type: "USER_UPDATED",

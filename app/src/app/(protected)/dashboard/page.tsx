@@ -4,6 +4,7 @@ import { PeriodSelector } from "@/modules/opportunities/components/dashboard/per
 import { PipelineFlow } from "@/modules/opportunities/components/dashboard/pipeline-flow"
 import { QuoteActivitySection, ElActivitySection, ProductionActivitySection } from "@/modules/opportunities/components/dashboard/activity-sections"
 import { RecentActivity } from "@/modules/opportunities/components/dashboard/recent-activity"
+import { deliveredQuantity } from "@/modules/opportunities/deliveries/types"
 import { DeliveryPlan } from "@/modules/opportunities/components/dashboard/delivery-plan"
 import { PIPELINE_STATUSES } from "@/shared/lib/utils"
 import type { RfqTrendBucket, ElTrendBucket, ProdTrendBucket } from "@/modules/opportunities/components/dashboard/charts"
@@ -200,6 +201,7 @@ export default async function DashboardPage({
       },
       include: {
         opportunity: { select: { id: true, title: true, internalId: true, customer: true } },
+        shipments: { select: { quantity: true } },
       },
       orderBy: [{ deliveryYear: "asc" }, { deliveryMonth: "asc" }],
     }),
@@ -252,11 +254,11 @@ export default async function DashboardPage({
   const deliveryItems = deliveryRaw.map((d) => ({
     id: d.id,
     unitType: d.unitType,
-    quantity: d.quantity,
+    quantity: d.quantity - deliveredQuantity(d.shipments),
     deliveryMonth: d.deliveryMonth,
     deliveryYear: d.deliveryYear,
     opportunity: d.opportunity,
-  }))
+  })).filter((delivery) => delivery.quantity > 0)
 
   const recentItems = recentRaw.map((r) => ({
     id: r.id, title: r.title, customer: r.customer, internalId: r.internalId,

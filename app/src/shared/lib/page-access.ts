@@ -3,7 +3,14 @@ import { authOptions } from "@/shared/lib/auth"
 import { redirect } from "next/navigation"
 import type { Session } from "next-auth"
 
-export type SectionName = "opportunities" | "adhoc" | "inventory"
+export async function requirePortalPageSession(): Promise<Session> {
+  const session = await getServerSession(authOptions)
+  if (!session) redirect("/login")
+  if (session.user.mustChangePassword) redirect("/choose-password")
+  return session
+}
+
+export type SectionName = "opportunities" | "adhoc" | "inventory" | "clients"
 
 export type SectionAccess = {
   session: Session
@@ -21,11 +28,17 @@ export async function requireSectionAccess(
   section: SectionName,
   redirectOnNone = "/dashboard",
 ): Promise<SectionAccess> {
-  const session = await getServerSession(authOptions)
-  if (!session) redirect("/login")
+  const session = await requirePortalPageSession()
   const isAdmin = session.user.role === "ADMIN"
   const access = sectionAccessLevel(section, session)
-  if (!isAdmin && access === "NONE") redirect(redirectOnNone)
+  if (!isAdmin && access === "NONE") {
+    if (session.user.opportunitiesAccess === "NONE" && session.user.adhocAccess === "NONE") {
+      if (session.user.clientsAccess !== "NONE") redirect("/clients")
+      if (session.user.inventoryAccess !== "NONE") redirect("/inventory")
+      redirect("/profile")
+    }
+    redirect(redirectOnNone)
+  }
   const isReadOnly = !isAdmin && access === "READ_ONLY"
   return { session, isAdmin, isReadOnly }
 }
@@ -33,6 +46,7 @@ export async function requireSectionAccess(
 function sectionAccessLevel(section: SectionName, session: Session): string {
   if (section === "opportunities") return session.user.opportunitiesAccess
   if (section === "adhoc") return session.user.adhocAccess
+  if (section === "clients") return session.user.clientsAccess
   return session.user.inventoryAccess
 }
 

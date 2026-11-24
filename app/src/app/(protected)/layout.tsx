@@ -1,6 +1,4 @@
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/shared/lib/auth"
-import { redirect } from "next/navigation"
+import { requirePortalPageSession } from "@/shared/lib/page-access"
 import { Sidebar } from "@/shared/components/layout/sidebar"
 import { GlobalSearch } from "@/shared/components/layout/global-search"
 import { countFailedEmails } from "@/shared/lib/email-outbox"
@@ -10,8 +8,7 @@ export default async function ProtectedLayout({
 }: {
   readonly children: React.ReactNode
 }) {
-  const session = await getServerSession(authOptions)
-  if (!session) redirect("/login")
+  const session = await requirePortalPageSession()
 
   const isAdmin = session.user.role === "ADMIN"
   const isOpportunitiesReadOnly = !isAdmin && session.user.opportunitiesAccess === "READ_ONLY"
@@ -25,6 +22,7 @@ export default async function ProtectedLayout({
         opportunitiesAccess={session.user.opportunitiesAccess}
         adhocAccess={session.user.adhocAccess}
         inventoryAccess={session.user.inventoryAccess}
+        clientsAccess={session.user.clientsAccess}
         failedEmailCount={failedEmailCount}
       />
       <main className="flex-1 ml-60 overflow-y-auto">

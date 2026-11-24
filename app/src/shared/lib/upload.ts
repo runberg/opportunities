@@ -48,9 +48,11 @@ export async function serveFile(
   } catch {
     return NextResponse.json({ error: "File not found on disk" }, { status: 404 })
   }
-  const disposition = inline
-    ? `inline; filename="${encodeURIComponent(doc.originalName)}"`
-    : `attachment; filename="${doc.originalName}"`
+  const fallback = doc.originalName.replace(/[^\x20-\x7E]|["\\]/g, "_")
+  const encodedName = encodeURIComponent(doc.originalName).replace(/['()*]/g, (character) =>
+    "%" + character.charCodeAt(0).toString(16).toUpperCase()
+  )
+  const disposition = `${inline ? "inline" : "attachment"}; filename="${fallback}"; filename*=UTF-8''${encodedName}`
   return new NextResponse(bytes.buffer as ArrayBuffer, {
     headers: {
       "Content-Type": doc.mimeType,
