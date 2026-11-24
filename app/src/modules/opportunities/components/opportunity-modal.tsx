@@ -45,6 +45,7 @@ interface OpportunityFull {
   isArchived: boolean
   id: string; internalId: string | null; title: string; customer: string
   clientId: string | null
+  clientActivity: LogEntry[]
   canManageClient: boolean
   reference: string | null; projectCode: string | null; rfqDate: string | null; product: string | null
   status: string; waitingOn: string
@@ -611,7 +612,12 @@ function ViewMode({ data, isAdmin, isReadOnly, onRefresh, onSilentRefresh }: {
           isReadOnly={isReadOnly} isEL={isEL} isProduction={isProduction} onRefresh={onRefresh} />
       </div>
 
-      <LogSection commentEndpoint={`/api/opportunities/${data.id}/comments`} entries={data.comments}
+      <LogSection commentEndpoint={`/api/opportunities/${data.id}/comments`} entries={[
+        ...data.comments.map((entry) => entry.system ? entry : {
+          ...entry, source: { label: `Opportunity · ${data.internalId ?? data.title}` },
+        }),
+        ...data.clientActivity,
+      ]}
         isReadOnly={isReadOnly} onRefresh={onRefresh} />
     </div>
   )

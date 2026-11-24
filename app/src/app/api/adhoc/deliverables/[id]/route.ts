@@ -1,3 +1,4 @@
+import { getLinkedClientActivity } from "@/modules/clients/activity"
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/shared/lib/db"
 import { requireSession, hasSectionAccess } from "@/shared/lib/api"
@@ -47,6 +48,7 @@ export async function GET(
   if (!deliverable) return NextResponse.json({ error: "Not found" }, { status: 404 })
   return NextResponse.json({
     ...deliverable,
+    clientActivity: await getLinkedClientActivity(result.session, deliverable),
     canManageClient: !deliverable.isArchived && hasSectionAccess(result.session, "clients", "FULL") &&
       hasSectionAccess(result.session, "adhoc", "FULL") &&
       (deliverable.status !== "CLOSED_FINANCE" || result.session.user.role === "ADMIN"),

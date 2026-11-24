@@ -37,8 +37,24 @@ export default async function ClientPage({
       canUnlink: writableKinds.includes("adhoc") && !item.isArchived && (isAdmin || item.status !== "CLOSED_FINANCE"),
     })),
   ]
+  const workBySource = new Map(linkedWork.map((item) => [`${item.kind}:${item.id}`, item]))
+  const workComments = [
+    ...client.opportunities.map((item) => ({ ...item, kind: "opportunities" })),
+    ...client.adhoc.map((item) => ({ ...item, kind: "adhoc" })),
+  ].flatMap((item) => {
+    const source = workBySource.get(`${item.kind}:${item.id}`)
+    if (!source) return []
+    const kind = source.kind === "opportunities" ? "Opportunity" : "Ad Hoc package"
+    return item.comments.map((comment) => ({
+      id: comment.id,
+      content: comment.content,
+      date: comment.createdAt.toISOString(),
+      authorName: comment.author?.name ?? null,
+      source: { label: `${kind} · ${source.internalId ?? source.title}`, href: source.href },
+    }))
+  })
   return <ClientDetail client={{
     id: client.id, codeName: client.codeName, name: client.name, description: client.description,
     communications: client.communications.map((entry) => ({ ...entry, communicatedAt: entry.communicatedAt.toISOString() })),
-  }} work={linkedWork} writableKinds={writableKinds} isAdmin={isAdmin} canWrite={!isReadOnly} preset={preset} />
+  }} workComments={workComments} work={linkedWork} writableKinds={writableKinds} isAdmin={isAdmin} canWrite={!isReadOnly} preset={preset} />
 }

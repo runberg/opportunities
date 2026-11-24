@@ -70,6 +70,7 @@ type Deliverable = {
   financeAmount: string | null
   customer: string | null
   clientId: string | null
+  clientActivity: LogEntry[]
   canManageClient: boolean
   status: "NOT_APPROVED" | "PARTIALLY_APPROVED" | "APPROVED" | "DELIVERED" | "CLOSED_FINANCE" | "CANCELLED"
   partiallyApprovedAt: string | null
@@ -1356,7 +1357,9 @@ function DeliverableTabContent({ loading, deliverable, activeTab, initialDocumen
           entries={[
             ...deliverable.comments.map((c): LogEntry => ({
               id: c.id, content: c.content, system: c.system, createdAt: c.createdAt, author: c.author,
+              ...(!c.system && { source: { label: `Ad Hoc package · ${deliverable.internalId ?? deliverable.title}` } }),
             })),
+            ...deliverable.clientActivity,
             ...deliverable.systemLogs.map((l): LogEntry => ({
               id: l.id, content: l.message, system: true, createdAt: l.createdAt, author: l.user,
             })),

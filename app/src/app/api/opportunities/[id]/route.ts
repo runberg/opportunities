@@ -1,3 +1,4 @@
+import { getLinkedClientActivity } from "@/modules/clients/activity"
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/shared/lib/db"
 import { z } from "zod"
@@ -45,6 +46,7 @@ export async function GET(
   const { preSalesCosts, ...details } = opportunity
   return NextResponse.json({
     ...details,
+    clientActivity: await getLinkedClientActivity(session, opportunity),
     preSalesEstimate: {
       items: preSalesCosts,
       total: preSalesCosts.reduce((sum, cost) => sum.plus(cost.estimatedAmount), new Prisma.Decimal(0)).toFixed(2),

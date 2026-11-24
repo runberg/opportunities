@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
+import { ActivitySourceLabel, type ActivitySource } from "@/shared/components/ui/log-section"
 import { Button } from "@/shared/components/ui/button"
 import { formatDateTime } from "@/shared/lib/utils"
 import type { WorkKind } from "../validation"
@@ -14,6 +15,15 @@ export type LinkedWork = {
   id: string; kind: WorkKind; title: string; internalId: string | null; href: string; canUnlink: boolean; archived: boolean
 }
 
+type ClientActivityItem = {
+  id: string
+  content: string
+  date: string
+  authorName: string | null
+  source: ActivitySource
+  context?: string
+}
+
 type Details = {
   id: string; codeName: string
   name?: string; description?: string
@@ -21,10 +31,11 @@ type Details = {
 }
 
 export function ClientDetail({
-  client, work, writableKinds, isAdmin, canWrite, preset,
+  client, work, workComments, writableKinds, isAdmin, canWrite, preset,
 }: {
   readonly client: Details
   readonly work: LinkedWork[]
+  readonly workComments: ClientActivityItem[]
   readonly writableKinds: WorkKind[]
   readonly isAdmin: boolean
   readonly canWrite: boolean
@@ -70,6 +81,17 @@ export function ClientDetail({
   }
 
   const opportunities = work.filter((item) => item.kind === "opportunities").length
+  const communications: ClientActivityItem[] = client.communications.map((entry) => ({
+    id: `client-communication-${entry.id}`,
+    content: entry.summary,
+    date: entry.communicatedAt,
+    authorName: entry.author.name,
+    source: { label: "Client communication" },
+    context: `${entry.channel} · ${entry.recipient}`,
+  }))
+  const activity = [...communications, ...workComments].sort(
+    (first, second) => Date.parse(second.date) - Date.parse(first.date),
+  )
 
   return (
     <div className="max-w-5xl space-y-5">
@@ -125,29 +147,30 @@ export function ClientDetail({
         ) : <p className="text-sm text-gray-500">No linked work to show.</p>}
       </section>
 
-      {canWrite && (
-        <section className="rounded-xl border border-gray-200 bg-white p-5 space-y-4">
-          <div className="flex items-center justify-between gap-4">
-            <h2 className="text-lg font-semibold">Communications</h2>
-            {!addingNote && <Button onClick={() => setAddingNote(true)}>Log communication</Button>}
-          </div>
-          {addingNote && <CommunicationForm clientId={client.id} onCancel={() => setAddingNote(false)} />}
-          {client.communications.length ? (
-            <ul className="divide-y divide-gray-100">
-              {client.communications.map((entry) => (
-                <li key={entry.id} className="py-3 space-y-1 text-sm">
-                  <p className="font-medium">{entry.channel} · {entry.recipient}</p>
+      <section id="communications" className="scroll-mt-20 rounded-xl border border-gray-200 bg-white p-5 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <h2 className="text-lg font-semibold">Communications</h2>
+          {canWrite && !addingNote && <Button onClick={() => setAddingNote(true)}>Log communication</Button>}
+        </div>
+        {canWrite && addingNote && <CommunicationForm clientId={client.id} onCancel={() => setAddingNote(false)} />}
+        {activity.length ? (
+          <ul className="divide-y divide-gray-100">
+            {activity.map((entry) => (
+              <li key={entry.id} className="space-y-1 py-3 text-sm">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <ActivitySourceLabel source={entry.source} />
                   <p className="text-xs text-gray-500">
-                    <time dateTime={entry.communicatedAt} suppressHydrationWarning>{formatDateTime(entry.communicatedAt)}</time>
-                    {" · Logged by "}{entry.author.name}
+                    <time dateTime={entry.date} suppressHydrationWarning>{formatDateTime(entry.date)}</time>
+                    {entry.authorName && ` · ${entry.authorName}`}
                   </p>
-                  <p className="whitespace-pre-wrap break-words text-gray-700">{entry.summary}</p>
-                </li>
-              ))}
-            </ul>
-          ) : <p className="text-sm text-gray-500">No communications logged yet.</p>}
-        </section>
-      )}
+                </div>
+                {entry.context && <p className="font-medium">{entry.context}</p>}
+                <p className="whitespace-pre-wrap break-words text-gray-700">{entry.content}</p>
+              </li>
+            ))}
+          </ul>
+        ) : <p className="text-sm text-gray-500">No communications or linked work comments to show.</p>}
+      </section>
 
       {isAdmin && <Button variant="danger" onClick={() => { setConfirm("delete"); setError("") }}>Delete client</Button>}
       {confirm && (

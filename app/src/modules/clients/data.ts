@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client"
 import type { Session } from "next-auth"
 import { db } from "@/shared/lib/db"
 import { hasSectionAccess } from "@/shared/lib/api"
+import { listClientCommunications } from "./activity"
 import type { WorkKind } from "./validation"
 
 const clientPublic = { id: true, codeName: true } as const
@@ -16,6 +17,11 @@ export function listClients(session: Session) {
 
 const workSelect = { id: true, internalId: true, title: true, customer: true, status: true, isArchived: true, clientId: true } as const
 
+const humanComments = {
+  where: { system: false },
+  select: { id: true, content: true, createdAt: true, author: { select: { name: true } } },
+} as const
+
 export async function getClient(session: Session, id: string) {
   const canWrite = hasSectionAccess(session, "clients", "FULL")
   const client = await db.client.findUnique({
@@ -26,19 +32,12 @@ export async function getClient(session: Session, id: string) {
 
   const [opportunities, adhoc, communications] = await Promise.all([
     hasSectionAccess(session, "opportunities", "READ_ONLY")
-      ? db.opportunity.findMany({ where: { clientId: id }, select: workSelect, orderBy: { title: "asc" } }) : [],
+      ? db.opportunity.findMany({ where: { clientId: id }, select: { ...workSelect, comments: humanComments }, orderBy: { title: "asc" } }) : [],
     hasSectionAccess(session, "adhoc", "READ_ONLY")
       ? db.adhocDeliverable.findMany({
-        where: { clientId: id }, select: { ...workSelect, agreementId: true }, orderBy: { title: "asc" },
+        where: { clientId: id }, select: { ...workSelect, agreementId: true, comments: humanComments }, orderBy: { title: "asc" },
       }) : [],
-    canWrite ? db.clientCommunication.findMany({
-      where: { clientId: id },
-      select: {
-        id: true, communicatedAt: true, channel: true, recipient: true, summary: true,
-        author: { select: { name: true } },
-      },
-      orderBy: [{ communicatedAt: "desc" }, { createdAt: "desc" }],
-    }) : [],
+    canWrite ? listClientCommunications(id) : [],
   ])
   return { ...client, opportunities, adhoc, communications }
 }
