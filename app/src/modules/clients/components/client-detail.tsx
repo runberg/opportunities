@@ -2,6 +2,8 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { OpportunityModal } from "@/modules/opportunities/components/opportunity-modal"
+import { DeliverableModal } from "@/modules/adhoc/components/deliverable-modal"
 import { useState } from "react"
 import { ActivitySourceLabel, type ActivitySource } from "@/shared/components/ui/log-section"
 import { Button } from "@/shared/components/ui/button"
@@ -31,7 +33,7 @@ type Details = {
 }
 
 export function ClientDetail({
-  client, work, workComments, writableKinds, isAdmin, canWrite, preset,
+  client, work, workComments, writableKinds, isAdmin, canWrite, preset, openWork, workAccess,
 }: {
   readonly client: Details
   readonly work: LinkedWork[]
@@ -40,8 +42,11 @@ export function ClientDetail({
   readonly isAdmin: boolean
   readonly canWrite: boolean
   readonly preset?: WorkPreset
+  readonly openWork?: LinkedWork
+  readonly workAccess: Record<WorkKind, boolean>
 }) {
   const router = useRouter()
+  const closeWork = () => router.replace(`/clients/${client.id}`, { scroll: false })
   const [editing, setEditing] = useState(false)
   const [addingNote, setAddingNote] = useState(false)
   const [picker, setPicker] = useState<WorkKind | null>(preset?.kind ?? null)
@@ -97,7 +102,7 @@ export function ClientDetail({
     <div className="max-w-5xl space-y-5">
       <header className="space-y-2">
         <Link href="/clients" className="text-sm text-blue-700 hover:underline">← Clients</Link>
-        <h1 className="text-2xl font-semibold text-gray-900">{client.codeName}</h1>
+        <h1 className="text-2xl font-semibold text-gray-900" title={client.name}>{client.codeName}</h1>
       </header>
       {canWrite && (
         <section className="rounded-xl border border-gray-200 bg-white p-5 space-y-4">
@@ -134,7 +139,7 @@ export function ClientDetail({
             {work.map((item) => (
               <li key={`${item.kind}-${item.id}`} className="py-2 flex items-center justify-between gap-4">
                 <div className="text-sm">
-                  <Link href={item.href} className="font-medium text-blue-700 hover:underline">{item.title}</Link>
+                  <Link href={item.href} scroll={false} className="font-medium text-blue-700 hover:underline">{item.title}</Link>
                   <p className="mt-1 text-gray-500">
                     {item.kind === "opportunities" ? "Opportunity" : "Ad Hoc package"}
                     {item.internalId && ` · ${item.internalId}`}{item.archived && " · Archived"}
@@ -171,6 +176,14 @@ export function ClientDetail({
           </ul>
         ) : <p className="text-sm text-gray-500">No communications or linked work comments to show.</p>}
       </section>
+
+      {openWork?.kind === "opportunities" && (
+        <OpportunityModal opportunityId={openWork.id} isAdmin={isAdmin} isReadOnly={!workAccess.opportunities} onClose={closeWork} />
+      )}
+      {openWork?.kind === "adhoc" && (
+        <DeliverableModal key={openWork.id} deliverableId={openWork.id} isAdmin={isAdmin}
+          isReadOnly={!workAccess.adhoc} onClose={closeWork} onRefresh={async () => router.refresh()} />
+      )}
 
       {isAdmin && <Button variant="danger" onClick={() => { setConfirm("delete"); setError("") }}>Delete client</Button>}
       {confirm && (

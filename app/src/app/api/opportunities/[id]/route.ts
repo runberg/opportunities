@@ -1,3 +1,4 @@
+import { linkedClientSelection } from "@/modules/clients/data"
 import { getLinkedClientActivity } from "@/modules/clients/activity"
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/shared/lib/db"
@@ -22,6 +23,7 @@ export async function GET(
   const opportunity = await db.opportunity.findUnique({
     where: { id },
     include: {
+      client: linkedClientSelection(session),
       preSalesCosts: {
         orderBy: [{ createdAt: "asc" }, { id: "asc" }],
         select: { id: true, item: true, estimatedAmount: true, note: true },

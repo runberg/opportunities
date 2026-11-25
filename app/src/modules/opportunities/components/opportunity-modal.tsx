@@ -1,5 +1,6 @@
 "use client"
 
+import { ClientName, type ClientIdentity } from "@/shared/components/clients/client-name"
 import { ClientWorkLink } from "@/shared/components/clients/client-work-link"
 
 import { useEffect, useState, useCallback, useRef } from "react"
@@ -45,6 +46,7 @@ interface OpportunityFull {
   isArchived: boolean
   id: string; internalId: string | null; title: string; customer: string
   clientId: string | null
+  client?: ClientIdentity | null
   clientActivity: LogEntry[]
   canManageClient: boolean
   reference: string | null; projectCode: string | null; rfqDate: string | null; product: string | null
@@ -64,13 +66,14 @@ interface OpportunityFull {
 // ─── Main modal ──────────────────────────────────────────────────────────────
 
 export function OpportunityModal({
-  opportunityId, onClose, isAdmin, isReadOnly = false, justCreated = false,
+  opportunityId, onClose, isAdmin, isReadOnly = false, justCreated = false, onClientNavigate,
 }: {
   readonly opportunityId: string | null
   readonly onClose: () => void
   readonly isAdmin: boolean
   readonly isReadOnly?: boolean
   readonly justCreated?: boolean
+  readonly onClientNavigate?: () => void
 }) {
   const router = useRouter()
   const [data, setData] = useState<OpportunityFull | null>(null)
@@ -161,6 +164,7 @@ export function OpportunityModal({
                 isReadOnly={isReadOnly || data.isArchived}
                 onRefresh={refresh}
                 onSilentRefresh={silentRefresh}
+                onClientNavigate={onClientNavigate}
               />
             )}
           </div>
@@ -292,12 +296,13 @@ function DocumentsSection({
 
 // ─── View mode ────────────────────────────────────────────────────────────────
 
-function ViewMode({ data, isAdmin, isReadOnly, onRefresh, onSilentRefresh }: {
+function ViewMode({ data, isAdmin, isReadOnly, onRefresh, onSilentRefresh, onClientNavigate }: {
   readonly data: OpportunityFull
   readonly isAdmin: boolean
   readonly isReadOnly: boolean
   readonly onRefresh: () => void
   readonly onSilentRefresh: () => void
+  readonly onClientNavigate?: () => void
 }) {
   const isEL = (EL_STATUSES as readonly string[]).includes(data.status)
   const isProduction = (PRODUCTION_STATUSES as readonly string[]).includes(data.status)
@@ -314,6 +319,8 @@ function ViewMode({ data, isAdmin, isReadOnly, onRefresh, onSilentRefresh }: {
 
   // Reset form when server data refreshes, but only if user hasn't made unsaved edits
   useEffect(() => { if (!userDirtyRef.current) setForm(makeForm(data)) }, [data])
+
+  useEffect(() => { setForm((current) => ({ ...current, customer: data.customer })) }, [data.clientId, data.customer])
 
   const isDirty =
     form.title !== data.title ||
@@ -565,9 +572,13 @@ function ViewMode({ data, isAdmin, isReadOnly, onRefresh, onSilentRefresh }: {
       {/* Info section */}
       <div className="flex flex-col gap-4 mb-4">
         <FormField label="Customer" required>
-          <input value={form.customer} onChange={(e) => set("customer", e.target.value)}
-            readOnly={isReadOnly || !!data.clientId} placeholder="Customer name" className={interactiveCls} />
-          {data.canManageClient && !isReadOnly && <ClientWorkLink kind="opportunities" workId={data.id} linked={!!data.clientId} />}
+          {data.clientId ? (
+            <div className={FORM_INPUT_CLS}><ClientName label={data.customer} client={data.client} onNavigate={onClientNavigate} /></div>
+          ) : (
+            <input value={form.customer} onChange={(e) => set("customer", e.target.value)}
+              readOnly={isReadOnly} placeholder="Customer name" className={interactiveCls} />
+          )}
+          {data.canManageClient && !isReadOnly && <ClientWorkLink kind="opportunities" workId={data.id} clientId={data.clientId} onSaved={onRefresh} />}
         </FormField>
         <FormField label="Product / Service">
           <input value={form.product} onChange={(e) => set("product", e.target.value)}

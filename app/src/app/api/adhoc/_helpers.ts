@@ -1,7 +1,9 @@
+import type { Session } from "next-auth"
+import { linkedClientSelection } from "@/modules/clients/data"
 import { db } from "@/shared/lib/db"
 import { writeLog } from "@/shared/lib/system-log"
 
-export function findAllAgreements() {
+export function findAllAgreements(session: Session) {
   return db.adhocAgreement.findMany({
     orderBy: { createdAt: "asc" },
     include: {
@@ -21,6 +23,7 @@ export function findAllAgreements() {
           deliveredAt: true,
           deliveryNoteRef: true,
           customer: true,
+          client: linkedClientSelection(session),
           lineItems: { select: { amount: true } },
           documents: { select: { id: true } },
         },

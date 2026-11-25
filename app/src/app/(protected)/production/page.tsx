@@ -1,3 +1,4 @@
+import { linkedClientSelection } from "@/modules/clients/data"
 import { Suspense } from "react"
 import { db } from "@/shared/lib/db"
 import { requireSectionAccess } from "@/shared/lib/page-access"
@@ -20,7 +21,7 @@ export default async function ProductionPage({
 }: {
   readonly searchParams: Promise<SearchParams>
 }) {
-  const [params, { isAdmin, isReadOnly }] = await Promise.all([
+  const [params, { session, isAdmin, isReadOnly }] = await Promise.all([
     searchParams,
     requireSectionAccess("opportunities"),
   ])
@@ -34,7 +35,7 @@ export default async function ProductionPage({
   const [opportunities, total] = await Promise.all([
     db.opportunity.findMany({
       where,
-      include: { _count: { select: { comments: true, documents: true } } },
+      include: { client: linkedClientSelection(session), _count: { select: { comments: true, documents: true } } },
       orderBy: { updatedAt: "desc" },
       skip: (page - 1) * perPage,
       take: perPage,
@@ -48,6 +49,7 @@ export default async function ProductionPage({
     createdAt: opp.createdAt.toISOString(),
     title: opp.title,
     customer: opp.customer,
+    client: opp.client,
     reference: opp.reference,
     product: opp.product,
     status: opp.isArchived ? "ARCHIVED" : opp.status,

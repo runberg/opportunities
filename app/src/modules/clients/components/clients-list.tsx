@@ -61,7 +61,7 @@ export function ClientsList({
                 <Fragment key={client.id}>
                   <tr>
                     <th scope="row" className="px-5 py-3 font-medium">
-                      <Link href={href} className="text-blue-700 hover:underline">{client.codeName}</Link>
+                      <Link href={href} title={client.name} className="text-blue-700 hover:underline">{client.codeName}</Link>
                     </th>
                     {canWrite && <td className="px-5 py-3 text-gray-600">{client.name}</td>}
                     {canWrite && !preset && (

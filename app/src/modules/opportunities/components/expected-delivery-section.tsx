@@ -58,7 +58,8 @@ function toRows(lines: DeliveryLine[]): DeliveryRowState[] {
   return lines.length > 0 ? lines.map(fromDelivery) : [makeNewRow()]
 }
 
-function DeliveryViewRow({ row, delivery, opportunityId, onEdit, onDelete, onRefresh, isReadOnly }: {
+function DeliveryViewRow({ row, delivery, opportunityId, onEdit, onDelete, onRefresh, isReadOnly, isAdmin }: {
+  readonly isAdmin: boolean
   readonly delivery: DeliveryLine
   readonly opportunityId: string
   readonly onRefresh: () => void
@@ -76,7 +77,7 @@ function DeliveryViewRow({ row, delivery, opportunityId, onEdit, onDelete, onRef
 
   return (
     <ShipmentHistory delivery={delivery} opportunityId={opportunityId} remaining={remaining}
-      isReadOnly={isReadOnly} onRefresh={onRefresh}
+      isReadOnly={isReadOnly} isAdmin={isAdmin} onRefresh={onRefresh}
       summary={
         <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2">
           <div className="min-w-0">
@@ -94,7 +95,7 @@ function DeliveryViewRow({ row, delivery, opportunityId, onEdit, onDelete, onRef
         <>
           <button type="button" onClick={onEdit} disabled={row.saving} aria-label="Edit delivery plan" title="Edit delivery plan"
             className="rounded p-1.5 text-gray-600 dark:text-slate-400 hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-slate-700 dark:hover:text-slate-100"><Pencil size={14} /></button>
-          {delivery.shipments.length === 0 && (
+          {isAdmin && (
             <button type="button" onClick={onDelete} disabled={row.saving} aria-label="Delete delivery plan" title="Delete delivery plan"
               className="rounded p-1.5 text-gray-600 dark:text-slate-400 hover:bg-red-500/10 hover:text-red-300"><Trash2 size={14} /></button>
           )}
@@ -138,8 +139,9 @@ function DeliveryEditRow({ row, delivered, onChange, onSave, onCancel }: {
   )
 }
 
-export function ExpectedDeliverySection({ opportunityId, deliveries, isReadOnly, onRefresh }: {
+export function ExpectedDeliverySection({ opportunityId, deliveries, isReadOnly, isAdmin, onRefresh }: {
   readonly opportunityId: string
+  readonly isAdmin: boolean
   readonly deliveries: DeliveryLine[]
   readonly isReadOnly: boolean
   readonly onRefresh: () => void
@@ -200,6 +202,7 @@ export function ExpectedDeliverySection({ opportunityId, deliveries, isReadOnly,
   async function deleteRow(index: number) {
     const row = rows[index]
     if (!row.id) { cancelRow(index); return }
+    if (!window.confirm("Delete this delivery plan and any recorded deliveries and delivery notes?")) return
     updateRow(index, { saving: true, error: "" })
     try {
       const res = await fetch(`/api/opportunities/${opportunityId}/deliveries/${row.id}`, { method: "DELETE" })
@@ -240,7 +243,7 @@ export function ExpectedDeliverySection({ opportunityId, deliveries, isReadOnly,
               onRefresh={onRefresh}
               onEdit={() => updateRow(i, { editing: true })}
               onDelete={() => deleteRow(i)}
-              isReadOnly={isReadOnly} />
+              isReadOnly={isReadOnly} isAdmin={isAdmin} />
           }
           return null
         })}

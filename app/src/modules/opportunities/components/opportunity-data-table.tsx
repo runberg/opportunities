@@ -1,5 +1,7 @@
 "use client"
 
+import { ClientName, type ClientIdentity } from "@/shared/components/clients/client-name"
+
 import { useRef, useEffect } from "react"
 import { Check, Minus } from "lucide-react"
 import { cn, formatDate, statusAgeLabel, calendarAgeLabel, isCalendarDateStatus } from "@/shared/lib/utils"
@@ -14,6 +16,7 @@ export interface OppTableRow {
   createdAt?: string | null
   title: string
   customer: string
+  client?: ClientIdentity | null
   reference: string | null
   product: string | null
   status: string
@@ -202,7 +205,7 @@ export function OpportunityDataTable({
                     <div className="text-xs text-gray-400 italic mt-0.5 truncate">{row.lastChange}</div>
                   )}
                 </td>
-                <td className="px-4 py-3 text-gray-600 hidden sm:table-cell">{row.customer}</td>
+                <td className="px-4 py-3 text-gray-600 hidden sm:table-cell"><ClientName label={row.customer} client={row.client} /></td>
                 <td className={cn("px-4 py-3 text-gray-500 max-w-xs truncate hidden", showPhases ? "lg:table-cell" : "md:table-cell")}>
                   {row.product ?? "—"}
                 </td>

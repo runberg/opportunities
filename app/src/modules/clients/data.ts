@@ -7,6 +7,11 @@ import type { WorkKind } from "./validation"
 
 const clientPublic = { id: true, codeName: true } as const
 
+export function linkedClientSelection(session: Session) {
+  if (!hasSectionAccess(session, "clients", "READ_ONLY")) return false
+  return { select: { id: true, name: hasSectionAccess(session, "clients", "FULL") } } as const
+}
+
 export function listClients(session: Session) {
   const canWrite = hasSectionAccess(session, "clients", "FULL")
   return db.client.findMany({

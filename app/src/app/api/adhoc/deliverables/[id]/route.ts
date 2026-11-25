@@ -1,3 +1,4 @@
+import { linkedClientSelection } from "@/modules/clients/data"
 import { getLinkedClientActivity } from "@/modules/clients/activity"
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/shared/lib/db"
@@ -43,7 +44,7 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
   const { id } = await params
-  const deliverable = await db.adhocDeliverable.findUnique({ where: { id }, include: FULL_INCLUDE })
+  const deliverable = await db.adhocDeliverable.findUnique({ where: { id }, include: { ...FULL_INCLUDE, client: linkedClientSelection(result.session) } })
 
   if (!deliverable) return NextResponse.json({ error: "Not found" }, { status: 404 })
   return NextResponse.json({

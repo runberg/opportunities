@@ -83,7 +83,7 @@ export function parseDeliveryNote(entry: FormDataEntryValue | null) {
   return entry
 }
 
-async function removeDeliveryNote(filename: string, opportunityId?: string) {
+export async function removeDeliveryNote(filename: string, opportunityId?: string) {
   try {
     await deleteUploadedFile(filename)
   } catch {

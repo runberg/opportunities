@@ -10,7 +10,7 @@ export async function GET() {
   if (!hasSectionAccess(result.session, "adhoc", "READ_ONLY"))
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
-  return NextResponse.json(await findAllAgreements())
+  return NextResponse.json(await findAllAgreements(result.session))
 }
 
 export async function POST(req: NextRequest) {

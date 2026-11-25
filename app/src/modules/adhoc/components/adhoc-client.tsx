@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useSearchParams } from "next/navigation"
+import type { ClientIdentity } from "@/shared/components/clients/client-name"
 import type { AdhocAgreementStatus } from "@prisma/client"
 import { AgreementTabs } from "./agreement-tabs"
 import { AgreementForm } from "./agreement-form"
@@ -41,6 +42,7 @@ export type AgreementRow = {
     deliveredAt: string | null
     deliveryNoteRef: string | null
     customer: string | null
+    client?: ClientIdentity | null
     lineItems: { amount: string }[]
     documents: { id: string }[]
   }[]

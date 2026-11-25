@@ -380,7 +380,7 @@ function ProductionViewPanel({ data, deliveries, isAdmin, isReadOnly, onRefresh,
           isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} />
       </div>
 
-      <ExpectedDeliverySection opportunityId={data.id} deliveries={deliveries} isReadOnly={isReadOnly} onRefresh={onRefresh} />
+      <ExpectedDeliverySection opportunityId={data.id} deliveries={deliveries} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} />
     </div>
   )
 }

@@ -1,5 +1,6 @@
 "use client"
 
+import { ClientName, type ClientIdentity } from "@/shared/components/clients/client-name"
 import { ClientWorkLink } from "@/shared/components/clients/client-work-link"
 
 import { useState, useEffect, useCallback, useRef } from "react"
@@ -70,6 +71,7 @@ type Deliverable = {
   financeAmount: string | null
   customer: string | null
   clientId: string | null
+  client?: ClientIdentity | null
   clientActivity: LogEntry[]
   canManageClient: boolean
   status: "NOT_APPROVED" | "PARTIALLY_APPROVED" | "APPROVED" | "DELIVERED" | "CLOSED_FINANCE" | "CANCELLED"
@@ -1704,14 +1706,18 @@ export function DeliverableModal({ deliverableId, isAdmin, isReadOnly: accessRea
               <section className={OVERVIEW_SECTION}>
                 <h2 className={OVERVIEW_HEADING}>Package details</h2>
                 <FormField label="Customer">
-                  <input aria-label="Customer" className={FORM_INPUT_CLS}
-                    placeholder={isLocked ? "" : "Customer name"} value={customerDraft}
-                    readOnly={isLocked || !!deliverable.clientId} onChange={(event) => setCustomerDraft(event.target.value)}
-                    onBlur={handleCustomerBlur} onKeyDown={(event) => {
-                      if (event.key === "Enter") event.currentTarget.blur()
-                      if (event.key === "Escape") setCustomerDraft(deliverable.customer ?? "")
-                    }} />
-                  {deliverable.canManageClient && <ClientWorkLink kind="adhoc" workId={deliverable.id} linked={!!deliverable.clientId} />}
+                  {deliverable.clientId ? (
+                    <div className={FORM_INPUT_CLS}><ClientName label={deliverable.customer ?? ""} client={deliverable.client} /></div>
+                  ) : (
+                    <input aria-label="Customer" className={FORM_INPUT_CLS}
+                      placeholder={isLocked ? "" : "Customer name"} value={customerDraft}
+                      readOnly={isLocked} onChange={(event) => setCustomerDraft(event.target.value)}
+                      onBlur={handleCustomerBlur} onKeyDown={(event) => {
+                        if (event.key === "Enter") event.currentTarget.blur()
+                        if (event.key === "Escape") setCustomerDraft(deliverable.customer ?? "")
+                      }} />
+                  )}
+                  {deliverable.canManageClient && <ClientWorkLink kind="adhoc" workId={deliverable.id} clientId={deliverable.clientId} onSaved={refresh} />}
                 </FormField>
                 <FormField label="Description">
                   <textarea aria-label="Description" className={FORM_TEXTAREA_CLS} rows={3}

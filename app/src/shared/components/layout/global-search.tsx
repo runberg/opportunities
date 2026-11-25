@@ -256,6 +256,7 @@ export function GlobalSearch({
       {mounted && createPortal(
         <OpportunityModal
           opportunityId={openOpportunityId}
+          onClientNavigate={() => setOpenOpportunityId(null)}
           onClose={() => { setOpenOpportunityId(null); router.refresh() }}
           isAdmin={isAdmin}
           isReadOnly={isOpportunitiesReadOnly}

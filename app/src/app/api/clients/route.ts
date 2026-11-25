@@ -2,7 +2,14 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/shared/lib/db"
 import { writeLog } from "@/shared/lib/system-log"
 import { clientApiError, requireClientsWrite } from "@/modules/clients/api"
+import { listClients } from "@/modules/clients/data"
 import { clientInput } from "@/modules/clients/validation"
+
+export async function GET() {
+  const { session, error } = await requireClientsWrite()
+  if (error) return error
+  return NextResponse.json(await listClients(session))
+}
 
 export async function POST(req: NextRequest) {
   const { session, error } = await requireClientsWrite()

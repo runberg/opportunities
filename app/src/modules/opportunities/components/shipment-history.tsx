@@ -15,9 +15,12 @@ import type { DeliveryLine } from "../deliveries/types"
 const dateFormat = new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeZone: "UTC" })
 const accept = ".pdf,.docx,.xls,.xlsx"
 
-function ShipmentForm({ endpoint, remaining, onClose, onSaved }: {
+type Shipment = DeliveryLine["shipments"][number]
+
+function ShipmentForm({ endpoint, remaining, shipment, onClose, onSaved }: {
   readonly endpoint: string
   readonly remaining?: number
+  readonly shipment?: Shipment
   readonly onClose: () => void
   readonly onSaved: () => void
 }) {
@@ -43,7 +46,7 @@ function ShipmentForm({ endpoint, remaining, onClose, onSaved }: {
     setSaving(true)
     setError("")
     try {
-      const response = await fetch(endpoint, { method: attachOnly ? "PATCH" : "POST", body: form })
+      const response = await fetch(endpoint, { method: attachOnly || shipment ? "PATCH" : "POST", body: form })
       if (!response.ok) {
         const result = await response.json().catch(() => ({}))
         setError(result.error ?? "Could not save the delivery.")
@@ -65,22 +68,22 @@ function ShipmentForm({ endpoint, remaining, onClose, onSaved }: {
             <div className="grid gap-2 sm:grid-cols-2">
               <label className="block text-xs font-medium text-gray-700">
                 Quantity delivered
-                <Input name="quantity" type="number" min={1} max={remaining} step={1} defaultValue={remaining}
+                <Input name="quantity" type="number" min={1} max={remaining} step={1} defaultValue={shipment?.quantity ?? remaining}
                   className="mt-1" required />
               </label>
               <label className="block text-xs font-medium text-gray-700">
                 Delivery date
-                <Input name="deliveredOn" type="date" defaultValue={todayISO()} className="mt-1" required />
+                <Input name="deliveredOn" type="date" defaultValue={shipment?.deliveredOn.slice(0, 10) ?? todayISO()} className="mt-1" required />
               </label>
             </div>
             <label className="block text-xs font-medium text-gray-700">
               Comment (optional)
-              <textarea name="comment" rows={2} maxLength={500}
+              <textarea name="comment" defaultValue={shipment?.comment ?? ""} rows={2} maxLength={500}
                 className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
             </label>
           </>
         )}
-        <div>
+        {!shipment && <div>
           <p className="mb-1 text-xs font-medium text-gray-700">Delivery note{!attachOnly && " (optional)"}</p>
           <FileDropZone file={file} accept={accept} compact dragging={dragging} onFile={selectFile}
             onDragOver={(event) => { event.preventDefault(); setDragging(true) }}
@@ -91,7 +94,7 @@ function ShipmentForm({ endpoint, remaining, onClose, onSaved }: {
               if (event.dataTransfer.files[0]) selectFile(event.dataTransfer.files[0])
             }} />
           {file && <Button variant="ghost" size="sm" onClick={() => setFile(null)}>Remove selected file</Button>}
-        </div>
+        </div>}
       </fieldset>
       {error && <p role="alert" className="text-xs text-red-700">{error}</p>}
       <div className="flex flex-wrap gap-2">
@@ -104,21 +107,43 @@ function ShipmentForm({ endpoint, remaining, onClose, onSaved }: {
   )
 }
 
-export function ShipmentHistory({ delivery, opportunityId, remaining, isReadOnly, summary, planActions, error, onRefresh }: {
+export function ShipmentHistory({ delivery, opportunityId, remaining, isReadOnly, isAdmin, summary, planActions, error, onRefresh }: {
   readonly delivery: DeliveryLine
   readonly opportunityId: string
   readonly remaining: number
   readonly isReadOnly: boolean
+  readonly isAdmin: boolean
   readonly summary: React.ReactNode
   readonly planActions: React.ReactNode
   readonly error: string
   readonly onRefresh: () => void
 }) {
   const [expanded, setExpanded] = useState(false)
-  const [form, setForm] = useState<{ shipmentId?: string } | null>(null)
+  const [form, setForm] = useState<{ shipmentId?: string; shipment?: Shipment } | null>(null)
   const viewers = useFileViewer()
   const endpoint = `/api/opportunities/${opportunityId}/deliveries/${delivery.id}/shipments`
-  const noteUrl = (id: string) => `${endpoint}/${id}/file`
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState("")
+  const shipmentUrl = (id: string) => `${endpoint}/${id}`
+  const noteUrl = (id: string) => `${shipmentUrl(id)}/file`
+
+  async function deleteShipment(id: string) {
+    if (!window.confirm("Delete this recorded delivery and any attached delivery note?")) return
+    setDeleting(true)
+    setDeleteError("")
+    try {
+      const response = await fetch(shipmentUrl(id), { method: "DELETE" })
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}))
+        throw new Error(result.error ?? "Could not delete the delivery.")
+      }
+      onRefresh()
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : "Could not delete the delivery.")
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   return (
     <div>
@@ -127,7 +152,7 @@ export function ShipmentHistory({ delivery, opportunityId, remaining, isReadOnly
         <div className="grid shrink-0 gap-1 sm:w-40">
           {!isReadOnly && (
             <div className="flex min-h-7 items-center justify-end">
-              {remaining > 0 && !form && (
+              {remaining > 0 && !form && !deleting && (
                 <Button size="sm" className="whitespace-nowrap" onClick={() => setForm({})}>Record delivery</Button>
               )}
             </div>
@@ -147,32 +172,42 @@ export function ShipmentHistory({ delivery, opportunityId, remaining, isReadOnly
       </div>
       {expanded && (
         <ul id={`shipments-${delivery.id}`} className="divide-y divide-gray-200 border-t border-gray-200 bg-gray-50 dark:divide-slate-700/60 px-4 sm:px-6">
-          {delivery.shipments.map(({ id, quantity, deliveredOn, comment, originalName, mimeType }) => (
-            <li key={id} className="space-y-1 py-2.5 text-xs">
-              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-                <p className="font-medium text-gray-900 dark:text-slate-200">{quantity} delivered <span className="font-normal text-gray-600 dark:text-slate-400">· {dateFormat.format(new Date(deliveredOn))}</span></p>
-                {originalName && mimeType ? (
-                  <button type="button" className="inline-flex min-w-0 max-w-full items-center gap-1 text-blue-700 hover:underline dark:text-blue-300"
-                    onClick={() => viewers.openViewer({ id, displayName: originalName, mimeType })}>
-                    <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center [&_svg]:size-3.5"><FileTypeIcon mimeType={mimeType} /></span>
-                    <span className="truncate">{originalName}</span>
-                  </button>
-                ) : !isReadOnly && !form && (
-                  <button type="button" className="text-blue-700 hover:underline dark:text-blue-300" onClick={() => setForm({ shipmentId: id })}>Attach note</button>
-                )}
-              </div>
-              {comment && <p className="whitespace-pre-wrap break-words text-gray-600 dark:text-slate-400">{comment}</p>}
-            </li>
-          ))}
+          {delivery.shipments.map((shipment) => {
+            const { id, quantity, deliveredOn, comment, originalName, mimeType } = shipment
+            return (
+              <li key={id} className="space-y-1 py-2.5 text-xs">
+                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                  <p className="font-medium text-gray-900 dark:text-slate-200">{quantity} delivered <span className="font-normal text-gray-600 dark:text-slate-400">· {dateFormat.format(new Date(deliveredOn))}</span></p>
+                  {originalName && mimeType ? (
+                    <button type="button" className="inline-flex min-w-0 max-w-full items-center gap-1 text-blue-700 hover:underline dark:text-blue-300"
+                      onClick={() => viewers.openViewer({ id, displayName: originalName, mimeType })}>
+                      <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center [&_svg]:size-3.5"><FileTypeIcon mimeType={mimeType} /></span>
+                      <span className="truncate">{originalName}</span>
+                    </button>
+                  ) : !isReadOnly && !form && !deleting && (
+                    <button type="button" className="text-blue-700 hover:underline dark:text-blue-300" onClick={() => setForm({ shipmentId: id })}>Attach note</button>
+                  )}
+                  {!isReadOnly && !form && (
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="sm" disabled={deleting} onClick={() => setForm({ shipmentId: id, shipment })}>Edit delivery</Button>
+                      {isAdmin && <Button variant="ghost" size="sm" disabled={deleting} onClick={() => void deleteShipment(id)}>Delete delivery</Button>}
+                    </div>
+                  )}
+                </div>
+                {comment && <p className="whitespace-pre-wrap break-words text-gray-600 dark:text-slate-400">{comment}</p>}
+              </li>
+            )
+          })}
         </ul>
       )}
       {!isReadOnly && form && (form.shipmentId || remaining > 0) && (
         <div className="px-4 pb-3">
-          <ShipmentForm key={form.shipmentId ?? "new"} endpoint={form.shipmentId ? noteUrl(form.shipmentId) : endpoint}
-            remaining={form.shipmentId ? undefined : remaining}
+          <ShipmentForm key={form.shipmentId ?? "new"} endpoint={form.shipment ? shipmentUrl(form.shipment.id) : form.shipmentId ? noteUrl(form.shipmentId) : endpoint}
+            shipment={form.shipment} remaining={form.shipment ? remaining + form.shipment.quantity : form.shipmentId ? undefined : remaining}
             onClose={() => setForm(null)} onSaved={() => { setForm(null); setExpanded(true); onRefresh() }} />
         </div>
       )}
+      {deleteError && <p role="alert" className="px-4 pb-3 text-xs text-red-700 dark:text-red-300">{deleteError}</p>}
       {error && <p role="alert" className="px-4 pb-3 text-xs text-red-700 dark:text-red-300">{error}</p>}
       <FileViewerModals viewers={viewers} urlFor={noteUrl} />
     </div>

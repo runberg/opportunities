@@ -1,5 +1,7 @@
 "use client"
 
+import { ClientName } from "@/shared/components/clients/client-name"
+
 import { useState, useMemo } from "react"
 import { MessageSquarePlus, Download } from "lucide-react"
 import type { AgreementRow } from "./adhoc-client"
@@ -156,7 +158,7 @@ function DeliverableTableRow({ d, isReadOnly, onOpen, onComment }: RowProps) {
       </td>
       <td className="px-4 py-3">
         {d.customer
-          ? <p className="text-gray-600 truncate" title={d.customer}>{d.customer}</p>
+          ? <p className="text-gray-600 truncate"><ClientName label={d.customer} client={d.client} /></p>
           : <span className="text-xs text-gray-300">—</span>
         }
       </td>

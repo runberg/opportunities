@@ -212,6 +212,7 @@ export function Sidebar({ userName, userRole, opportunitiesAccess, adhocAccess, 
     {mounted && createPortal(
       <OpportunityModal
         opportunityId={justCreatedId}
+        onClientNavigate={() => setJustCreatedId(null)}
         onClose={() => { setJustCreatedId(null); router.refresh() }}
         isAdmin={isAdmin}
         justCreated
