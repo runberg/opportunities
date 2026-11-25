@@ -147,27 +147,21 @@ export function ShipmentHistory({ delivery, opportunityId, remaining, isReadOnly
 
   return (
     <div>
-      <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2.5">
         {summary}
-        <div className="grid shrink-0 gap-1 sm:w-40">
-          {!isReadOnly && (
-            <div className="flex min-h-7 items-center justify-end">
-              {remaining > 0 && !form && !deleting && (
-                <Button size="sm" className="whitespace-nowrap" onClick={() => setForm({})}>Record delivery</Button>
-              )}
-            </div>
+        <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">
+          {delivery.shipments.length > 0 && (
+            <button type="button" aria-expanded={expanded} aria-controls={`shipments-${delivery.id}`}
+              className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-100 dark:text-slate-300 dark:hover:bg-slate-700/60"
+              onClick={() => setExpanded(!expanded)}>
+              <ChevronRight size={13} className={expanded ? "rotate-90" : undefined} />
+              Shipments ({delivery.shipments.length})
+            </button>
           )}
-          <div className="flex min-h-7 items-center justify-end gap-1">
-            {delivery.shipments.length > 0 && (
-              <button type="button" aria-expanded={expanded} aria-controls={`shipments-${delivery.id}`}
-                className="inline-flex items-center gap-1 rounded px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-100 dark:text-slate-300 dark:hover:bg-slate-700/60"
-                onClick={() => setExpanded(!expanded)}>
-                <ChevronRight size={13} className={expanded ? "rotate-90" : undefined} />
-                Shipments ({delivery.shipments.length})
-              </button>
-            )}
-            {planActions}
-          </div>
+          {!isReadOnly && remaining > 0 && !form && !deleting && (
+            <Button size="sm" className="whitespace-nowrap" onClick={() => setForm({})}>Record delivery</Button>
+          )}
+          {planActions && <div className="flex shrink-0 items-center gap-1">{planActions}</div>}
         </div>
       </div>
       {expanded && (

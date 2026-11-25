@@ -79,15 +79,15 @@ function DeliveryViewRow({ row, delivery, opportunityId, onEdit, onDelete, onRef
     <ShipmentHistory delivery={delivery} opportunityId={opportunityId} remaining={remaining}
       isReadOnly={isReadOnly} isAdmin={isAdmin} onRefresh={onRefresh}
       summary={
-        <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2">
-          <div className="min-w-0">
-            <h3 className="break-words text-sm font-semibold text-gray-900 dark:text-slate-100">{delivery.unitType}</h3>
-            <p className="text-xs text-gray-600 dark:text-slate-400">{deliveryMonthLabel(delivery.deliveryMonth, delivery.deliveryYear)}</p>
+        <div className="min-w-0 flex-[1_1_15rem] space-y-1">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <h3 className="min-w-0 break-words text-sm font-semibold text-gray-900 dark:text-slate-100">{delivery.unitType}</h3>
+            <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium whitespace-nowrap ${statusClass}`}>{status}</span>
           </div>
-          <span className={`justify-self-end rounded-full px-2 py-0.5 text-[11px] font-medium whitespace-nowrap ${statusClass}`}>{status}</span>
-          <p className="col-span-2 text-xs tabular-nums text-gray-600 dark:text-slate-400">
-            <strong className="font-semibold text-gray-900 dark:text-slate-200">{delivered} / {delivery.quantity}</strong> delivered
-            <span className="mx-2 text-slate-500" aria-hidden="true">·</span>{remaining} remaining
+          <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs tabular-nums text-gray-600 dark:text-slate-400">
+            <span>{deliveryMonthLabel(delivery.deliveryMonth, delivery.deliveryYear)}</span>
+            <span><strong className="font-semibold text-gray-900 dark:text-slate-200">{delivered} / {delivery.quantity}</strong> delivered</span>
+            <span>{remaining} remaining</span>
           </p>
         </div>
       }
