@@ -7,12 +7,23 @@ export interface DeliveryShipment {
   mimeType: string | null
 }
 
+export const DELIVERY_TYPES = ["FAT", "SAT", "HANDOVER"] as const
+export type DeliveryType = (typeof DELIVERY_TYPES)[number]
+export const MAX_DELIVERY_OFFSET = 1200
+export const DELIVERY_TYPE_LABELS: Record<DeliveryType, string> = { FAT: "FAT", SAT: "SAT", HANDOVER: "Handover" }
+
+export type UnitTypeOption = { id: string; name: string }
+
 export interface DeliveryLine {
   id: string
   unitType: string
+  unitTypeId: string
   quantity: number
-  deliveryMonth: number
-  deliveryYear: number
+  deliveryMonth: number | null
+  deliveryYear: number | null
+  deliveryType: DeliveryType
+  offsetMonths: number | null
+  overrideDate: string | null
   shipments: DeliveryShipment[]
 }
 

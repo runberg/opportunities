@@ -1,5 +1,6 @@
 "use client"
 
+import { AdhocPicker } from "./adhoc-link"
 import { useEffect, useState } from "react"
 import { Dialog } from "@/shared/components/ui/dialog"
 import { Button } from "@/shared/components/ui/button"
@@ -15,6 +16,7 @@ type Props = {
 }
 
 export function EditItemModal({ item, onClose, onSaved }: Props) {
+  const [adhocLink, setAdhocLink] = useState<{ id: string; title: string } | null>(null)
   const [productName, setProductName] = useState("")
   const [originalQuantity, setOriginalQuantity] = useState("")
   const [saving, setSaving] = useState(false)
@@ -26,6 +28,7 @@ export function EditItemModal({ item, onClose, onSaved }: Props) {
   // Resync form fields whenever the target item changes — this modal is a single
   // persistent instance, so useState initializers alone only run once.
   useEffect(() => {
+    setAdhocLink(item?.adhocDeliverable ?? null)
     setProductName(item?.productName ?? "")
     setOriginalQuantity(item ? String(item.originalQuantity) : "")
     setError("")
@@ -49,7 +52,7 @@ export function EditItemModal({ item, onClose, onSaved }: Props) {
     const res = await fetch(`/api/inventory/items/${item.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ productName: productName.trim(), originalQuantity: qtyNum }),
+      body: JSON.stringify({ productName: productName.trim(), originalQuantity: qtyNum, adhocDeliverableId: adhocLink?.id ?? null }),
     })
 
     setSaving(false)
@@ -95,6 +98,7 @@ export function EditItemModal({ item, onClose, onSaved }: Props) {
             </p>
           )}
         </div>
+        <AdhocPicker id="edit-item-adhoc" value={adhocLink} onChange={setAdhocLink} />
         {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
         <div className="flex gap-2 pt-1">
           <Button type="submit" disabled={saving || !productName.trim() || !qtyValid}>

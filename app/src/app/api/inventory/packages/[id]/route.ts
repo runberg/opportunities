@@ -3,7 +3,7 @@ import { db } from "@/shared/lib/db"
 import { requireSession, hasSectionAccess } from "@/shared/lib/api"
 import { writeLog } from "@/shared/lib/system-log"
 import { saveUploadedFile, deleteUploadedFile } from "@/shared/lib/upload"
-import { parsePackageForm } from "../../_helpers"
+import { adhocLinkSelect, parsePackageForm } from "../../_helpers"
 
 export async function PATCH(
   req: NextRequest,
@@ -22,7 +22,7 @@ export async function PATCH(
   const formData = await req.formData()
   const parsed = await parsePackageForm(formData)
   if ("error" in parsed) return NextResponse.json({ error: parsed.error }, { status: 400 })
-  const { name, comment, opportunityId, file } = parsed
+  const { name, comment, opportunityId, adhocDeliverableId, file } = parsed
   const removeFile = formData.get("removeFile") === "true"
 
   const saved = file && file.size > 0 ? await saveUploadedFile(file) : null
@@ -33,11 +33,13 @@ export async function PATCH(
       name,
       comment,
       opportunityId,
+      adhocDeliverableId,
       ...(saved && { filename: saved.filename, originalName: saved.originalName, mimeType: file!.type, size: file!.size }),
       ...(removeFile && !saved && { filename: null, originalName: null, mimeType: null, size: null }),
     },
     include: {
       createdBy: { select: { id: true, name: true } },
+      adhocDeliverable: { select: adhocLinkSelect },
       opportunity: { select: { id: true, title: true, customer: true, internalId: true } },
       items: { include: { utilizations: { include: { createdBy: { select: { id: true, name: true } } } } } },
     },

@@ -10,6 +10,7 @@ import {
   FileText,
   ScrollText,
   Factory,
+  CalendarDays,
   Package,
   Boxes,
   Users,
@@ -117,6 +118,10 @@ export function Sidebar({ userName, userRole, opportunitiesAccess, adhocAccess, 
               <Factory size={18} />
               Production
             </Link>
+            <Link href="/deliveries" className={linkCls("/deliveries")}>
+              <CalendarDays size={18} />
+              Delivery
+            </Link>
           </>
         )}
 
@@ -149,6 +154,10 @@ export function Sidebar({ userName, userRole, opportunitiesAccess, adhocAccess, 
             <div className="pt-4 pb-1 px-3">
               <span className="text-xs font-semibold uppercase tracking-wider text-[#3d5570]">Admin</span>
             </div>
+            <Link href="/admin/products" className={linkCls("/admin/products")}>
+              <Package size={18} />
+              Products
+            </Link>
             <Link href="/admin/users" className={linkCls("/admin/users")}>
               <Users size={18} />
               Users

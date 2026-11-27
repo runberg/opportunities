@@ -1,8 +1,9 @@
+import { resolveDeliveryUnitType } from "@/modules/opportunities/deliveries/unit-types"
 import { requireAdmin } from "@/shared/lib/api"
 import { writeLog } from "@/shared/lib/system-log"
 import { NextRequest, NextResponse } from "next/server"
 import {
-  changeDelivery, deliveryErrorResponse, DeliveryError, deliveryPlanInput, getDeliveredQuantity,
+  changeDelivery, deliveryErrorResponse, DeliveryError, deliveryPlanUpdate, getDeliveredQuantity,
   getWritableDelivery, removeDeliveryNote, requireDeliveryAccess,
 } from "@/modules/opportunities/deliveries/server"
 
@@ -12,7 +13,7 @@ export async function PATCH(req: NextRequest, { params }: Context) {
   const { error } = await requireDeliveryAccess("FULL")
   if (error) return error
   const { id, deliveryId } = await params
-  const parsed = deliveryPlanInput.partial().safeParse(await req.json().catch(() => null))
+  const parsed = deliveryPlanUpdate.safeParse(await req.json().catch(() => null))
   if (!parsed.success) return NextResponse.json({ error: "Invalid delivery plan." }, { status: 400 })
 
   try {
@@ -22,10 +23,20 @@ export async function PATCH(req: NextRequest, { params }: Context) {
       if (parsed.data.quantity !== undefined && parsed.data.quantity < delivered) {
         throw new DeliveryError(`Planned quantity must be at least the ${delivered} already delivered.`)
       }
-      if (delivered && parsed.data.unitType !== undefined && parsed.data.unitType !== delivery.unitType) {
-        throw new DeliveryError("The unit type cannot change after a shipment is recorded.")
+      const { unitType, unitTypeId, ...plan } = parsed.data
+      const type = delivered && unitType === delivery.unitType && !unitTypeId
+        ? undefined : await resolveDeliveryUnitType(tx, unitTypeId, unitType)
+      if (delivered && type && type.id !== delivery.unitTypeId) {
+        throw new DeliveryError("The product cannot change after a delivery is recorded.")
       }
-      return tx.expectedDelivery.update({ where: { id: deliveryId }, data: parsed.data })
+      if (delivery.offsetMonths === null && (parsed.data.deliveryMonth === undefined) !== (parsed.data.deliveryYear === undefined)) {
+        throw new DeliveryError("Provide both the delivery month and year.", 400)
+      }
+      return tx.expectedDelivery.update({ where: { id: deliveryId }, data: {
+        ...plan,
+        ...(type && type.id !== delivery.unitTypeId && { unitTypeId: type.id, unitType: type.name }),
+        ...(parsed.data.offsetMonths !== undefined && { deliveryMonth: null, deliveryYear: null }),
+      } })
     })
     return NextResponse.json(updated)
   } catch (error) {

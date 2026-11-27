@@ -3,7 +3,7 @@ import { db } from "@/shared/lib/db"
 import { requireSession, hasSectionAccess } from "@/shared/lib/api"
 import { writeLog } from "@/shared/lib/system-log"
 import { saveUploadedFile } from "@/shared/lib/upload"
-import { findAllPackages, parsePackageForm } from "../_helpers"
+import { adhocLinkSelect, findAllPackages, parsePackageForm } from "../_helpers"
 
 export async function GET() {
   const result = await requireSession()
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 
   const parsed = await parsePackageForm(await req.formData())
   if ("error" in parsed) return NextResponse.json({ error: parsed.error }, { status: 400 })
-  const { name, comment, opportunityId, file } = parsed
+  const { name, comment, opportunityId, adhocDeliverableId, file } = parsed
 
   const saved = file && file.size > 0 ? await saveUploadedFile(file) : null
 
@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
       name,
       comment,
       opportunityId,
+      adhocDeliverableId,
       createdById: session.user.id,
       filename: saved?.filename ?? null,
       originalName: saved?.originalName ?? null,
@@ -40,6 +41,7 @@ export async function POST(req: NextRequest) {
     },
     include: {
       createdBy: { select: { id: true, name: true } },
+      adhocDeliverable: { select: adhocLinkSelect },
       opportunity: { select: { id: true, title: true, customer: true, internalId: true } },
       items: { include: { utilizations: { include: { createdBy: { select: { id: true, name: true } } } } } },
     },

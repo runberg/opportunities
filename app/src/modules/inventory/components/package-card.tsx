@@ -7,6 +7,7 @@ import { FileTypeIcon } from "@/shared/components/ui/file-type-icon"
 import { FileViewerModals } from "@/shared/components/ui/file-viewer-modals"
 import { useFileViewer } from "@/shared/lib/use-file-viewer"
 import { useAutoFocus } from "@/shared/lib/use-autofocus"
+import { AdhocPicker, AdhocWorkPackageLink } from "./adhoc-link"
 import { ItemRow } from "./item-row"
 import type { PackageRow, ItemRow as ItemRowType, UtilizationRow } from "./inventory-client"
 
@@ -26,6 +27,7 @@ export function PackageCard({ pkg, isReadOnly, isAdmin, onRefresh, onEditPackage
   const [showMore, setShowMore] = useState(false)
   const [adding, setAdding] = useState(false)
   const [newProduct, setNewProduct] = useState("")
+  const [adhocLink, setAdhocLink] = useState<{ id: string; title: string } | null>(null)
   const [newQty, setNewQty] = useState("")
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
@@ -41,7 +43,7 @@ export function PackageCard({ pkg, isReadOnly, isAdmin, onRefresh, onEditPackage
       const res = await fetch(`/api/inventory/packages/${pkg.id}/items`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productName: newProduct.trim(), originalQuantity: qty }),
+        body: JSON.stringify({ productName: newProduct.trim(), originalQuantity: qty, adhocDeliverableId: adhocLink?.id ?? null }),
       })
       if (!res.ok) {
         setError((await res.json().catch(() => ({}))).error ?? "Failed to add item.")
@@ -49,6 +51,7 @@ export function PackageCard({ pkg, isReadOnly, isAdmin, onRefresh, onEditPackage
       }
       setNewProduct("")
       setNewQty("")
+      setAdhocLink(null)
       setAdding(false)
       await onRefresh()
     } catch {
@@ -149,6 +152,7 @@ export function PackageCard({ pkg, isReadOnly, isAdmin, onRefresh, onEditPackage
               <p className="text-sm text-gray-400">None</p>
             )}
           </div>
+          {pkg.adhocDeliverable && <AdhocWorkPackageLink workPackage={pkg.adhocDeliverable} />}
           <div>
             <p className="text-xs text-gray-400">Comments</p>
             <p className="text-sm text-gray-700 whitespace-pre-wrap">{pkg.comment || "—"}</p>
@@ -203,10 +207,13 @@ export function PackageCard({ pkg, isReadOnly, isAdmin, onRefresh, onEditPackage
                 className="w-24 px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm text-right focus:outline-none focus:ring-1 focus:ring-gray-400"
               />
             </div>
+            <div className="w-full max-w-sm">
+              <AdhocPicker id={"new-item-adhoc-" + pkg.id} value={adhocLink} onChange={setAdhocLink} />
+            </div>
             <Button size="sm" onClick={addItem} disabled={saving || !newProduct.trim() || !newQty}>
               {saving ? "Adding…" : "Add"}
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => { setAdding(false); setNewProduct(""); setNewQty(""); setError("") }}>
+            <Button size="sm" variant="ghost" onClick={() => { setAdding(false); setNewProduct(""); setNewQty(""); setAdhocLink(null); setError("") }}>
               Cancel
             </Button>
             {error && <p className="text-xs text-red-600 w-full">{error}</p>}

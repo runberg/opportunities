@@ -7,6 +7,7 @@ import { Button } from "@/shared/components/ui/button"
 import { FileTypeIcon } from "@/shared/components/ui/file-type-icon"
 import { FileViewerModals } from "@/shared/components/ui/file-viewer-modals"
 import { useFileViewer } from "@/shared/lib/use-file-viewer"
+import { AdhocWorkPackageLink } from "./adhoc-link"
 import type { ItemRow as ItemRowType, UtilizationRow, AllocationStatus } from "./inventory-client"
 
 function AllocationTag({ status }: { readonly status: AllocationStatus }) {
@@ -55,7 +56,10 @@ export function ItemRow({
         >
           {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </button>
-        <span className="flex-1 min-w-0 truncate text-sm font-medium text-gray-900">{item.productName}</span>
+        <div className="flex-1 min-w-0">
+          <div className="truncate text-sm font-medium text-gray-900">{item.productName}</div>
+          {item.adhocDeliverable && <AdhocWorkPackageLink workPackage={item.adhocDeliverable} />}
+        </div>
         <span className="text-sm font-semibold text-gray-900 tabular-nums shrink-0 whitespace-nowrap">
           {item.remainingQuantity} / {item.originalQuantity} remaining
         </span>
@@ -107,7 +111,7 @@ export function ItemRow({
                   <tr>
                     <th className="text-left font-semibold text-gray-500 px-3 py-2 w-24">Date</th>
                     <th className="text-right font-semibold text-gray-500 px-3 py-2 w-16">Qty</th>
-                    <th className="text-left font-semibold text-gray-500 px-3 py-2">Opportunity</th>
+                    <th className="text-left font-semibold text-gray-500 px-3 py-2">Linked work</th>
                     <th className="text-left font-semibold text-gray-500 px-3 py-2 w-20">Status</th>
                     <th className="text-left font-semibold text-gray-500 px-3 py-2">Delivery Note</th>
                     <th className="text-left font-semibold text-gray-500 px-3 py-2">Comment</th>
@@ -130,9 +134,9 @@ export function ItemRow({
                             <Briefcase size={12} className="shrink-0 text-gray-400" />
                             <span className="truncate">{u.opportunity.title}</span>
                           </button>
-                        ) : (
-                          <span className="text-gray-300">—</span>
-                        )}
+                        ) : null}
+                        {u.adhocDeliverable && <AdhocWorkPackageLink workPackage={u.adhocDeliverable} />}
+                        {!u.opportunity && !u.adhocDeliverable && <span className="text-gray-300">—</span>}
                       </td>
                       <td className="px-3 py-2 align-middle">
                         <AllocationTag status={u.allocationStatus} />

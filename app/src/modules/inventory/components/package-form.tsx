@@ -1,5 +1,6 @@
 "use client"
 
+import { AdhocPicker } from "./adhoc-link"
 import { useEffect, useState } from "react"
 import { X } from "lucide-react"
 import { Dialog } from "@/shared/components/ui/dialog"
@@ -22,6 +23,7 @@ type Props = {
 }
 
 export function PackageForm({ open, pkg, onClose, onSaved }: Props) {
+  const [adhocLink, setAdhocLink] = useState<{ id: string; title: string } | null>(null)
   const [name, setName] = useState("")
   const [comment, setComment] = useState("")
   const [opportunityId, setOpportunityId] = useState<string | null>(null)
@@ -40,6 +42,7 @@ export function PackageForm({ open, pkg, onClose, onSaved }: Props) {
   useEffect(() => {
     setName(pkg?.name ?? "")
     setComment(pkg?.comment ?? "")
+    setAdhocLink(pkg?.adhocDeliverable ?? null)
     setOpportunityId(pkg?.opportunity?.id ?? null)
     setOpportunityLabel(pkg?.opportunity ? `${pkg.opportunity.title} — ${pkg.opportunity.customer}` : null)
     setFile(null)
@@ -68,6 +71,7 @@ export function PackageForm({ open, pkg, onClose, onSaved }: Props) {
     const fd = new FormData()
     fd.append("name", name.trim())
     fd.append("comment", comment.trim())
+    fd.append("adhocDeliverableId", adhocLink?.id ?? "")
     fd.append("opportunityId", opportunityId ?? "")
     if (file) fd.append("file", file)
     if (removeExistingFile) fd.append("removeFile", "true")
@@ -142,6 +146,7 @@ export function PackageForm({ open, pkg, onClose, onSaved }: Props) {
             <p className="text-xs text-gray-500">EL, quote, or other document — Word (.docx), PDF, or Excel</p>
           </div>
         </div>
+        <AdhocPicker id="pkg-adhoc" value={adhocLink} onChange={setAdhocLink} />
         <div>
           <Label htmlFor="pkg-comment">Comments <span className="font-normal text-gray-500">(optional)</span></Label>
           <Textarea

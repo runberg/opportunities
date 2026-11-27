@@ -18,6 +18,8 @@ import { EL_STAGE_KINDS, PRODUCTION_STAGE_KINDS, QUOTE_STAGE_KINDS } from "@/mod
 import { PreSalesCosts } from "./pre-sales-costs"
 import { canEditPreSalesCosts, type PreSalesEstimate } from "../pre-sales/types"
 import type { DeliveryLine } from "../deliveries/types"
+import type { UnitTypeOption } from "../deliveries/types"
+import { ExpectedDeliverySection } from "./expected-delivery-section"
 import { ProductionSection } from "@/modules/opportunities/components/production-section"
 import { LogSection, type LogEntry } from "@/modules/opportunities/components/log-section"
 import { Button } from "@/shared/components/ui/button"
@@ -43,6 +45,7 @@ interface ModalDoc {
 
 interface OpportunityFull {
   preSalesEstimate: PreSalesEstimate
+  deliveryUnitTypes: UnitTypeOption[]
   isArchived: boolean
   id: string; internalId: string | null; title: string; customer: string
   clientId: string | null
@@ -442,7 +445,7 @@ function ViewMode({ data, isAdmin, isReadOnly, onRefresh, onSilentRefresh, onCli
 
   // Pre-computed to keep JSX free of nested ternaries (reduces cognitive complexity)
   const titleCls = cn("flex-1 min-w-0 text-2xl font-semibold text-gray-100 appearance-none bg-gray-800 focus:bg-gray-700 border-b border-transparent hover:border-gray-600 focus:outline-none focus:border-[#006fff] leading-tight transition-colors px-1 py-1.5 resize-none overflow-hidden", isReadOnly && "pointer-events-none select-none")
-  const labelCls = cn("inline-flex items-center gap-1.5 px-3 py-1 border border-gray-600 rounded-full bg-gray-700 focus-within:border-[#006fff] transition-colors", isReadOnly ? "pointer-events-none" : "cursor-text")
+  const labelCls = cn("inline-flex items-center gap-1.5 px-3 py-1 border border-gray-600 rounded-full bg-gray-700 field-focus-within transition-colors", isReadOnly ? "pointer-events-none" : "cursor-text")
   const interactiveCls = cn(FORM_INPUT_CLS, isReadOnly && "pointer-events-none")
   const interactiveTextareaCls = cn(FORM_TEXTAREA_CLS, isReadOnly && "pointer-events-none")
   const statusControl = isProduction && !isReadOnly
@@ -610,13 +613,17 @@ function ViewMode({ data, isAdmin, isReadOnly, onRefresh, onSilentRefresh, onCli
       {/* Production, Documents, Log — once in Production, that section leads since it's
           the most relevant to the current stage, with EL then Quote documents below it. */}
       {isProduction && (
-        <ProductionSection data={data} deliveries={data.deliveries} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} />
+        <ProductionSection data={data} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} />
       )}
 
       {(canEditPreSalesCosts(data.status) || data.preSalesEstimate.items.length > 0) && (
         <PreSalesCosts opportunityId={data.id} estimate={data.preSalesEstimate}
           canWrite={!isReadOnly && canEditPreSalesCosts(data.status)} onRefresh={onSilentRefresh} />
       )}
+
+      <ExpectedDeliverySection key={data.id} opportunityId={data.id} deliveries={data.deliveries} unitTypes={data.deliveryUnitTypes}
+        advancePaymentDate={data.advancePaymentDate} canRecordShipments={isProduction}
+        isAdmin={isAdmin} isReadOnly={isReadOnly || data.isArchived} onRefresh={onSilentRefresh} />
 
       <div className={isProduction ? "mt-6" : undefined}>
         <DocumentsSection data={data} isAdmin={isAdmin}

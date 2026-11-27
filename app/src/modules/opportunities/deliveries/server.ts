@@ -7,15 +7,29 @@ import { DELIVERY_NOTE_MIMES } from "@/shared/lib/file-types"
 import { deleteUploadedFile, MAX_UPLOAD_BYTES, saveUploadedFile } from "@/shared/lib/upload"
 import { writeLog } from "@/shared/lib/system-log"
 
-export const deliveryPlanInput = z.object({
+import { DELIVERY_TYPES, MAX_DELIVERY_OFFSET } from "./types"
+
+const deliveryPlanFields = z.object({
   unitType: z.string().trim().min(1),
+  unitTypeId: z.string().trim().min(1),
   quantity: z.number().int().positive().max(2147483647),
   deliveryMonth: z.number().int().min(1).max(12),
   deliveryYear: z.number().int().min(2020).max(9999),
+  deliveryType: z.enum(DELIVERY_TYPES),
+  offsetMonths: z.number().int().min(0).max(MAX_DELIVERY_OFFSET),
+  overrideDate: z.iso.date().transform((value) => new Date(value)).nullable(),
 })
 
+const legacyPlan = deliveryPlanFields.pick({ unitType: true, quantity: true, deliveryMonth: true, deliveryYear: true })
+export const deliveryPlanInput = z.union([
+  deliveryPlanFields.omit({ deliveryMonth: true, deliveryYear: true }).partial({ overrideDate: true, unitType: true, unitTypeId: true }).strict()
+    .refine((data) => Boolean(data.unitTypeId || data.unitType)),
+  legacyPlan.strict(),
+])
+export const deliveryPlanUpdate = deliveryPlanFields.partial().strict()
+
 export const shipmentInput = z.object({
-  quantity: z.string().regex(/^[0-9]+$/).transform(Number).pipe(deliveryPlanInput.shape.quantity),
+  quantity: z.string().regex(/^[0-9]+$/).transform(Number).pipe(deliveryPlanFields.shape.quantity),
   deliveredOn: z.iso.date().transform((value) => new Date(value)),
   comment: z.string().trim().max(500).nullable().transform((value) => value || null),
 })

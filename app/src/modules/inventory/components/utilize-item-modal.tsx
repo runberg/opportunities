@@ -1,5 +1,6 @@
 "use client"
 
+import { AdhocPicker } from "./adhoc-link"
 import { useEffect, useState } from "react"
 import { Dialog } from "@/shared/components/ui/dialog"
 import { Button } from "@/shared/components/ui/button"
@@ -22,6 +23,7 @@ type Props = {
 
 export function UtilizeItemModal({ item, utilization, onClose, onSaved }: Props) {
   const editing = !!utilization
+  const [adhocLink, setAdhocLink] = useState<{ id: string; title: string } | null>(null)
   const [quantity, setQuantity] = useState("")
   const [date, setDate] = useState(todayISO())
   const [comment, setComment] = useState("")
@@ -43,6 +45,7 @@ export function UtilizeItemModal({ item, utilization, onClose, onSaved }: Props)
     setComment(utilization?.comment ?? "")
     setDisplayName(utilization?.displayName ?? "")
     setFile(null)
+    setAdhocLink(utilization?.adhocDeliverable ?? null)
     setOpportunityId(utilization?.opportunity?.id ?? null)
     setOpportunityLabel(utilization?.opportunity ? `${utilization.opportunity.title} — ${utilization.opportunity.customer}` : null)
     setAllocationStatus(utilization?.allocationStatus ?? "RESERVED")
@@ -76,6 +79,7 @@ export function UtilizeItemModal({ item, utilization, onClose, onSaved }: Props)
     fd.append("date", date)
     fd.append("comment", comment.trim())
     fd.append("displayName", displayName.trim())
+    fd.append("adhocDeliverableId", adhocLink?.id ?? "")
     fd.append("opportunityId", opportunityId ?? "")
     fd.append("allocationStatus", allocationStatus)
     if (file) fd.append("file", file)
@@ -128,6 +132,7 @@ export function UtilizeItemModal({ item, utilization, onClose, onSaved }: Props)
           <Label htmlFor="util-date">Date *</Label>
           <DatePicker value={date} onChange={setDate} clearable={false} />
         </div>
+        <AdhocPicker id="util-adhoc" value={adhocLink} onChange={setAdhocLink} />
         <div>
           <Label htmlFor="util-opportunity">Opportunity <span className="font-normal text-gray-500">(optional)</span></Label>
           <OpportunityPicker

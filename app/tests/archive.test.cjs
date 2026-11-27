@@ -15,6 +15,10 @@ function loadTS(relativePath, mocks = {}) {
   mod.require = (id) => {
     if (Object.hasOwn(mocks, id)) return mocks[id]
     if (id.startsWith("@/")) return loadTS(`${id.slice(2)}.ts`, mocks)
+    if (id.startsWith(".")) {
+      const source = path.resolve(path.dirname(filename), id + ".ts")
+      if (fs.existsSync(source)) return loadTS(source, mocks)
+    }
     return originalRequire(id)
   }
   mod._compile(ts.transpileModule(fs.readFileSync(filename, "utf8"), {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/shared/lib/db"
 import { requireSession, hasSectionAccess } from "@/shared/lib/api"
+import { adhocLinkSelect, parseAdhocLink } from "../../_helpers"
 import { writeLog } from "@/shared/lib/system-log"
 import { saveUploadedFile, deleteUploadedFile, MAX_UPLOAD_BYTES } from "@/shared/lib/upload"
 import { DELIVERY_NOTE_MIMES } from "@/shared/lib/file-types"
@@ -15,6 +16,7 @@ type ParsedEdit = {
   displayNameRaw: string | null
   opportunityIdRaw: string | null
   allocationStatusRaw: string | null
+  adhocDeliverableId?: string | null
   file: File | null
 }
 
@@ -47,7 +49,10 @@ async function parseEditForm(formData: FormData, existingQuantity: number): Prom
   if (opportunityId && !(await db.opportunity.findUnique({ where: { id: opportunityId } })))
     return { error: "Opportunity not found" }
 
-  return { quantity, dateRaw, commentRaw, displayNameRaw, opportunityIdRaw, allocationStatusRaw, file }
+  const adhocLink = await parseAdhocLink(formData.get("adhocDeliverableId") ?? undefined)
+  if (adhocLink.error) return { error: adhocLink.error }
+
+  return { ...adhocLink, quantity, dateRaw, commentRaw, displayNameRaw, opportunityIdRaw, allocationStatusRaw, file }
 }
 
 export async function PATCH(
@@ -66,7 +71,7 @@ export async function PATCH(
 
   const parsed = await parseEditForm(await req.formData(), existing.quantity)
   if ("error" in parsed) return NextResponse.json({ error: parsed.error }, { status: 400 })
-  const { quantity, dateRaw, commentRaw, displayNameRaw, opportunityIdRaw, allocationStatusRaw, file } = parsed
+  const { quantity, dateRaw, commentRaw, displayNameRaw, opportunityIdRaw, allocationStatusRaw, adhocDeliverableId, file } = parsed
 
   const saved = file && file.size > 0 ? await saveUploadedFile(file) : null
 
@@ -85,6 +90,7 @@ export async function PATCH(
         where: { id },
         data: {
           quantity,
+          adhocDeliverableId,
           ...(dateRaw !== null && { date: new Date(dateRaw) }),
           ...(commentRaw !== null && { comment: commentRaw.trim() || null }),
           ...(displayNameRaw !== null && { displayName: displayNameRaw.trim() || null }),
@@ -94,6 +100,7 @@ export async function PATCH(
         },
         include: {
           createdBy: { select: { id: true, name: true } },
+          adhocDeliverable: { select: adhocLinkSelect },
           opportunity: { select: { id: true, title: true, customer: true, internalId: true, status: true } },
         },
       })

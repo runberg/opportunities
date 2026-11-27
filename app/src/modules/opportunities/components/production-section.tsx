@@ -8,8 +8,6 @@ import { QuoteSection } from "@/modules/opportunities/components/quote-section"
 import { DatePicker } from "@/shared/components/ui/date-picker"
 import { PRODUCTION_DOC_KINDS, PRODUCTION_STAGE_KINDS, type DocKind } from "@/modules/opportunities/document-kinds"
 
-import { ExpectedDeliverySection } from "./expected-delivery-section"
-import type { DeliveryLine } from "../deliveries/types"
 
 interface ProductionData {
   id: string
@@ -26,7 +24,6 @@ interface ProductionData {
 
 interface ProductionSectionProps {
   readonly data: ProductionData
-  readonly deliveries: DeliveryLine[]
   readonly isAdmin: boolean
   readonly onRefresh: () => void
   readonly isReadOnly?: boolean
@@ -265,9 +262,8 @@ function ProductionEditPanel({ data, onRefresh, onCancel }: {
 
 // ─── View panel ───────────────────────────────────────────────────────────────
 
-function ProductionViewPanel({ data, deliveries, isAdmin, isReadOnly, onRefresh, onEnterEdit }: {
+function ProductionViewPanel({ data, isAdmin, isReadOnly, onRefresh, onEnterEdit }: {
   readonly data: ProductionData
-  readonly deliveries: DeliveryLine[]
   readonly isAdmin: boolean
   readonly isReadOnly: boolean
   readonly onRefresh: () => void
@@ -380,14 +376,13 @@ function ProductionViewPanel({ data, deliveries, isAdmin, isReadOnly, onRefresh,
           isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} />
       </div>
 
-      <ExpectedDeliverySection opportunityId={data.id} deliveries={deliveries} isAdmin={isAdmin} isReadOnly={isReadOnly} onRefresh={onRefresh} />
     </div>
   )
 }
 
 // ─── Main coordinator ─────────────────────────────────────────────────────────
 
-export function ProductionSection({ data, deliveries, isAdmin, isReadOnly = false, onRefresh }: ProductionSectionProps) {
+export function ProductionSection({ data, isAdmin, isReadOnly = false, onRefresh }: ProductionSectionProps) {
   const [editing, setEditing] = useState(false)
 
   if (editing && !isReadOnly) {
@@ -396,7 +391,7 @@ export function ProductionSection({ data, deliveries, isAdmin, isReadOnly = fals
 
   return (
     <ProductionViewPanel
-      data={data} deliveries={deliveries} isAdmin={isAdmin}
+      data={data} isAdmin={isAdmin}
       isReadOnly={isReadOnly} onRefresh={onRefresh} onEnterEdit={() => setEditing(true)} />
   )
 }

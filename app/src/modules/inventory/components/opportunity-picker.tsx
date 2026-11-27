@@ -16,7 +16,11 @@ export function OpportunityPicker({
   value,
   label,
   onChange,
+  kind = "opportunities",
+  id,
 }: {
+  readonly kind?: "opportunities" | "adhoc"
+  readonly id?: string
   readonly value: string | null
   readonly label: string | null
   readonly onChange: (opportunity: OpportunityOption | null) => void
@@ -37,21 +41,26 @@ export function OpportunityPicker({
   useEffect(() => {
     const q = query.trim()
     if (q.length < 2) { setResults([]); return }
+    setResults([])
+    const controller = new AbortController()
     const timer = setTimeout(async () => {
-      const res = await fetch(`/api/inventory/opportunities?q=${encodeURIComponent(q)}`)
-      if (res.ok) {
+      const res = await fetch(`/api/inventory/${kind}?q=${encodeURIComponent(q)}`, { signal: controller.signal }).catch(() => null)
+      if (res?.ok) {
         const data = await res.json()
-        setResults(data.items.map((o: OpportunityOption) => ({ id: o.id, title: o.title, customer: o.customer, internalId: o.internalId, status: o.status })))
+        if (!controller.signal.aborted) setResults(data.items)
       }
     }, 300)
-    return () => clearTimeout(timer)
-  }, [query])
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+  }, [kind, query])
 
   if (value && label) {
     return (
       <div className="flex items-center justify-between px-3 py-2 border border-gray-600 rounded-lg bg-gray-800 text-sm">
         <span className="text-gray-100 truncate">{label}</span>
-        <button type="button" onClick={() => onChange(null)} className="text-gray-400 hover:text-gray-200 shrink-0 ml-2">
+        <button type="button" aria-label="Remove link" onClick={() => onChange(null)} className="text-gray-400 hover:text-gray-200 shrink-0 ml-2">
           <X size={14} />
         </button>
       </div>
@@ -63,11 +72,12 @@ export function OpportunityPicker({
       <div className="relative">
         <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
         <input
+          id={id}
           type="text"
           value={query}
           onChange={(e) => { setQuery(e.target.value); setOpen(true) }}
           onFocus={() => setOpen(true)}
-          placeholder="Search opportunities by title, customer, ID…"
+          placeholder={kind === "adhoc" ? "Search Ad Hoc work packages…" : "Search opportunities by title, customer, ID…"}
           className="w-full pl-8 pr-3 py-2 border border-gray-600 rounded-lg text-sm bg-gray-800 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
       </div>

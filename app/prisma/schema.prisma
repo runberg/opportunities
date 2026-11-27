@@ -152,18 +152,38 @@ enum WaitingOn {
   NONE
 }
 
+model DeliveryUnitType {
+  id         String             @id @default(cuid())
+  name       String
+  nameKey    String             @unique
+  deliveries ExpectedDelivery[]
+}
+
 model ExpectedDelivery {
   id            String      @id @default(cuid())
-  unitType      String
+  unitType      String             // Name recorded on the delivery
+  unitTypeId    String
+  unitTypeEntry DeliveryUnitType   @relation(fields: [unitTypeId], references: [id], onDelete: Restrict)
   quantity      Int
-  deliveryMonth Int         // 1–12
-  deliveryYear  Int
+  deliveryMonth Int?        // Legacy month-only plan
+  deliveryYear  Int?
+  deliveryType  DeliveryType @default(HANDOVER)
+  offsetMonths  Int?
+  overrideDate  DateTime?    @db.Date
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
   opportunityId String
   opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
   shipments     DeliveryShipment[]
+
+  @@index([unitTypeId])
+}
+
+enum DeliveryType {
+  FAT
+  SAT
+  HANDOVER
 }
 
 model PreSalesCost {
@@ -350,6 +370,10 @@ model AdhocDeliverable {
   createdById  String
   createdBy    User           @relation(fields: [createdById], references: [id])
 
+  inventoryPackages     InventoryPackage[]
+  inventoryItems        InventoryItem[]
+  inventoryUtilizations InventoryUtilization[]
+
   lineItems    AdhocLineItem[]
   documents    AdhocDocument[]
   systemLogs   SystemLog[]
@@ -430,6 +454,9 @@ enum AdhocAgreementDocumentType {
 // ─── Inventory ───────────────────────────────────────────────────────────────
 
 model InventoryPackage {
+  adhocDeliverableId String?
+  adhocDeliverable   AdhocDeliverable? @relation(fields: [adhocDeliverableId], references: [id], onDelete: SetNull)
+
   id        String   @id @default(cuid())
   name      String
   comment   String?
@@ -454,6 +481,9 @@ model InventoryPackage {
 }
 
 model InventoryItem {
+  adhocDeliverableId String?
+  adhocDeliverable   AdhocDeliverable? @relation(fields: [adhocDeliverableId], references: [id], onDelete: SetNull)
+
   id                String   @id @default(cuid())
   productName       String
   originalQuantity  Int
@@ -468,6 +498,9 @@ model InventoryItem {
 }
 
 model InventoryUtilization {
+  adhocDeliverableId String?
+  adhocDeliverable   AdhocDeliverable? @relation(fields: [adhocDeliverableId], references: [id], onDelete: SetNull)
+
   id       String   @id @default(cuid())
   quantity Int
   date     DateTime

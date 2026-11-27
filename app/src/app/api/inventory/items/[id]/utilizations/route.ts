@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/shared/lib/db"
 import { requireSession, hasSectionAccess } from "@/shared/lib/api"
+import { adhocLinkSelect, parseAdhocLink } from "../../../_helpers"
 import { writeLog } from "@/shared/lib/system-log"
 import { saveUploadedFile, MAX_UPLOAD_BYTES } from "@/shared/lib/upload"
 import { DELIVERY_NOTE_MIMES } from "@/shared/lib/file-types"
@@ -15,6 +16,7 @@ type ParsedForm = {
   displayName: string | null
   opportunityId: string | null
   allocationStatus: InventoryAllocationStatus
+  adhocDeliverableId?: string | null
   file: File | null
 }
 
@@ -45,7 +47,10 @@ async function parseUtilizationForm(formData: FormData): Promise<{ error: string
   if (opportunityId && !(await db.opportunity.findUnique({ where: { id: opportunityId } })))
     return { error: "Opportunity not found" }
 
-  return { quantity, dateRaw, comment, displayName, opportunityId, allocationStatus: allocationStatusRaw as InventoryAllocationStatus, file }
+  const adhocLink = await parseAdhocLink(formData.get("adhocDeliverableId") ?? undefined)
+  if (adhocLink.error) return { error: adhocLink.error }
+
+  return { ...adhocLink, quantity, dateRaw, comment, displayName, opportunityId, allocationStatus: allocationStatusRaw as InventoryAllocationStatus, file }
 }
 
 export async function POST(
@@ -64,7 +69,7 @@ export async function POST(
 
   const parsed = await parseUtilizationForm(await req.formData())
   if ("error" in parsed) return NextResponse.json({ error: parsed.error }, { status: 400 })
-  const { quantity, dateRaw, comment, displayName, opportunityId, allocationStatus, file } = parsed
+  const { quantity, dateRaw, comment, displayName, opportunityId, allocationStatus, adhocDeliverableId, file } = parsed
 
   const saved = file && file.size > 0 ? await saveUploadedFile(file) : null
 
@@ -82,6 +87,7 @@ export async function POST(
       return tx.inventoryUtilization.create({
         data: {
           quantity,
+          adhocDeliverableId,
           date: new Date(dateRaw),
           comment,
           displayName,
@@ -96,6 +102,7 @@ export async function POST(
         },
         include: {
           createdBy: { select: { id: true, name: true } },
+          adhocDeliverable: { select: adhocLinkSelect },
           opportunity: { select: { id: true, title: true, customer: true, internalId: true, status: true } },
         },
       })

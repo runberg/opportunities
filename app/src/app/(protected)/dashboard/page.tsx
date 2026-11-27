@@ -4,6 +4,7 @@ import { PeriodSelector } from "@/modules/opportunities/components/dashboard/per
 import { PipelineFlow } from "@/modules/opportunities/components/dashboard/pipeline-flow"
 import { QuoteActivitySection, ElActivitySection, ProductionActivitySection } from "@/modules/opportunities/components/dashboard/activity-sections"
 import { RecentActivity } from "@/modules/opportunities/components/dashboard/recent-activity"
+import { deliveryT0, scheduledDeliveryMonth } from "@/modules/opportunities/deliveries/schedule"
 import { deliveredQuantity } from "@/modules/opportunities/deliveries/types"
 import { DeliveryPlan } from "@/modules/opportunities/components/dashboard/delivery-plan"
 import { PIPELINE_STATUSES } from "@/shared/lib/utils"
@@ -195,12 +196,13 @@ export default async function DashboardPage({
       where: {
         opportunity: { isArchived: false },
         OR: [
-          { deliveryYear: { gt: currentYear } },
-          { deliveryYear: currentYear, deliveryMonth: { gte: currentMonth } },
+          { offsetMonths: null },
+          { opportunity: { advancePaymentDate: { not: null } } },
         ],
       },
       include: {
-        opportunity: { select: { id: true, title: true, internalId: true, customer: true } },
+        opportunity: { select: { id: true, title: true, internalId: true, customer: true, advancePaymentDate: true } },
+        unitTypeEntry: { select: { name: true } },
         shipments: { select: { quantity: true } },
       },
       orderBy: [{ deliveryYear: "asc" }, { deliveryMonth: "asc" }],
@@ -251,14 +253,13 @@ export default async function DashboardPage({
   const prodTrendData = buildProdTrend(buckets, countersignedDates, advanceDates, fatDates, deliveredDates)
 
   const statusCounts = Object.fromEntries(PIPELINE_STATUSES.map((s, i) => [s, pipelineCountRaw[i]]))
-  const deliveryItems = deliveryRaw.map((d) => ({
-    id: d.id,
-    unitType: d.unitType,
-    quantity: d.quantity - deliveredQuantity(d.shipments),
-    deliveryMonth: d.deliveryMonth,
-    deliveryYear: d.deliveryYear,
-    opportunity: d.opportunity,
-  })).filter((delivery) => delivery.quantity > 0)
+  const deliveryItems = deliveryRaw.flatMap((delivery) => {
+    const { advancePaymentDate, ...opportunity } = delivery.opportunity
+    const schedule = scheduledDeliveryMonth(delivery, deliveryT0(advancePaymentDate))
+    const quantity = delivery.quantity - deliveredQuantity(delivery.shipments)
+    if (!schedule || quantity <= 0 || schedule.year * 12 + schedule.month < currentYear * 12 + currentMonth) return []
+    return [{ id: delivery.id, unitType: delivery.unitTypeEntry.name, deliveryType: delivery.deliveryType, quantity, deliveryMonth: schedule.month, deliveryYear: schedule.year, opportunity }]
+  })
 
   const recentItems = recentRaw.map((r) => ({
     id: r.id, title: r.title, customer: r.customer, internalId: r.internalId,

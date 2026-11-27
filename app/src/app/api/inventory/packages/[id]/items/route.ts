@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/shared/lib/db"
 import { requireSession, hasSectionAccess } from "@/shared/lib/api"
+import { adhocLinkSelect, parseAdhocLink } from "../../../_helpers"
 import { writeLog } from "@/shared/lib/system-log"
 
 export async function POST(
@@ -19,6 +20,8 @@ export async function POST(
 
   const body = await req.json()
   const { productName, originalQuantity } = body
+  const adhocLink = await parseAdhocLink(body.adhocDeliverableId)
+  if (adhocLink.error) return NextResponse.json({ error: adhocLink.error }, { status: 400 })
 
   if (!productName || typeof productName !== "string" || productName.trim() === "")
     return NextResponse.json({ error: "Product name is required" }, { status: 400 })
@@ -28,12 +31,13 @@ export async function POST(
 
   const item = await db.inventoryItem.create({
     data: {
+      adhocDeliverableId: adhocLink.adhocDeliverableId,
       productName: productName.trim(),
       originalQuantity: qty,
       remainingQuantity: qty,
       packageId: id,
     },
-    include: { utilizations: true },
+    include: { adhocDeliverable: { select: adhocLinkSelect }, utilizations: true },
   })
 
   await writeLog({

@@ -1,3 +1,4 @@
+import { unitTypeOption } from "@/modules/opportunities/deliveries/unit-types"
 import { linkedClientSelection } from "@/modules/clients/data"
 import { getLinkedClientActivity } from "@/modules/clients/activity"
 import { NextRequest, NextResponse } from "next/server"
@@ -45,9 +46,11 @@ export async function GET(
   })
 
   if (!opportunity) return NextResponse.json({ error: "Not found" }, { status: 404 })
+  const deliveryUnitTypes = await db.deliveryUnitType.findMany({ orderBy: { name: "asc" }, select: unitTypeOption })
   const { preSalesCosts, ...details } = opportunity
   return NextResponse.json({
     ...details,
+    deliveryUnitTypes,
     clientActivity: await getLinkedClientActivity(session, opportunity),
     preSalesEstimate: {
       items: preSalesCosts,

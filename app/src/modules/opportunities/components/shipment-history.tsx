@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { ChevronRight } from "lucide-react"
+import { Plus, ChevronRight } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
 import { FileDropZone } from "@/shared/components/ui/file-drop-zone"
 import { FileTypeIcon } from "@/shared/components/ui/file-type-icon"
@@ -107,7 +107,8 @@ function ShipmentForm({ endpoint, remaining, shipment, onClose, onSaved }: {
   )
 }
 
-export function ShipmentHistory({ delivery, opportunityId, remaining, isReadOnly, isAdmin, summary, planActions, error, onRefresh }: {
+export function ShipmentHistory({ delivery, opportunityId, remaining, isReadOnly, isAdmin, summary, planActions, error, onRefresh, rowClassName }: {
+  readonly rowClassName: string
   readonly delivery: DeliveryLine
   readonly opportunityId: string
   readonly remaining: number
@@ -147,19 +148,24 @@ export function ShipmentHistory({ delivery, opportunityId, remaining, isReadOnly
 
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2.5">
+      <div className={rowClassName}>
         {summary}
-        <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-1 empty:hidden">
           {delivery.shipments.length > 0 && (
             <button type="button" aria-expanded={expanded} aria-controls={`shipments-${delivery.id}`}
-              className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-100 dark:text-slate-300 dark:hover:bg-slate-700/60"
+              aria-label={`View shipments, ${delivery.quantity - remaining} of ${delivery.quantity} delivered`} title="View shipments"
+              className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded px-1 py-1.5 text-xs text-gray-700 hover:bg-gray-100 dark:text-slate-300 dark:hover:bg-slate-700/60"
               onClick={() => setExpanded(!expanded)}>
               <ChevronRight size={13} className={expanded ? "rotate-90" : undefined} />
-              Shipments ({delivery.shipments.length})
+              {delivery.quantity - remaining}/{delivery.quantity}
             </button>
           )}
+          {delivery.shipments.length === 0 && (
+            <span className="whitespace-nowrap text-xs text-gray-600" title="Units delivered" aria-label={`0 of ${delivery.quantity} delivered`}>0/{delivery.quantity}</span>
+          )}
           {!isReadOnly && remaining > 0 && !form && !deleting && (
-            <Button size="sm" className="whitespace-nowrap" onClick={() => setForm({})}>Record delivery</Button>
+            <button type="button" aria-label="Record delivery" title="Record delivery"
+              className="rounded p-1.5 text-blue-600 hover:bg-gray-100 dark:text-blue-300" onClick={() => setForm({})}><Plus size={14} /></button>
           )}
           {planActions && <div className="flex shrink-0 items-center gap-1">{planActions}</div>}
         </div>

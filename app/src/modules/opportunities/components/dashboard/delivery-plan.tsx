@@ -1,5 +1,6 @@
 "use client"
 
+import { DELIVERY_TYPE_LABELS, type DeliveryType } from "../../deliveries/types"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { OpportunityModal } from "@/modules/opportunities/components/opportunity-modal"
@@ -7,6 +8,7 @@ import { OpportunityModal } from "@/modules/opportunities/components/opportunity
 export interface DeliveryPlanItem {
   id: string
   unitType: string
+  deliveryType: DeliveryType
   quantity: number
   deliveryMonth: number
   deliveryYear: number
@@ -69,7 +71,7 @@ export function DeliveryPlan({ items, isAdmin, isReadOnly = false }: {
                       <span className="text-sm font-semibold text-gray-800 w-10 text-right shrink-0">
                         {item.quantity}
                       </span>
-                      <span className="text-sm text-gray-600 flex-1">{item.unitType} remaining</span>
+                      <span className="text-sm text-gray-600 flex-1">{DELIVERY_TYPE_LABELS[item.deliveryType]} · {item.unitType} remaining</span>
                       <span className="text-xs text-gray-400 shrink-0">
                         {item.opportunity.internalId ?? "—"}
                       </span>

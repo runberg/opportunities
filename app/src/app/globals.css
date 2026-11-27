@@ -107,6 +107,19 @@
 [data-theme="dark"] .focus\:border-gray-600:focus  { border-color: #006fff; }
 [data-theme="dark"] .focus\:border-gray-900:focus  { border-color: #006fff; }
 
+/* Editable controls share a visible focus border in both themes. */
+:root :where(
+  input:not([type="checkbox"], [type="radio"], [type="file"], [type="range"], [type="color"], [type="button"], [type="submit"], [type="reset"], [type="image"]),
+  textarea,
+  select
+):enabled:focus:not([readonly], :where(.field-focus-within *)),
+:root .field-focus-within:has(input:enabled:focus:not([readonly])) {
+  --tw-ring-color: #3b82f6;
+  border-color: #3b82f6;
+  outline: 1px solid #3b82f6;
+  outline-offset: 0;
+}
+
 /* ── Modal shadow → subtle border on dark bg ─── */
 [data-theme="dark"] .shadow-2xl {
   box-shadow: 0 0 0 1px #1e3350, 0 24px 48px rgba(0, 0, 0, 0.6);

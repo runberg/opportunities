@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/shared/lib/db"
 import { requireSession, hasSectionAccess } from "@/shared/lib/api"
+import { adhocLinkSelect, parseAdhocLink } from "../../_helpers"
 import { writeLog } from "@/shared/lib/system-log"
 
 export async function PATCH(
@@ -19,6 +20,8 @@ export async function PATCH(
 
   const body = await req.json()
   const { productName, originalQuantity } = body
+  const adhocLink = await parseAdhocLink(body.adhocDeliverableId)
+  if (adhocLink.error) return NextResponse.json({ error: adhocLink.error }, { status: 400 })
 
   if (productName !== undefined && (typeof productName !== "string" || productName.trim() === ""))
     return NextResponse.json({ error: "Product name is required" }, { status: 400 })
@@ -39,11 +42,12 @@ export async function PATCH(
   const updated = await db.inventoryItem.update({
     where: { id },
     data: {
+      adhocDeliverableId: adhocLink.adhocDeliverableId,
       ...(productName !== undefined && { productName: productName.trim() }),
       originalQuantity: newOriginal,
       remainingQuantity: newRemaining,
     },
-    include: { utilizations: { include: { createdBy: { select: { id: true, name: true } } } } },
+    include: { adhocDeliverable: { select: adhocLinkSelect }, utilizations: { include: { createdBy: { select: { id: true, name: true } } } } },
   })
 
   await writeLog({

@@ -5,6 +5,7 @@ import { createPortal } from "react-dom"
 import { Plus } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
 import { OpportunityModal } from "@/modules/opportunities/components/opportunity-modal"
+import type { AdhocLink } from "./adhoc-link"
 import { PackageCard } from "./package-card"
 import { PackageForm } from "./package-form"
 import { UtilizeItemModal } from "./utilize-item-modal"
@@ -15,6 +16,7 @@ import { EditItemModal } from "./edit-item-modal"
 export type AllocationStatus = "RESERVED" | "ALLOCATED"
 
 export type UtilizationRow = {
+  adhocDeliverable: AdhocLink | null
   id: string
   quantity: number
   date: string
@@ -31,6 +33,7 @@ export type UtilizationRow = {
 }
 
 export type ItemRow = {
+  adhocDeliverable: AdhocLink | null
   id: string
   productName: string
   originalQuantity: number
@@ -40,6 +43,7 @@ export type ItemRow = {
 }
 
 export type PackageRow = {
+  adhocDeliverable: AdhocLink | null
   id: string
   name: string
   comment: string | null

@@ -121,7 +121,7 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
                     <option key={s} value={s}>{STATUS_LABELS[s]}</option>
                   ))}
                 </select>
-                <label className="inline-flex items-center gap-1.5 px-3 py-1 border border-gray-600 rounded-full bg-gray-700 focus-within:ring-1 focus-within:ring-gray-500 cursor-text">
+                <label className="inline-flex items-center gap-1.5 px-3 py-1 border border-gray-600 rounded-full bg-gray-700 field-focus-within cursor-text">
                   <span className="text-xs text-gray-500 shrink-0">ID</span>
                   <input
                     value={form.internalId}
@@ -131,7 +131,7 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
                     className="text-xs font-medium text-gray-100 bg-transparent outline-none w-14"
                   />
                 </label>
-                <label className="inline-flex items-center gap-1.5 px-3 py-1 border border-gray-600 rounded-full bg-gray-700 focus-within:ring-1 focus-within:ring-gray-500 cursor-text">
+                <label className="inline-flex items-center gap-1.5 px-3 py-1 border border-gray-600 rounded-full bg-gray-700 field-focus-within cursor-text">
                   <span className="text-xs text-gray-500 shrink-0">Ref.</span>
                   <input
                     value={form.reference}
@@ -140,7 +140,7 @@ export function NewOpportunityModal({ onClose, onCreated }: NewOpportunityModalP
                     className="text-xs font-medium text-gray-100 bg-transparent outline-none w-28"
                   />
                 </label>
-                <label className="inline-flex items-center gap-1.5 px-3 py-1 border border-gray-600 rounded-full bg-gray-700 focus-within:ring-1 focus-within:ring-gray-500 cursor-text">
+                <label className="inline-flex items-center gap-1.5 px-3 py-1 border border-gray-600 rounded-full bg-gray-700 field-focus-within cursor-text">
                   <span className="text-xs text-gray-500 shrink-0">Project Code</span>
                   <input
                     value={form.projectCode}
