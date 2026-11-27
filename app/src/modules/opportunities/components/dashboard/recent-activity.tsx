@@ -37,6 +37,7 @@ export function RecentActivity({ items, isAdmin, isReadOnly = false }: {
           onSort={(k, d) => { setSortKey(k); setSortDir(d) }}
           dateColumn={{ label: "Updated", sortKey: "updatedAt", getValue: (r) => r.updatedAt }}
           onRowClick={setOpenId}
+          allowComments={!isReadOnly}
         />
       </Panel>
 

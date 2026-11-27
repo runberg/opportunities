@@ -36,6 +36,7 @@ export function ProductionTable({
         onSort={(k, d) => { setSortKey(k); setSortDir(d) }}
         showPhases
         onRowClick={setOpenModalId}
+        allowComments={!isReadOnly}
       />
 
       <OpportunityModal

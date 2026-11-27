@@ -1,10 +1,11 @@
 "use client"
 
+import { CommentDialog } from "@/shared/components/ui/comment-dialog"
 import { Panel } from "@/shared/components/ui/panel"
 import { ClientName, type ClientIdentity } from "@/shared/components/clients/client-name"
 
-import { useRef, useEffect } from "react"
-import { Check, Minus, Truck } from "lucide-react"
+import { useRef, useEffect, useState } from "react"
+import { Check, MessageSquarePlus, Minus, Truck } from "lucide-react"
 import { cn, formatDate, statusAgeLabel, calendarAgeLabel, isCalendarDateStatus } from "@/shared/lib/utils"
 import { StatusBadge } from "@/modules/opportunities/components/status-badge"
 import { SortableHeader, type SortDir } from "@/shared/components/ui/sortable-header"
@@ -84,8 +85,7 @@ export function OpportunityDataTable({
   onToggleAll,
   allSelected = false,
   someSelected = false,
-  // Per-row action cell (comment button etc.)
-  renderAction,
+  allowComments = false,
   // Outer wrapper style: "page" adds bg/border/rounded, "modal" is bare
   variant = "page",
 }: {
@@ -104,16 +104,17 @@ export function OpportunityDataTable({
   readonly onToggleAll?: () => void
   readonly allSelected?: boolean
   readonly someSelected?: boolean
-  readonly renderAction?: (row: OppTableRow) => React.ReactNode
+  readonly allowComments?: boolean
   readonly variant?: "page" | "modal"
 }) {
+  const [commentTarget, setCommentTarget] = useState<OppTableRow | null>(null)
   const checkboxRef = useRef<HTMLInputElement>(null)
   useEffect(() => {
     if (checkboxRef.current) checkboxRef.current.indeterminate = someSelected && !allSelected
   }, [someSelected, allSelected])
 
   const hasDeliveryMarkers = rows.some((row) => (row._count?.deliveries ?? 0) > 0)
-  const hasActionsColumn = Boolean(renderAction) || hasDeliveryMarkers
+  const hasActionsColumn = allowComments || hasDeliveryMarkers
   const colCount =
     (selectable ? 1 : 0) + 4 /* id, title, customer, product */ +
     (dateColumn ? 1 : 0) + (showPhases ? 3 : 0) + 2 /* status, status since */ +
@@ -123,7 +124,7 @@ export function OpportunityDataTable({
 
   const Container = variant === "page" ? Panel : "div"
 
-  return (
+  const table = (
     <Container className="overflow-x-auto">
       <table className="w-full text-sm table-fixed">
         <thead className="bg-gray-50 border-b border-gray-200">
@@ -155,7 +156,7 @@ export function OpportunityDataTable({
             )}
             <SortableHeader label="Status" sortKey="status" currentSort={sortKey} currentDir={sortDir} onSort={onSort} className="w-32" />
             <SortableHeader label="Status Since" sortKey="statusSince" currentSort={sortKey} currentDir={sortDir} onSort={onSort} className="hidden xl:table-cell w-44" />
-            {hasActionsColumn && <th className={cn("px-2 py-3", renderAction && hasDeliveryMarkers ? "w-[4.5rem]" : "w-10")}>
+            {hasActionsColumn && <th className={cn("px-2 py-3", allowComments && hasDeliveryMarkers ? "w-[4.5rem]" : "w-10")}>
               <span className="sr-only">Delivery plans and actions</span>
             </th>}
           </tr>
@@ -251,7 +252,16 @@ export function OpportunityDataTable({
                           <Truck size={15} aria-hidden="true" />
                         </span>
                       )}
-                      {renderAction && <span className="inline-flex" onClick={(e) => e.stopPropagation()}>{renderAction(row)}</span>}
+                      {allowComments && (
+                        <button type="button" aria-label="Add comment" title="Add comment"
+                          className="rounded-md p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            setCommentTarget(row)
+                          }}>
+                          <MessageSquarePlus size={16} aria-hidden="true" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 )}
@@ -261,5 +271,16 @@ export function OpportunityDataTable({
         </tbody>
       </table>
     </Container>
+  )
+
+  return (
+    <>
+      {table}
+      <CommentDialog
+        target={allowComments ? commentTarget : null}
+        commentEndpoint={commentTarget ? `/api/opportunities/${commentTarget.id}/comments` : ""}
+        onClose={() => setCommentTarget(null)}
+      />
+    </>
   )
 }

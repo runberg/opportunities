@@ -2,11 +2,9 @@
 
 import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { MessageSquarePlus } from "lucide-react"
 import { sortRows, type SortDir } from "@/shared/components/ui/sortable-header"
 import { OpportunityDataTable, type OppTableRow, type DateColumn } from "@/modules/opportunities/components/opportunity-data-table"
 import { OpportunityModal } from "@/modules/opportunities/components/opportunity-modal"
-import { CommentDialog } from "@/modules/opportunities/components/comment-dialog"
 
 export interface OpportunityRow extends OppTableRow {
   quoteSentDate?: string | null
@@ -26,7 +24,6 @@ export function OppTableView({
 }) {
   const router = useRouter()
   const [openModalId, setOpenModalId] = useState<string | null>(initialOpenId ?? null)
-  const [commentTarget, setCommentTarget] = useState<OppTableRow | null>(null)
   const [sortKey, setSortKey] = useState(initialSortKey)
   const [sortDir, setSortDir] = useState<SortDir>("desc")
 
@@ -45,16 +42,7 @@ export function OppTableView({
         onSort={(k, d) => { setSortKey(k); setSortDir(d) }}
         dateColumn={dateColumn}
         onRowClick={setOpenModalId}
-        renderAction={isReadOnly ? undefined : (row) => (
-          <button
-            type="button"
-            onClick={() => setCommentTarget(row)}
-            className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-            title="Add comment"
-          >
-            <MessageSquarePlus size={16} />
-          </button>
-        )}
+        allowComments={!isReadOnly}
       />
 
       <OpportunityModal
@@ -62,12 +50,6 @@ export function OppTableView({
         onClose={() => { setOpenModalId(null); router.refresh() }}
         isAdmin={isAdmin}
         isReadOnly={isReadOnly}
-      />
-
-      <CommentDialog
-        target={commentTarget}
-        commentEndpoint={commentTarget ? `/api/opportunities/${commentTarget.id}/comments` : ""}
-        onClose={() => setCommentTarget(null)}
       />
     </>
   )
