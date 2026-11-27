@@ -36,7 +36,7 @@ export default async function ELsPage({
   const [opportunities, total] = await Promise.all([
     db.opportunity.findMany({
       where,
-      include: { client: linkedClientSelection(session), _count: { select: { comments: true, documents: true } } },
+      include: { client: linkedClientSelection(session), _count: { select: { comments: true, documents: true, deliveries: true } } },
       orderBy: { updatedAt: "desc" },
       skip: (page - 1) * perPage,
       take: perPage,

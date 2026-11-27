@@ -4,7 +4,7 @@ import { OppTableView } from "@/modules/opportunities/components/table"
 import type { OppTableRow } from "@/modules/opportunities/components/opportunity-data-table"
 
 export interface ELRow extends OppTableRow {
-  _count: { comments: number; documents: number }
+  _count: { comments: number; documents: number; deliveries: number }
 }
 
 export function ELTable({

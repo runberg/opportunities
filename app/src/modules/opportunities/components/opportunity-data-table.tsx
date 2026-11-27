@@ -4,7 +4,7 @@ import { Panel } from "@/shared/components/ui/panel"
 import { ClientName, type ClientIdentity } from "@/shared/components/clients/client-name"
 
 import { useRef, useEffect } from "react"
-import { Check, Minus } from "lucide-react"
+import { Check, Minus, Truck } from "lucide-react"
 import { cn, formatDate, statusAgeLabel, calendarAgeLabel, isCalendarDateStatus } from "@/shared/lib/utils"
 import { StatusBadge } from "@/modules/opportunities/components/status-badge"
 import { SortableHeader, type SortDir } from "@/shared/components/ui/sortable-header"
@@ -21,6 +21,7 @@ export interface OppTableRow {
   reference: string | null
   product: string | null
   status: string
+  _count?: { deliveries?: number }
   // Date fields (all optional — presence depends on which API query fetched the row)
   rfqDate?: string | null
   quoteSentDate?: string | null
@@ -111,10 +112,12 @@ export function OpportunityDataTable({
     if (checkboxRef.current) checkboxRef.current.indeterminate = someSelected && !allSelected
   }, [someSelected, allSelected])
 
+  const hasDeliveryMarkers = rows.some((row) => (row._count?.deliveries ?? 0) > 0)
+  const hasActionsColumn = Boolean(renderAction) || hasDeliveryMarkers
   const colCount =
     (selectable ? 1 : 0) + 4 /* id, title, customer, product */ +
     (dateColumn ? 1 : 0) + (showPhases ? 3 : 0) + 2 /* status, status since */ +
-    (renderAction ? 1 : 0)
+    (hasActionsColumn ? 1 : 0)
 
   const productClass = cn("hidden w-36", showPhases ? "lg:table-cell" : "md:table-cell")
 
@@ -152,7 +155,9 @@ export function OpportunityDataTable({
             )}
             <SortableHeader label="Status" sortKey="status" currentSort={sortKey} currentDir={sortDir} onSort={onSort} className="w-32" />
             <SortableHeader label="Status Since" sortKey="statusSince" currentSort={sortKey} currentDir={sortDir} onSort={onSort} className="hidden xl:table-cell w-44" />
-            {renderAction && <th className="w-10 px-2 py-3" />}
+            {hasActionsColumn && <th className={cn("px-2 py-3", renderAction && hasDeliveryMarkers ? "w-[4.5rem]" : "w-10")}>
+              <span className="sr-only">Delivery plans and actions</span>
+            </th>}
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100">
@@ -238,9 +243,16 @@ export function OpportunityDataTable({
                 <td className="px-4 py-3 text-gray-500 hidden xl:table-cell whitespace-nowrap">
                   {sinceLabel ?? "—"}
                 </td>
-                {renderAction && (
-                  <td className="px-2 py-3" onClick={(e) => e.stopPropagation()}>
-                    {renderAction(row)}
+                {hasActionsColumn && (
+                  <td className="px-2 py-3">
+                    <div className="flex items-center justify-end gap-1">
+                      {(row._count?.deliveries ?? 0) > 0 && (
+                        <span role="img" aria-label="Has planned deliveries" title="Has planned deliveries" className="inline-flex shrink-0 text-blue-500">
+                          <Truck size={15} aria-hidden="true" />
+                        </span>
+                      )}
+                      {renderAction && <span className="inline-flex" onClick={(e) => e.stopPropagation()}>{renderAction(row)}</span>}
+                    </div>
                   </td>
                 )}
               </tr>

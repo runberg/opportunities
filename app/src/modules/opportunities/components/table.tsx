@@ -10,7 +10,7 @@ import { CommentDialog } from "@/modules/opportunities/components/comment-dialog
 
 export interface OpportunityRow extends OppTableRow {
   quoteSentDate?: string | null
-  _count: { comments: number; documents: number }
+  _count: { comments: number; documents: number; deliveries: number }
 }
 
 export function OppTableView({

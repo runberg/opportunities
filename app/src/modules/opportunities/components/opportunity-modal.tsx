@@ -622,7 +622,7 @@ function ViewMode({ data, isAdmin, isReadOnly, onRefresh, onSilentRefresh, onCli
       )}
 
       <ExpectedDeliverySection key={data.id} opportunityId={data.id} deliveries={data.deliveries} unitTypes={data.deliveryUnitTypes}
-        advancePaymentDate={data.advancePaymentDate} canRecordShipments={isProduction}
+        advancePaymentDate={data.advancePaymentDate}
         isAdmin={isAdmin} isReadOnly={isReadOnly || data.isArchived} onRefresh={onSilentRefresh} />
 
       <div className={isProduction ? "mt-6" : undefined}>

@@ -8,7 +8,7 @@ import { OpportunityModal } from "@/modules/opportunities/components/opportunity
 
 export interface ProductionRow extends OppTableRow {
   deliveredDate?: string | null
-  _count: { comments: number; documents: number }
+  _count: { comments: number; documents: number; deliveries: number }
 }
 
 export function ProductionTable({

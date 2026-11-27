@@ -85,7 +85,7 @@ export async function GET(req: NextRequest) {
         elSignedSharedDate: true, elCountersignedDate: true,
         advancePaymentDate: true, fatPassedDate: true,
         satApplicable: true, satPassedDate: true, deliveredDate: true,
-        _count: { select: { comments: true, documents: true } },
+        _count: { select: { comments: true, documents: true, deliveries: true } },
       },
       orderBy,
       skip: (page - 1) * perPage,

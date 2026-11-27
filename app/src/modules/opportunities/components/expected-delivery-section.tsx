@@ -172,9 +172,8 @@ function DeliveryActions({ row, canDelete, onSave, onCancel, onDelete }: {
   )
 }
 
-export function ExpectedDeliverySection({ opportunityId, deliveries, unitTypes, advancePaymentDate, canRecordShipments, isReadOnly, isAdmin, onRefresh }: {
+export function ExpectedDeliverySection({ opportunityId, deliveries, unitTypes, advancePaymentDate, isReadOnly, isAdmin, onRefresh }: {
   readonly advancePaymentDate: string | null
-  readonly canRecordShipments: boolean
   readonly opportunityId: string
   readonly isAdmin: boolean
   readonly deliveries: DeliveryLine[]
@@ -318,7 +317,7 @@ export function ExpectedDeliverySection({ opportunityId, deliveries, unitTypes, 
               }
               return (
                 <ShipmentHistory key={delivery.id} delivery={delivery} opportunityId={opportunityId}
-                  remaining={delivery.quantity - delivered} isReadOnly={isReadOnly || !canRecordShipments || row.dirty}
+                  remaining={delivery.quantity - delivered} isReadOnly={isReadOnly || row.dirty}
                   isAdmin={isAdmin} onRefresh={onRefresh} planActions={actions} error={row.error}
                   rowClassName={rowGrid + " py-2"} summary={fields} />
               )

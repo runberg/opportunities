@@ -183,6 +183,7 @@ export default async function DashboardPage({
       select: {
         id: true, title: true, customer: true, internalId: true,
         reference: true, product: true, status: true, updatedAt: true,
+        _count: { select: { deliveries: true } },
         comments: {
           where: { system: true },
           orderBy: { createdAt: "desc" },
@@ -267,6 +268,7 @@ export default async function DashboardPage({
     reference: r.reference, product: r.product, status: r.status,
     updatedAt: r.updatedAt.toISOString(),
     lastChange: r.comments[0]?.content ?? null,
+    _count: r._count,
   }))
 
   let periodLabel: string
