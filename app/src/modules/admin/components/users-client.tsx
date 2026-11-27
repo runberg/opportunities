@@ -1,5 +1,6 @@
 "use client"
 
+import { Panel } from "@/shared/components/ui/panel"
 import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { formatDate, formatDateTime } from "@/shared/lib/utils"
@@ -245,7 +246,7 @@ export function AdminUsersClient({
       </div>
 
       {notice && <p role="status" className="mb-3 text-sm text-green-700">{notice}</p>}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
+      <Panel className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
@@ -310,7 +311,7 @@ export function AdminUsersClient({
             ))}
           </tbody>
         </table>
-      </div>
+      </Panel>
 
       {/* Create user dialog */}
       <Dialog open={showCreate} onClose={() => { if (!saving) setShowCreate(false) }} title="Add User">

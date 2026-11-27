@@ -1,5 +1,7 @@
 "use client"
 
+import { Panel } from "@/shared/components/ui/panel"
+import { PageHeader } from "@/shared/components/layout/page-header"
 import { useState } from "react"
 import { useSearchParams } from "next/navigation"
 import type { ClientIdentity } from "@/shared/components/clients/client-name"
@@ -78,24 +80,13 @@ export function AdhocClient({ initialAgreements, isAdmin, isReadOnly = false }: 
   return (
     <div>
       {refreshError && <p role="alert" className="text-sm text-red-600">{refreshError}</p>}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Ad Hoc Deliveries</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Manage ad hoc agreements and work packages
-          </p>
-        </div>
-        {!isReadOnly && (
-          <Button variant="ghost" size="sm" onClick={() => setShowForm(true)}>
-            + New Agreement
-          </Button>
-        )}
-      </div>
+      <PageHeader title="Ad Hoc Deliveries" description="Manage ad hoc agreements and work packages"
+        actions={!isReadOnly && <Button onClick={() => setShowForm(true)}>New Agreement</Button>} />
 
       {agreements.length === 0 ? (
-        <div className="flex flex-col items-center justify-center min-h-[40vh] text-center">
+        <Panel className="px-5 py-8 text-center">
           <p className="text-sm text-gray-400">No agreements yet. Create one to get started.</p>
-        </div>
+        </Panel>
       ) : (
         <AgreementTabs
           key={`${initialAgreementId ?? ""}:${initialDeliverableId ?? ""}`}

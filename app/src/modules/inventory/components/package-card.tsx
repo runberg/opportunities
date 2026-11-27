@@ -1,5 +1,6 @@
 "use client"
 
+import { Panel } from "@/shared/components/ui/panel"
 import { useState } from "react"
 import { ChevronDown, ChevronUp, Pencil, Trash2, Plus, Briefcase } from "lucide-react"
 import { Button } from "@/shared/components/ui/button"
@@ -80,7 +81,7 @@ export function PackageCard({ pkg, isReadOnly, isAdmin, onRefresh, onEditPackage
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5 mb-4">
+    <Panel className="mb-4 p-5">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <h2 className="text-base font-semibold text-gray-900 truncate">{pkg.name}</h2>
@@ -227,6 +228,6 @@ export function PackageCard({ pkg, isReadOnly, isAdmin, onRefresh, onEditPackage
       )}
 
       <FileViewerModals viewers={viewers} urlFor={(id) => `/api/inventory/packages/${id}/file`} />
-    </div>
+    </Panel>
   )
 }

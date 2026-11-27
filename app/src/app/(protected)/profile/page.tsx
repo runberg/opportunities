@@ -1,3 +1,4 @@
+import { PageHeader } from "@/shared/components/layout/page-header"
 import { requirePortalPageSession } from "@/shared/lib/page-access"
 import { db } from "@/shared/lib/db"
 import { ProfileClient } from "@/shared/components/profile/client"
@@ -14,10 +15,7 @@ export default async function ProfilePage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900">Profile</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Manage your account settings</p>
-      </div>
+      <PageHeader title="Profile" description="Manage your account settings" />
       <ProfileClient
         userName={user?.name ?? ""}
         userEmail={user?.email ?? ""}

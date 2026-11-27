@@ -25,14 +25,14 @@ export default async function ProtectedLayout({
         clientsAccess={session.user.clientsAccess}
         failedEmailCount={failedEmailCount}
       />
-      <main className="flex-1 ml-60 overflow-y-auto">
+      <main className="min-w-0 flex-1 ml-60 overflow-y-auto [scrollbar-gutter:stable]">
         <div className="sticky top-0 z-30 bg-white border-b border-gray-200 px-6 py-3 flex justify-center">
           <GlobalSearch
             isAdmin={isAdmin}
             isOpportunitiesReadOnly={isOpportunitiesReadOnly}
           />
         </div>
-        <div className="max-w-[1600px] mx-auto px-6 py-8">{children}</div>
+        <div className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6">{children}</div>
       </main>
     </div>
   )

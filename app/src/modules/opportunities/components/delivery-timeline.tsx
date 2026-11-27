@@ -1,5 +1,6 @@
 "use client"
 
+import { Panel } from "@/shared/components/ui/panel"
 import { useRef, useState } from "react"
 import Link from "next/link"
 import { CalendarDays, ChevronLeft, ChevronRight, Lock, Package } from "lucide-react"
@@ -57,7 +58,7 @@ function ProductOverview({ rows, onOpen }: {
   })).sort((a, b) => b.quantity - a.quantity || a.name.localeCompare(b.name))
   const total = products.reduce((sum, product) => sum + product.quantity, 0)
   return (
-    <section aria-labelledby="product-overview-heading" className="min-w-0 overflow-hidden rounded-xl border border-gray-200 bg-white">
+    <Panel aria-labelledby="product-overview-heading" className="overflow-hidden">
       <div className="flex items-center gap-2 border-b border-gray-200 bg-gray-50 px-3 py-2">
         <Package size={16} aria-hidden="true" className="text-blue-500" />
         <h2 id="product-overview-heading" className="text-sm font-semibold text-gray-900">Planned quantities by product</h2>
@@ -82,7 +83,7 @@ function ProductOverview({ rows, onOpen }: {
         ))}
         {products.length === 0 && <p className="self-center text-sm text-gray-600">No planned deliveries in this view.</p>}
       </div>
-    </section>
+    </Panel>
   )
 }
 
@@ -180,7 +181,7 @@ export function DeliveryTimeline({ rows, today }: { readonly rows: TimelineRow[]
   return (
     <>
       <ProductOverview rows={rows} onOpen={(rowId) => setSelected({ rowId })} />
-      <section aria-labelledby="delivery-calendar-heading" className="min-w-0 overflow-hidden rounded-xl border border-gray-200 bg-white">
+      <Panel aria-labelledby="delivery-calendar-heading" className="overflow-hidden">
         <div className="flex items-center gap-3 border-b border-gray-200 bg-gray-50 px-3 py-2">
           <span className="rounded-lg bg-violet-100 p-2.5 text-violet-700"><CalendarDays size={20} aria-hidden="true" /></span>
           <div>
@@ -235,7 +236,7 @@ export function DeliveryTimeline({ rows, today }: { readonly rows: TimelineRow[]
             <IconButton label="Next products" disabled={productPage === lastPage} onClick={() => setProductPage((page) => page + 1)}><ChevronRight size={15} /></IconButton>
           </div>
         )}
-      </section>
+      </Panel>
       <Dialog open={Boolean(selected)} onClose={() => setSelected(null)}
         title={modalTitle || "Delivery breakdown"} className="max-w-2xl">
         <OpportunityBreakdown lines={lines} />

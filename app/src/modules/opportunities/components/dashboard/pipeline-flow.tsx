@@ -1,5 +1,6 @@
 "use client"
 
+import { Panel } from "@/shared/components/ui/panel"
 import { useState, useEffect } from "react"
 import { ChevronRight, X, Search, Download, MessageSquarePlus } from "lucide-react"
 import { cn } from "@/shared/lib/utils"
@@ -82,13 +83,13 @@ export function PipelineFlow({
 
   return (
     <>
-      <div className="bg-gray-900 border border-gray-700 rounded-xl p-5 mb-6 overflow-x-auto">
+      <Panel className="mb-6 overflow-x-auto p-5">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Pipeline</p>
         <div className="flex items-stretch justify-between min-w-max w-full">
           {PIPELINE_GROUPS.map((group, gi) => (
             <div key={group.label} className="flex items-center gap-3">
               {gi > 0 && <ChevronRight size={20} className="text-gray-600 flex-shrink-0" />}
-              <div className="border border-gray-700 rounded-xl overflow-hidden">
+              <div className="bg-gray-50 border border-gray-200 rounded-xl overflow-hidden">
                 <div className={cn("h-1", group.accentClass)} />
                 <div className="px-4 pt-2.5 pb-4">
                   <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-3">
@@ -106,7 +107,7 @@ export function PipelineFlow({
                             onClick={() => open(step.status, step.label)}
                             className={cn(
                               "flex flex-col items-center px-3 py-2 rounded-lg min-w-[76px] transition-colors",
-                              count > 0 ? "hover:bg-gray-800 cursor-pointer" : "cursor-default"
+                              count > 0 ? "hover:bg-gray-100 cursor-pointer" : "cursor-default"
                             )}
                           >
                             <span className="text-xs text-gray-500 whitespace-nowrap">{step.label}</span>
@@ -123,7 +124,7 @@ export function PipelineFlow({
             </div>
           ))}
         </div>
-      </div>
+      </Panel>
 
       {activeStatus && (
         <StatusDrillModal

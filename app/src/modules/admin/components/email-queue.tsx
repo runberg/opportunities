@@ -1,5 +1,6 @@
 "use client"
 
+import { Panel } from "@/shared/components/ui/panel"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { RefreshCw, Trash2 } from "lucide-react"
@@ -107,7 +108,7 @@ export function EmailQueue({ emails }: { readonly emails: QueuedEmail[] }) {
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-6">
+    <Panel className="p-6">
       <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
         <h2 className="text-base font-semibold text-gray-900">Email Queue</h2>
         <div className="flex gap-2">
@@ -140,6 +141,6 @@ export function EmailQueue({ emails }: { readonly emails: QueuedEmail[] }) {
           ))}
         </ul>
       )}
-    </div>
+    </Panel>
   )
 }

@@ -1,5 +1,7 @@
 "use client"
 
+import { Panel } from "@/shared/components/ui/panel"
+import { PageHeader } from "@/shared/components/layout/page-header"
 import { useEffect, useState } from "react"
 import { createPortal } from "react-dom"
 import { Plus } from "lucide-react"
@@ -98,23 +100,13 @@ export function InventoryClient({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Inventory</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Track stock packages and item utilizations</p>
-        </div>
-        {!isReadOnly && (
-          <Button onClick={() => setFormTarget("new")}>
-            <Plus size={16} className="mr-1.5" />
-            New Package
-          </Button>
-        )}
-      </div>
+      <PageHeader title="Inventory" description="Track stock packages and item utilizations"
+        actions={!isReadOnly && <Button onClick={() => setFormTarget("new")}><Plus size={16} className="mr-1.5" />New Package</Button>} />
 
       {packages.length === 0 ? (
-        <div className="flex flex-col items-center justify-center min-h-[40vh] text-center">
+        <Panel className="px-5 py-8 text-center">
           <p className="text-sm text-gray-400">No inventory packages yet. Create one to get started.</p>
-        </div>
+        </Panel>
       ) : (
         packages.map((pkg) => (
           <PackageCard

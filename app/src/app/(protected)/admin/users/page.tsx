@@ -1,3 +1,4 @@
+import { PageHeader } from "@/shared/components/layout/page-header"
 import { db } from "@/shared/lib/db"
 import { requirePortalPageSession } from "@/shared/lib/page-access"
 import { redirect } from "next/navigation"
@@ -14,10 +15,7 @@ export default async function AdminUsersPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900">Users</h1>
-        <p className="text-sm text-gray-500 mt-0.5">{users.length} registered users</p>
-      </div>
+      <PageHeader title="Users" description={users.length + " registered users"} />
       <AdminUsersClient users={users.map((user) => ({ ...user, recoveryAdmin: user.email === process.env.ADMIN_EMAIL }))} currentUserId={session.user.id} />
     </div>
   )

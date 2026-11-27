@@ -1,5 +1,6 @@
 "use client"
 
+import { Panel } from "@/shared/components/ui/panel"
 import { ClientName, type ClientIdentity } from "@/shared/components/clients/client-name"
 
 import { useRef, useEffect } from "react"
@@ -117,11 +118,10 @@ export function OpportunityDataTable({
 
   const productClass = cn("hidden w-36", showPhases ? "lg:table-cell" : "md:table-cell")
 
+  const Container = variant === "page" ? Panel : "div"
+
   return (
-    <div className={cn(
-      "overflow-x-auto",
-      variant === "page" && "bg-white border border-gray-200 rounded-xl overflow-hidden"
-    )}>
+    <Container className="overflow-x-auto">
       <table className="w-full text-sm table-fixed">
         <thead className="bg-gray-50 border-b border-gray-200">
           <tr>
@@ -248,6 +248,6 @@ export function OpportunityDataTable({
           })}
         </tbody>
       </table>
-    </div>
+    </Container>
   )
 }

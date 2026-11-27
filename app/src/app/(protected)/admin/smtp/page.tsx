@@ -1,3 +1,4 @@
+import { PageHeader } from "@/shared/components/layout/page-header"
 import { db } from "@/shared/lib/db"
 import { requirePortalPageSession } from "@/shared/lib/page-access"
 import { redirect } from "next/navigation"
@@ -38,15 +39,10 @@ export default async function SmtpPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900">Email / SMTP</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Configure outgoing email for notifications</p>
-      </div>
-      <div className="space-y-6">
+      <PageHeader title="Email / SMTP" description="Configure outgoing email for notifications" />
+      <div className="space-y-5">
         <SmtpClient initial={initial} />
-        <div className="max-w-lg">
-          <EmailQueue emails={queuedEmails} />
-        </div>
+        <EmailQueue emails={queuedEmails} />
       </div>
     </div>
   )

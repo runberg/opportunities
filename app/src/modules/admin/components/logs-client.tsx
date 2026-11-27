@@ -1,5 +1,6 @@
 "use client"
 
+import { Panel } from "@/shared/components/ui/panel"
 import { useState } from "react"
 import type { SystemLogType } from "@prisma/client"
 import { useRouter, usePathname } from "next/navigation"
@@ -190,7 +191,7 @@ export function SystemLogClient({
       </div>
 
       {/* Table */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      <Panel className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
@@ -239,7 +240,7 @@ export function SystemLogClient({
             })}
           </tbody>
         </table>
-      </div>
+      </Panel>
 
       {/* Pagination */}
       {totalPages > 1 && (

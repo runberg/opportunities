@@ -1,3 +1,4 @@
+import { PageHeader } from "@/shared/components/layout/page-header"
 import { linkedClientSelection } from "@/modules/clients/data"
 import { Suspense } from "react"
 import { db } from "@/shared/lib/db"
@@ -64,12 +65,7 @@ export default async function ProductionPage({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Production</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{total} results</p>
-        </div>
-      </div>
+      <PageHeader title="Production" description={total + " results"} />
 
       <Suspense fallback={<div className="h-12 bg-gray-50 rounded-lg animate-pulse mb-6" />}>
         <FilterBar

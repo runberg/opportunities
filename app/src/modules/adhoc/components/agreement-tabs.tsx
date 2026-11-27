@@ -1,5 +1,6 @@
 "use client"
 
+import { viewTabClass } from "@/shared/components/ui/view-tab-styles"
 import { useState, useEffect } from "react"
 import { Upload } from "lucide-react"
 import { committedAgreementAmount } from "../amounts"
@@ -374,18 +375,14 @@ export function AgreementTabs({
 
   return (
     <div>
-      <div className="flex gap-1 border-b border-gray-200 mb-6">
+      <div className="mb-5 flex flex-wrap gap-2">
         {agreements.map((a, i) => (
           <button
             key={a.id}
             type="button"
             onClick={() => setActiveTab(i)}
-            className={[
-              "px-4 py-2 text-sm font-medium rounded-t-md border border-b-0 transition-colors",
-              i === activeTab
-                ? "bg-white border-gray-200 text-gray-900"
-                : "bg-gray-50 border-transparent text-gray-500 hover:text-gray-700",
-            ].join(" ")}
+            aria-pressed={i === activeTab}
+            className={viewTabClass(i === activeTab)}
           >
             {a.title}
             <span className={`ml-2 px-1.5 py-0.5 text-xs rounded-full ${STATUS_BADGE[a.status]}`}>

@@ -1,5 +1,6 @@
 "use client"
 
+import { viewTabClass } from "@/shared/components/ui/view-tab-styles"
 import { useState } from "react"
 import { DeleteOpportunitiesClient } from "@/modules/opportunities/components/delete-opportunities"
 import { DeleteAdhocClient } from "@/modules/admin/components/delete-adhoc"
@@ -17,18 +18,14 @@ export function DeletePageTabs() {
   return (
     <div>
       {/* Tab bar */}
-      <div className="flex gap-1 border-b border-gray-700 mb-6">
+      <div className="mb-5 flex flex-wrap gap-2">
         {TABS.map((tab) => (
           <button
             key={tab.id}
             type="button"
             onClick={() => setActiveTab(tab.id)}
-            className={[
-              "px-4 py-2 text-sm font-medium rounded-t-md border border-b-0 transition-colors",
-              activeTab === tab.id
-                ? "bg-gray-800 border-gray-700 text-gray-100"
-                : "bg-gray-900 border-transparent text-gray-400 hover:text-gray-200",
-            ].join(" ")}
+            aria-pressed={activeTab === tab.id}
+            className={viewTabClass(activeTab === tab.id)}
           >
             {tab.label}
           </button>

@@ -1,5 +1,6 @@
 "use client"
 
+import { Panel } from "@/shared/components/ui/panel"
 import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { sortRows, type SortDir } from "@/shared/components/ui/sortable-header"
@@ -26,8 +27,8 @@ export function RecentActivity({ items, isAdmin, isReadOnly = false }: {
 
   return (
     <>
-      <div>
-        <h2 className="text-sm font-semibold text-gray-700 mb-3">Recent Activity</h2>
+      <Panel className="p-5">
+        <h2 className="mb-4 text-base font-semibold text-gray-900">Recent Activity</h2>
         <OpportunityDataTable
           rows={sorted}
           emptyMessage="No recent activity."
@@ -37,7 +38,7 @@ export function RecentActivity({ items, isAdmin, isReadOnly = false }: {
           dateColumn={{ label: "Updated", sortKey: "updatedAt", getValue: (r) => r.updatedAt }}
           onRowClick={setOpenId}
         />
-      </div>
+      </Panel>
 
       <OpportunityModal
         opportunityId={openId}

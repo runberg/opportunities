@@ -1,5 +1,6 @@
 "use client"
 
+import { Panel } from "@/shared/components/ui/panel"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Pencil, Trash2 } from "lucide-react"
@@ -43,8 +44,8 @@ export function ProductsClient({ products }: { readonly products: UnitTypeOption
   }
 
   return (
-    <section className="max-w-xl rounded-xl border border-gray-200 bg-white p-5">
-      <form className="flex flex-wrap items-end gap-2" onSubmit={(event) => {
+    <Panel className="p-5">
+      <form className="flex max-w-2xl flex-wrap items-end gap-2" onSubmit={(event) => {
         event.preventDefault()
         void changeProduct(editing ? "PATCH" : "POST", editing?.id)
       }}>
@@ -74,6 +75,6 @@ export function ProductsClient({ products }: { readonly products: UnitTypeOption
           ))}
         </ul>
       )}
-    </section>
+    </Panel>
   )
 }

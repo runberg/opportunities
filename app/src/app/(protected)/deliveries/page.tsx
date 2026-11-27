@@ -1,3 +1,5 @@
+import { viewTabClass } from "@/shared/components/ui/view-tab-styles"
+import { PageHeader } from "@/shared/components/layout/page-header"
 import Link from "next/link"
 import { db } from "@/shared/lib/db"
 import { requireSectionAccess } from "@/shared/lib/page-access"
@@ -48,16 +50,13 @@ export default async function DeliveriesPage({ searchParams }: {
   const timeline = [...rows.values()].sort((a, b) => a.name.localeCompare(b.name))
 
   return (
-    <div className="mx-auto max-w-6xl space-y-3 rounded-2xl border border-gray-200 bg-gray-50 p-3 sm:p-4">
-      <div>
-        <h1 className="text-2xl font-semibold text-gray-900">Delivery</h1>
-        <p className="mt-1 text-sm text-gray-600">{view.description}</p>
-      </div>
+    <div className="space-y-4">
+      <PageHeader title="Delivery" description={view.description} className="mb-0" />
       <nav aria-label="Delivery views" className="flex flex-wrap gap-2">
         {DELIVERY_VIEWS.map((item) => (
           <Link key={item.id} href={`/deliveries?view=${item.id}`}
             aria-current={item.id === view.id ? "page" : undefined}
-            className={`rounded-lg border px-3 py-2 text-sm font-medium ${item.id === view.id ? "border-blue-500 bg-blue-100 text-blue-800" : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"}`}>
+            className={viewTabClass(item.id === view.id)}>
             {item.label} <span className="ml-1 text-xs tabular-nums">({counts.get(item.id) ?? 0})</span>
           </Link>
         ))}

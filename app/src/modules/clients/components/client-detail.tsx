@@ -1,5 +1,7 @@
 "use client"
 
+import { Panel } from "@/shared/components/ui/panel"
+import { PageHeader } from "@/shared/components/layout/page-header"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { OpportunityModal } from "@/modules/opportunities/components/opportunity-modal"
@@ -99,13 +101,11 @@ export function ClientDetail({
   )
 
   return (
-    <div className="max-w-5xl space-y-5">
-      <header className="space-y-2">
-        <Link href="/clients" className="text-sm text-blue-700 hover:underline">← Clients</Link>
-        <h1 className="text-2xl font-semibold text-gray-900" title={client.name}>{client.codeName}</h1>
-      </header>
+    <div className="space-y-4">
+      <PageHeader title={client.codeName} titleHint={client.name} className="mb-0"
+        actions={<Link href="/clients" className="text-sm text-blue-700 hover:underline">← Clients</Link>} />
       {canWrite && (
-        <section className="rounded-xl border border-gray-200 bg-white p-5 space-y-4">
+        <Panel className="space-y-4 p-5">
           <div className="flex items-center justify-between gap-4">
             <h2 className="text-lg font-semibold">Details</h2>
             {!editing && <Button onClick={() => setEditing(true)}>Edit details</Button>}
@@ -119,10 +119,10 @@ export function ClientDetail({
               <p className="whitespace-pre-wrap break-words text-gray-700">{client.description || "No description."}</p>
             </div>
           )}
-        </section>
+        </Panel>
       )}
 
-      <section className="rounded-xl border border-gray-200 bg-white p-5 space-y-4">
+      <Panel className="space-y-4 p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-semibold">Linked work</h2>
           {!picker && (
@@ -150,9 +150,9 @@ export function ClientDetail({
             ))}
           </ul>
         ) : <p className="text-sm text-gray-500">No linked work to show.</p>}
-      </section>
+      </Panel>
 
-      <section id="communications" className="scroll-mt-20 rounded-xl border border-gray-200 bg-white p-5 space-y-4">
+      <Panel id="communications" className="scroll-mt-20 space-y-4 p-5">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <h2 className="text-lg font-semibold">Communications</h2>
           {canWrite && !addingNote && <Button onClick={() => setAddingNote(true)}>Log communication</Button>}
@@ -175,7 +175,7 @@ export function ClientDetail({
             ))}
           </ul>
         ) : <p className="text-sm text-gray-500">No communications or linked work comments to show.</p>}
-      </section>
+      </Panel>
 
       {openWork?.kind === "opportunities" && (
         <OpportunityModal opportunityId={openWork.id} isAdmin={isAdmin} isReadOnly={!workAccess.opportunities} onClose={closeWork} />

@@ -1,5 +1,6 @@
 "use client"
 
+import { Panel } from "@/shared/components/ui/panel"
 import { useState, useEffect, useCallback, type ReactNode } from "react"
 import { Trash2 } from "lucide-react"
 import { Dialog } from "@/shared/components/ui/dialog"
@@ -217,7 +218,7 @@ function DeleteSection<T extends { id: string; title: string }>({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">{heading}</h3>
+        <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">{heading}</h3>
         {selectedCount > 0 && (
           <button
             type="button"
@@ -236,9 +237,9 @@ function DeleteSection<T extends { id: string; title: string }>({
         </div>
       )}
 
-      <div className="border border-gray-700 rounded-lg overflow-hidden">
+      <Panel className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-gray-800/50">
+          <thead className="bg-gray-50">
             <tr>
               <th className="px-4 py-2.5 w-10">
                 <input
@@ -260,11 +261,11 @@ function DeleteSection<T extends { id: string; title: string }>({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-700">
+          <tbody className="divide-y divide-gray-100">
             {loading && <TablePlaceholder colSpan={colSpan} message="Loading…" />}
             {!loading && rows.length === 0 && <TablePlaceholder colSpan={colSpan} message={`No ${pluralNoun} found.`} />}
             {!loading && rows.map((r) => (
-              <tr key={r.id} className="bg-gray-800 hover:bg-gray-700/50 transition-colors">
+              <tr key={r.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-4 py-3">
                   <input
                     type="checkbox"
@@ -283,7 +284,7 @@ function DeleteSection<T extends { id: string; title: string }>({
             ))}
           </tbody>
         </table>
-      </div>
+      </Panel>
 
       <DeleteConfirmDialog
         open={confirmOpen}
@@ -311,7 +312,7 @@ function DeleteAgreements() {
       singularNoun="agreement"
       pluralNoun="agreements"
       columns={[
-        { label: "Title", render: (r) => <span className="text-gray-100 font-medium">{r.title}</span> },
+        { label: "Title", render: (r) => <span className="text-gray-900 font-medium">{r.title}</span> },
         { label: "Status", render: (r) => <span className="text-gray-400">{AGREEMENT_STATUS_LABEL[r.status] ?? r.status}</span> },
         {
           label: "Work Pkgs", align: "right",
@@ -352,7 +353,7 @@ function DeleteWorkPackages() {
       singularNoun="work package"
       pluralNoun="work packages"
       columns={[
-        { label: "Title", render: (r) => <span className="text-gray-100 font-medium">{r.title}</span> },
+        { label: "Title", render: (r) => <span className="text-gray-900 font-medium">{r.title}</span> },
         { label: "Agreement", render: (r) => <span className="text-gray-400">{r.agreement.title}</span> },
         { label: "Status", render: (r) => <span className="text-gray-400">{DELIVERABLE_STATUS_LABEL[r.status] ?? r.status}</span> },
         { label: "Date", render: (r) => <span className="text-gray-400">{formatDate(r.createdAt)}</span> },

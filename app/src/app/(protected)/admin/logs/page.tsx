@@ -1,3 +1,4 @@
+import { PageHeader } from "@/shared/components/layout/page-header"
 import { db } from "@/shared/lib/db"
 import { requirePortalPageSession } from "@/shared/lib/page-access"
 import { redirect } from "next/navigation"
@@ -74,10 +75,7 @@ export default async function SystemLogPage({
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900">System Log</h1>
-        <p className="text-sm text-gray-500 mt-0.5">{total} entries</p>
-      </div>
+      <PageHeader title="System Log" description={total + " entries"} />
       <SystemLogClient
         logs={serialized}
         total={total}

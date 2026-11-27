@@ -1,5 +1,6 @@
 "use client"
 
+import { Panel } from "@/shared/components/ui/panel"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/shared/components/ui/button"
@@ -241,7 +242,7 @@ export function SmtpClient({ initial }: { readonly initial: InitialConfig | null
   const isConfigured = !!initial
 
   return (
-    <div className="space-y-6 max-w-lg">
+    <div className="space-y-5">
       {/* Master enable toggle */}
       <div className={cn(
         "border rounded-xl p-5 flex items-center justify-between gap-4",
@@ -272,9 +273,9 @@ export function SmtpClient({ initial }: { readonly initial: InitialConfig | null
       </div>
 
       {/* SMTP settings */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6">
+      <Panel className="p-6">
         <h2 className="text-base font-semibold text-gray-900 mb-5">SMTP Settings</h2>
-        <form onSubmit={handleSave} className="space-y-4">
+        <form onSubmit={handleSave} className="max-w-2xl space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2 sm:col-span-1">
               <Label htmlFor="smtp-host">Host *</Label>
@@ -404,13 +405,13 @@ export function SmtpClient({ initial }: { readonly initial: InitialConfig | null
 
           <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save Settings"}</Button>
         </form>
-      </div>
+      </Panel>
 
       {/* Test email */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6">
+      <Panel className="p-6">
         <h2 className="text-base font-semibold text-gray-900 mb-1">Send Test Email</h2>
         <p className="text-sm text-gray-500 mb-4">Verify your SMTP settings are working.</p>
-        <form onSubmit={handleTest} className="space-y-3">
+        <form onSubmit={handleTest} className="max-w-2xl space-y-3">
           <div>
             <Label htmlFor="test-to">Recipient Email *</Label>
             <Input id="test-to" type="email" value={testTo} onChange={(e) => { setTestTo(e.target.value); setTestMsg(null) }} placeholder="you@example.com" required />
@@ -428,7 +429,7 @@ export function SmtpClient({ initial }: { readonly initial: InitialConfig | null
             {!isConfigured && <p className="text-xs text-gray-400">Save SMTP settings first.</p>}
           </div>
         </form>
-      </div>
+      </Panel>
     </div>
   )
 }

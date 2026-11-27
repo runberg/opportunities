@@ -1,5 +1,6 @@
 "use client"
 
+import { Panel } from "@/shared/components/ui/panel"
 import { useState } from "react"
 import { Button } from "@/shared/components/ui/button"
 import { Input } from "@/shared/components/ui/input"
@@ -31,7 +32,7 @@ function NotificationSelect({
       value={value}
       disabled={disabled}
       onChange={(e) => onChange(e.target.value as NotificationLevel)}
-      className="rounded-lg border border-gray-600 bg-gray-700 px-3 py-1.5 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-60"
+      className="rounded-lg border border-gray-600 bg-gray-700 px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-60"
     >
       {LEVEL_OPTIONS.map((opt) => (
         <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -134,79 +135,79 @@ export function ProfileClient({
     setForm({ currentPassword: "", newPassword: "", confirmPassword: "" })
   }
 
-  const cardCls = "bg-gray-800 border border-gray-700 rounded-xl p-6"
-
   return (
-    <div className="space-y-6 max-w-md">
+    <div className="grid items-start gap-5 lg:grid-cols-2">
       {/* Account */}
-      <div className={cardCls}>
-        <h2 className="text-base font-semibold text-gray-100 mb-1">Account</h2>
+      <Panel className="p-5 lg:col-span-2">
+        <h2 className="text-base font-semibold text-gray-900 mb-1">Account</h2>
         <p className="text-sm text-gray-400">
-          Signed in as <span className="font-medium text-gray-300">{userEmail}</span>
+          Signed in as <span className="font-medium text-gray-700">{userEmail}</span>
         </p>
-      </div>
+      </Panel>
 
-      {/* Display Name */}
-      <div className={cardCls}>
-        <h2 className="text-base font-semibold text-gray-100 mb-1">Display Name</h2>
-        <p className="text-sm text-gray-400 mb-4">
-          Shown in comments, logs, and document uploads.
-        </p>
-        <form onSubmit={saveName} className="flex gap-2">
-          <Input
-            id="display-name"
-            value={name}
-            onChange={(e) => { setName(e.target.value); setNameMsg(null) }}
-            placeholder="Your name"
-            maxLength={100}
-            required
-            className="flex-1"
-          />
-          <Button type="submit" disabled={nameSaving || !name.trim() || name.trim() === initialName}>
-            {nameSaving ? "Saving…" : "Save"}
-          </Button>
-        </form>
-        {nameMsg && (
-          <p className={cn("text-xs mt-2", nameMsg.ok ? "text-green-600" : "text-red-600")}>{nameMsg.text}</p>
+      <div className="min-w-0 space-y-5">
+        {/* Display Name */}
+        <Panel className="p-5">
+          <h2 className="text-base font-semibold text-gray-900 mb-1">Display Name</h2>
+          <p className="text-sm text-gray-400 mb-4">
+            Shown in comments, logs, and document uploads.
+          </p>
+          <form onSubmit={saveName} className="flex gap-2">
+            <Input
+              id="display-name"
+              value={name}
+              onChange={(e) => { setName(e.target.value); setNameMsg(null) }}
+              placeholder="Your name"
+              maxLength={100}
+              required
+              className="flex-1"
+            />
+            <Button type="submit" disabled={nameSaving || !name.trim() || name.trim() === initialName}>
+              {nameSaving ? "Saving…" : "Save"}
+            </Button>
+          </form>
+          {nameMsg && (
+            <p className={cn("text-xs mt-2", nameMsg.ok ? "text-green-600" : "text-red-600")}>{nameMsg.text}</p>
+          )}
+        </Panel>
+
+        {/* Email notifications */}
+        {notificationsAvailable && (
+          <Panel className="p-5">
+            <h2 className="text-base font-semibold text-gray-900 mb-1">Email Notifications</h2>
+            <p className="text-sm text-gray-400 mb-4">
+              Choose when to receive email notifications for each module.
+            </p>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-4">
+                <Label htmlFor="notif-opp" className="text-gray-700 text-sm">Opportunities</Label>
+                <NotificationSelect
+                  id="notif-opp"
+                  value={oppNotif}
+                  disabled={notifSaving}
+                  onChange={(v) => saveNotification("opportunityNotifications", v)}
+                />
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <Label htmlFor="notif-adhoc" className="text-gray-700 text-sm">Ad hoc work packages</Label>
+                <NotificationSelect
+                  id="notif-adhoc"
+                  value={adhocNotif}
+                  disabled={notifSaving}
+                  onChange={(v) => saveNotification("adhocNotifications", v)}
+                />
+              </div>
+            </div>
+            {notifMsg && (
+              <p className={cn("text-xs mt-3", notifMsg.ok ? "text-green-500" : "text-red-400")}>{notifMsg.text}</p>
+            )}
+          </Panel>
         )}
       </div>
 
-      {/* Email notifications */}
-      {notificationsAvailable && (
-        <div className={cardCls}>
-          <h2 className="text-base font-semibold text-gray-100 mb-1">Email Notifications</h2>
-          <p className="text-sm text-gray-400 mb-4">
-            Choose when to receive email notifications for each module.
-          </p>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-4">
-              <Label htmlFor="notif-opp" className="text-gray-300 text-sm">Opportunities</Label>
-              <NotificationSelect
-                id="notif-opp"
-                value={oppNotif}
-                disabled={notifSaving}
-                onChange={(v) => saveNotification("opportunityNotifications", v)}
-              />
-            </div>
-            <div className="flex items-center justify-between gap-4">
-              <Label htmlFor="notif-adhoc" className="text-gray-300 text-sm">Ad hoc work packages</Label>
-              <NotificationSelect
-                id="notif-adhoc"
-                value={adhocNotif}
-                disabled={notifSaving}
-                onChange={(v) => saveNotification("adhocNotifications", v)}
-              />
-            </div>
-          </div>
-          {notifMsg && (
-            <p className={cn("text-xs mt-3", notifMsg.ok ? "text-green-500" : "text-red-400")}>{notifMsg.text}</p>
-          )}
-        </div>
-      )}
-
       {/* Change Password */}
-      <div className={cardCls}>
-        <h2 className="text-base font-semibold text-gray-100 mb-5">Change Password</h2>
+      <Panel className="p-5">
+        <h2 className="text-base font-semibold text-gray-900 mb-5">Change Password</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="current">Current Password *</Label>
@@ -224,7 +225,7 @@ export function ProfileClient({
           {success && <div className="text-sm text-green-400 bg-green-900/20 border border-green-800 rounded-lg px-3 py-2">{success}</div>}
           <Button type="submit" disabled={saving}>{saving ? "Changing…" : "Change Password"}</Button>
         </form>
-      </div>
+      </Panel>
     </div>
   )
 }

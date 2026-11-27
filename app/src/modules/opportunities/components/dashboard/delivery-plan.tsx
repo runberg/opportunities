@@ -1,5 +1,6 @@
 "use client"
 
+import { Panel } from "@/shared/components/ui/panel"
 import { DELIVERY_TYPE_LABELS, type DeliveryType } from "../../deliveries/types"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
@@ -48,7 +49,7 @@ export function DeliveryPlan({ items, isAdmin, isReadOnly = false }: {
 
   return (
     <>
-      <div className="bg-white border border-gray-200 rounded-xl p-6">
+      <Panel className="p-6">
         <h2 className="text-base font-semibold text-gray-900 mb-6">Delivery Plan</h2>
 
         {groups.length === 0 ? (
@@ -88,7 +89,7 @@ export function DeliveryPlan({ items, isAdmin, isReadOnly = false }: {
             ))}
           </div>
         )}
-      </div>
+      </Panel>
 
       <OpportunityModal
         opportunityId={openId}

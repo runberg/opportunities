@@ -1,3 +1,4 @@
+import { PageHeader } from "@/shared/components/layout/page-header"
 import { db } from "@/shared/lib/db"
 import { requireSectionAccess } from "@/shared/lib/page-access"
 import { PeriodSelector } from "@/modules/opportunities/components/dashboard/period-selector"
@@ -284,10 +285,7 @@ export default async function DashboardPage({
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-1">Welcome back, {session.user.name}</p>
-      </div>
+      <PageHeader title="Dashboard" description={<>Welcome back, {session.user.name}</>} />
 
       {/* Pipeline — current state, not time-bound */}
       <PipelineFlow counts={statusCounts} isAdmin={isAdmin} isReadOnly={isReadOnly} />
@@ -315,8 +313,6 @@ export default async function DashboardPage({
           isAdmin={isAdmin} isReadOnly={isReadOnly} />
 
         <DeliveryPlan items={deliveryItems} isAdmin={isAdmin} isReadOnly={isReadOnly} />
-
-        <div className="border-t border-gray-200" />
 
         <RecentActivity items={recentItems} isAdmin={isAdmin} isReadOnly={isReadOnly} />
       </div>

@@ -1,5 +1,7 @@
 "use client"
 
+import { Panel } from "@/shared/components/ui/panel"
+import { PageHeader } from "@/shared/components/layout/page-header"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Fragment, useState } from "react"
@@ -26,20 +28,18 @@ export function ClientsList({
   const suffix = preset ? `?${new URLSearchParams(preset)}` : ""
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-5">
-      <header className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold text-gray-900">{preset ? "Choose a client" : "Clients"}</h1>
-        {canWrite && !creating && <Button onClick={() => setCreating(true)}>Add client</Button>}
-      </header>
+    <div className="space-y-4">
+      <PageHeader title={preset ? "Choose a client" : "Clients"} className="mb-0"
+        actions={canWrite && !creating && <Button onClick={() => setCreating(true)}>Add client</Button>} />
       {creating && (
-        <section className="rounded-xl border border-gray-200 bg-white p-5">
+        <Panel className="p-5">
           <h2 className="mb-3 font-semibold">New client</h2>
           <ClientForm onCancel={() => setCreating(false)} onSaved={(id) => router.push(`/clients/${id}${suffix}`)} />
-        </section>
+        </Panel>
       )}
       <Input value={query} onChange={(event) => setQuery(event.target.value)} aria-label="Search clients"
         placeholder={canWrite ? "Search by code name or real name" : "Search by code name"} />
-      <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
+      <Panel className="overflow-x-auto">
         <table className="w-full border-collapse text-left text-sm">
           <thead className="border-b border-gray-200 bg-gray-50 text-xs font-semibold text-gray-500">
             <tr>
@@ -83,7 +83,7 @@ export function ClientsList({
             })}
           </tbody>
         </table>
-      </div>
+      </Panel>
     </div>
   )
 }
